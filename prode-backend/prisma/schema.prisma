@@ -53,6 +53,7 @@ model Usuario {
   torneosCreados       TorneoDeAmigos[] @relation("TorneosCreadosPorUsuario")
   invitacionesRecibidas Invitacion[]    @relation("InvitacionesRecibidas")
   invitacionesEnviadas Invitacion[]     @relation("InvitacionesEnviadas")
+  refreshTokens        RefreshToken[]
 
   @@index([hinchaDeEquipoId])
   @@index([email])
@@ -160,6 +161,17 @@ model Partido {
   @@index([estado])
   @@index([fecha])
   @@unique([proveedor, externalId])
+}
+
+model RefreshToken {
+  id          String    @id  // jti (JWT ID)
+  usuarioId   String
+  expiresAt   DateTime
+  revokedAt   DateTime?
+  createdAt   DateTime  @default(now())
+  usuario     Usuario   @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
+
+  @@index([usuarioId])
 }
 
 model Prediccion {

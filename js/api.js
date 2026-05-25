@@ -8,13 +8,16 @@ const API = (() => {
   const BASE_URL = (
     window.ONCE_METROS_CONFIG?.API_BASE_URL || 'http://localhost:3000/api'
   ).replace(/\/$/, '');
-  const TOKEN_KEY = 'once_metros_token';
   const USER_KEY = 'once_metros_user';
   const SELECTED_COMPETENCIA_KEY = 'once_metros_selected_competencia';
   const SELECTED_TORNEO_KEY = 'once_metros_selected_torneo';
 
+  // Access token lives in memory only — never touches localStorage or cookies
+  let accessToken = null;
+  let refreshPromise = null;
+
   function getToken() {
-    return localStorage.getItem(TOKEN_KEY);
+    return accessToken;
   }
 
   function getCurrentUser() {
@@ -25,12 +28,12 @@ const API = (() => {
   }
 
   function setSession({ token, usuario }) {
-    localStorage.setItem(TOKEN_KEY, token);
+    accessToken = token;
     localStorage.setItem(USER_KEY, JSON.stringify(usuario));
   }
 
   function clearSession() {
-    localStorage.removeItem(TOKEN_KEY);
+    accessToken = null;
     localStorage.removeItem(USER_KEY);
     localStorage.removeItem(SELECTED_TORNEO_KEY);
   }
@@ -77,11 +80,28 @@ const API = (() => {
     }
   }
 
-  async function request(endpoint, options = {}) {
-    const token = getToken();
+  async function doRefresh() {
+    if (refreshPromise) return refreshPromise;
+    refreshPromise = fetch(`${BASE_URL}/auth/refresh`, {
+      method: 'POST',
+      credentials: 'include',
+    }).then(async (res) => {
+      if (!res.ok) {
+        clearSession();
+        throw new Error('Sesión expirada');
+      }
+      const json = await res.json();
+      accessToken = json.token;
+    }).finally(() => {
+      refreshPromise = null;
+    });
+    return refreshPromise;
+  }
+
+  async function request(endpoint, options = {}, _isRetry = false) {
     const headers = {
       'Content-Type': 'application/json',
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
       ...(options.headers || {}),
     };
 
@@ -90,9 +110,19 @@ const API = (() => {
       res = await fetch(`${BASE_URL}${endpoint}`, {
         ...options,
         headers,
+        credentials: 'include',
       });
     } catch {
       throw new Error('No se pudo conectar con el backend. Revisá que el servidor esté levantado.');
+    }
+
+    if (res.status === 401 && !_isRetry) {
+      try {
+        await doRefresh();
+      } catch {
+        throw new Error('Sesión expirada. Iniciá sesión de nuevo.');
+      }
+      return request(endpoint, options, true);
     }
 
     if (!res.ok) {
@@ -253,8 +283,16 @@ const API = (() => {
     return response.usuario;
   }
 
-  function logout() {
+  async function logout() {
     clearSession();
+    try {
+      await fetch(`${BASE_URL}/auth/logout`, {
+        method: 'POST',
+        credentials: 'include',
+      });
+    } catch {
+      // Best effort — local state already cleared
+    }
   }
 
   async function getLeaderboard({ torneoId, limit = 50 } = {}) {

@@ -18,6 +18,7 @@ function buildCorsOptions(corsOriginsRaw) {
       );
     }
     return {
+      credentials: true,
       origin(origin, callback) {
         if (!origin) return callback(null, true);
         if (NODE_ENV !== "production") return callback(null, true);
@@ -27,6 +28,7 @@ function buildCorsOptions(corsOriginsRaw) {
   }
 
   return {
+    credentials: true,
     origin(origin, callback) {
       if (!origin) return callback(null, true);
       if (allowed.includes(origin)) return callback(null, true);

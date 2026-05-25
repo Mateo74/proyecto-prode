@@ -14,6 +14,7 @@ const router = Router();
 router.post("/register", validate({ body: registerBody }), asyncRoute(controller.register));
 router.post("/login", validate({ body: loginBody }), asyncRoute(controller.login));
 router.post("/google", validate({ body: googleLoginBody }), asyncRoute(controller.googleLogin));
+router.post("/refresh", asyncRoute(controller.refresh));
 router.post("/logout", asyncRoute(controller.logout));
 router.get("/me", requireAuth, asyncRoute(controller.me));
 

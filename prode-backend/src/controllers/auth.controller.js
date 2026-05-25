@@ -1,3 +1,4 @@
+const crypto = require("crypto");
 const { prisma } = require("../config/prisma");
 const env = require("../config/env");
 const { httpError } = require("../utils/httpError");
@@ -5,12 +6,39 @@ const {
   hashPassword,
   normalizeEmail,
   normalizeUsername,
-  signAuthToken,
+  parseTTLtoMs,
+  signAccessToken,
+  signRefreshToken,
+  verifyRefreshToken,
   verifyGoogleIdToken,
   verifyPassword,
 } =
   require("../services/auth.service");
 const { usuarioResponse } = require("../serializers/usuario.serializer");
+
+const REFRESH_COOKIE = "refresh_token";
+const REFRESH_MAX_AGE_MS = parseTTLtoMs(env.JWT_TTL);
+
+function refreshCookieOptions() {
+  return {
+    httpOnly: true,
+    secure: env.COOKIE_SECURE,
+    sameSite: env.COOKIE_SAME_SITE,
+    maxAge: REFRESH_MAX_AGE_MS,
+    path: "/api/auth",
+  };
+}
+
+async function issueTokens(res, usuario) {
+  const jti = crypto.randomUUID();
+  const expiresAt = new Date(Date.now() + REFRESH_MAX_AGE_MS);
+  await prisma.refreshToken.create({
+    data: { id: jti, usuarioId: usuario.id, expiresAt },
+  });
+  const accessToken = signAccessToken(usuario);
+  res.cookie(REFRESH_COOKIE, signRefreshToken(jti), refreshCookieOptions());
+  return accessToken;
+}
 
 function baseUsernameFromGoogleProfile({ email, name }) {
   const candidate = String(email || name || "google")
@@ -54,10 +82,8 @@ async function register(req, res) {
     include: { hinchaDe: true },
   });
 
-  res.status(201).json({
-    token: signAuthToken(usuario),
-    usuario: usuarioResponse(usuario),
-  });
+  const token = await issueTokens(res, usuario);
+  res.status(201).json({ token, usuario: usuarioResponse(usuario) });
 }
 
 async function login(req, res) {
@@ -75,7 +101,8 @@ async function login(req, res) {
     throw httpError(401, "Credenciales invalidas");
   }
 
-  res.json({ token: signAuthToken(usuario), usuario: usuarioResponse(usuario) });
+  const token = await issueTokens(res, usuario);
+  res.json({ token, usuario: usuarioResponse(usuario) });
 }
 
 async function googleLogin(req, res) {
@@ -139,7 +166,42 @@ async function googleLogin(req, res) {
     });
   }
 
-  res.json({ token: signAuthToken(usuario), usuario: usuarioResponse(usuario) });
+  const token = await issueTokens(res, usuario);
+  res.json({ token, usuario: usuarioResponse(usuario) });
+}
+
+async function refresh(req, res) {
+  const rawToken = req.cookies?.[REFRESH_COOKIE];
+  if (!rawToken) throw httpError(401, "Sesión expirada");
+
+  let payload;
+  try {
+    payload = verifyRefreshToken(rawToken);
+  } catch {
+    res.clearCookie(REFRESH_COOKIE, { path: "/api/auth" });
+    throw httpError(401, "Sesión inválida o expirada");
+  }
+
+  const stored = await prisma.refreshToken.findUnique({ where: { id: payload.jti } });
+  if (!stored || stored.revokedAt || stored.expiresAt < new Date()) {
+    res.clearCookie(REFRESH_COOKIE, { path: "/api/auth" });
+    throw httpError(401, "Sesión inválida o expirada");
+  }
+
+  const usuario = await prisma.usuario.findUnique({
+    where: { id: stored.usuarioId },
+    include: { hinchaDe: true },
+  });
+
+  await prisma.refreshToken.delete({ where: { id: stored.id } });
+
+  if (!usuario || !usuario.activo) {
+    res.clearCookie(REFRESH_COOKIE, { path: "/api/auth" });
+    throw httpError(401, "Usuario no valido");
+  }
+
+  const token = await issueTokens(res, usuario);
+  res.json({ token });
 }
 
 async function me(req, res) {
@@ -147,7 +209,17 @@ async function me(req, res) {
 }
 
 async function logout(req, res) {
+  const rawToken = req.cookies?.[REFRESH_COOKIE];
+  if (rawToken) {
+    try {
+      const payload = verifyRefreshToken(rawToken);
+      await prisma.refreshToken.deleteMany({ where: { id: payload.jti } });
+    } catch {
+      // Ignore invalid token on logout
+    }
+  }
+  res.clearCookie(REFRESH_COOKIE, { path: "/api/auth" });
   res.json({ ok: true });
 }
 
-module.exports = { googleLogin, login, logout, me, register };
+module.exports = { googleLogin, login, logout, me, refresh, register };

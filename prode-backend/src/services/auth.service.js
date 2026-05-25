@@ -24,12 +24,32 @@ async function verifyPassword(password, hash) {
   return bcrypt.compare(password, hash);
 }
 
-function signAuthToken(usuario) {
+function parseTTLtoMs(ttl) {
+  const units = { s: 1000, m: 60_000, h: 3_600_000, d: 86_400_000 };
+  const match = /^(\d+)([smhd]?)$/.exec(String(ttl).trim());
+  if (!match) throw new Error(`Invalid TTL format: ${ttl}`);
+  const unit = match[2] || "s";
+  return Number(match[1]) * units[unit];
+}
+
+function signAccessToken(usuario) {
   return jwt.sign(
     { sub: usuario.id, username: usuario.username, rol: usuario.rol },
     env.JWT_SECRET,
-    { expiresIn: env.JWT_TTL },
+    { expiresIn: env.JWT_ACCESS_TTL },
   );
+}
+
+function signAuthToken(usuario) {
+  return signAccessToken(usuario);
+}
+
+function signRefreshToken(jti) {
+  return jwt.sign({ jti }, env.JWT_SECRET, { expiresIn: env.JWT_TTL });
+}
+
+function verifyRefreshToken(token) {
+  return jwt.verify(token, env.JWT_SECRET);
 }
 
 function verifyAuthToken(token) {
@@ -56,8 +76,12 @@ module.exports = {
   hashPassword,
   normalizeEmail,
   normalizeUsername,
+  parseTTLtoMs,
+  signAccessToken,
   signAuthToken,
+  signRefreshToken,
   verifyGoogleIdToken,
   verifyAuthToken,
+  verifyRefreshToken,
   verifyPassword,
 };

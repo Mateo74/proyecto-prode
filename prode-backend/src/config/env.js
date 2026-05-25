@@ -15,13 +15,20 @@ function getJwtSecret() {
   return "dev-insecure-jwt-secret-change-me";
 }
 
+const isProd = process.env.NODE_ENV === "production";
+
 const env = {
   PORT: Number(process.env.PORT) || 3000,
   NODE_ENV: process.env.NODE_ENV || "development",
   DATABASE_URL: required("DATABASE_URL"),
   GOOGLE_CLIENT_ID: process.env.GOOGLE_CLIENT_ID || "",
   JWT_SECRET: getJwtSecret(),
+  JWT_ACCESS_TTL: process.env.JWT_ACCESS_TTL || "15m",
   JWT_TTL: process.env.JWT_TTL || "7d",
+  COOKIE_SECURE: process.env.COOKIE_SECURE !== undefined
+    ? process.env.COOKIE_SECURE === "true"
+    : isProd,
+  COOKIE_SAME_SITE: process.env.COOKIE_SAME_SITE || (isProd ? "None" : "Lax"),
   CORS_ORIGINS: process.env.CORS_ORIGINS || "",
   FOOTBAL_DATA_TOKEN: process.env.FOOTBAL_DATA_TOKEN || process.env.FOOTBALL_DATA_TOKEN || "",
   FOOTBALL_DATA_BASE_URL: process.env.FOOTBALL_DATA_BASE_URL || "https://api.football-data.org/v4",
