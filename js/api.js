@@ -12,7 +12,9 @@ const API = (() => {
   const SELECTED_COMPETENCIA_KEY = 'once_metros_selected_competencia';
   const SELECTED_TORNEO_KEY = 'once_metros_selected_torneo';
 
-  // Access token lives in memory only — never touches localStorage or cookies
+  // Access token lives in memory only — never touches any client-readable storage.
+  // The HttpOnly refresh cookie is the only persistent credential.
+  // restoreSession() recovers the token from the cookie on every page load.
   let accessToken = null;
   let refreshPromise = null;
 
@@ -96,6 +98,18 @@ const API = (() => {
       refreshPromise = null;
     });
     return refreshPromise;
+  }
+
+  async function restoreSession() {
+    if (accessToken) return getCurrentUser();
+    if (!getCurrentUser()) return null;
+    try {
+      await doRefresh();
+      return getCurrentUser();
+    } catch {
+      clearSession();
+      return null;
+    }
   }
 
   async function request(endpoint, options = {}, _isRetry = false) {
@@ -413,6 +427,7 @@ const API = (() => {
     me,
     rechazarInvitacion,
     register,
+    restoreSession,
     revocarInviteLink,
     savePrediction,
     setSelectedCompetencia,

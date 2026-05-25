@@ -4,7 +4,8 @@
  * la carga de datos reales desde el backend.
  */
 
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', async () => {
+  await API.restoreSession();
   updateAuthNav();
   initAccountMenu();
   const page = detectPage();
