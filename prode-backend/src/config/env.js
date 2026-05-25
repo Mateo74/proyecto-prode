@@ -23,6 +23,9 @@ const env = {
   JWT_SECRET: getJwtSecret(),
   JWT_TTL: process.env.JWT_TTL || "7d",
   CORS_ORIGINS: process.env.CORS_ORIGINS || "",
+  FOOTBAL_DATA_TOKEN: process.env.FOOTBAL_DATA_TOKEN || process.env.FOOTBALL_DATA_TOKEN || "",
+  FOOTBALL_DATA_BASE_URL: process.env.FOOTBALL_DATA_BASE_URL || "https://api.football-data.org/v4",
+  FOOTBALL_DATA_SYNC_ENABLED: process.env.FOOTBALL_DATA_SYNC_ENABLED !== "false",
 };
 
 module.exports = env;

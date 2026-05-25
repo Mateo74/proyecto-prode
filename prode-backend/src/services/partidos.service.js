@@ -87,7 +87,7 @@ async function cerrar(partidoId, body) {
 
     if (!partido) throw httpError(404, "Partido no encontrado");
 
-    if (partido.estado === "TERMINADO") {
+    if (partido.estado === "TERMINADO" && partido.resultadoConfirmado) {
       const mismoResultado =
         partido.golesEquipo1 === golesEquipo1 &&
         partido.golesEquipo2 === golesEquipo2;
@@ -100,8 +100,17 @@ async function cerrar(partidoId, body) {
     }
 
     const update = await tx.partido.updateMany({
-      where: { id: partidoId, estado: { not: "TERMINADO" } },
-      data: { estado: "TERMINADO", golesEquipo1, golesEquipo2 },
+      where: { id: partidoId },
+      data: {
+        estado: "TERMINADO",
+        golesEquipo1,
+        golesEquipo2,
+        minutoActual: null,
+        fechaInicioReal: partido.fechaInicioReal || partido.fecha,
+        ultimaActualizacionEstado: new Date(),
+        resultadoConfirmado: true,
+        confirmacionesResultado: 2,
+      },
     });
 
     if (update.count === 0) {

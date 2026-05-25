@@ -20,7 +20,11 @@ const Predictions = (() => {
    * Usa TEAM_COLORS si está disponible; si no, genera un color
    * determinista a partir del nombre.
    */
-  function teamCrest(teamName) {
+  function teamCrest(teamName, crestUrl) {
+    if (crestUrl) {
+      return `<img class="team__badge team__badge-img" src="${crestUrl}" alt="" loading="lazy">`;
+    }
+
     const data = (typeof TEAM_COLORS !== 'undefined') && TEAM_COLORS[teamName];
 
     if (!data) {
@@ -93,10 +97,19 @@ const Predictions = (() => {
   function score2De(match) { return match.scoreEquipo2 ?? match.scoreVisitante; }
   function predScore1De(pred) { return pred.scoreEquipo1 ?? pred.scoreLocal; }
   function predScore2De(pred) { return pred.scoreEquipo2 ?? pred.scoreVisitante; }
+  function scoreLabel(value) { return value == null ? '-' : value; }
+  function minuteLabel(match) {
+    if (match.estado === 'finalizado') return 'FINAL';
+    if (match.estado === 'en-vivo') return match.minutoActual ? `${match.minutoActual}'` : 'EN VIVO';
+    if (match.estado === 'suspendido') return 'Suspendido';
+    if (match.estado === 'cancelado') return 'Cancelado';
+    return '';
+  }
 
   function createMatchCard(match) {
     if (match.estado === 'en-vivo')    return createLiveCard(match);
     if (match.estado === 'finalizado') return createFinishedCard(match);
+    if (match.estado === 'suspendido' || match.estado === 'cancelado') return createStatusCard(match);
     return createUpcomingCard(match);
   }
 
@@ -108,7 +121,9 @@ const Predictions = (() => {
     const initialEquipo1 = match.userPred?.scoreEquipo1 ?? 0;
     const initialEquipo2 = match.userPred?.scoreEquipo2 ?? 0;
     const hasSavedPrediction = Boolean(match.userPred);
+    const editable = match.prediccionEditable !== false;
     if (hasSavedPrediction) card.classList.add('pred-saved');
+    if (!editable) card.classList.add('is-locked');
 
     const fecha = new Date(match.fecha).toLocaleString('es-ES', {
       weekday: 'short', day: 'numeric', month: 'short',
@@ -124,36 +139,38 @@ const Predictions = (() => {
 
       <div class="match-card__body">
         <div class="team">
-          ${teamCrest(equipo1De(match))}
+          ${teamCrest(equipo1De(match), match.equipo1EscudoUrl)}
           <div class="team__name">${equipo1De(match)}</div>
         </div>
 
         <div class="score-input">
           <div class="score-spinner" data-side="equipo1">
-            <button class="spin-btn spin-inc" aria-label="Mas goles equipo 1">+</button>
+            <button class="spin-btn spin-inc" aria-label="Más goles equipo 1" ${editable ? '' : 'disabled'}>+</button>
             <span class="spin-value" aria-live="polite">${initialEquipo1}</span>
-            <button class="spin-btn spin-dec" aria-label="Menos goles equipo 1">−</button>
+            <button class="spin-btn spin-dec" aria-label="Menos goles equipo 1" ${editable ? '' : 'disabled'}>−</button>
           </div>
           <div class="score-sep">:</div>
           <div class="score-spinner" data-side="equipo2">
-            <button class="spin-btn spin-inc" aria-label="Mas goles equipo 2">+</button>
+            <button class="spin-btn spin-inc" aria-label="Más goles equipo 2" ${editable ? '' : 'disabled'}>+</button>
             <span class="spin-value" aria-live="polite">${initialEquipo2}</span>
-            <button class="spin-btn spin-dec" aria-label="Menos goles equipo 2">−</button>
+            <button class="spin-btn spin-dec" aria-label="Menos goles equipo 2" ${editable ? '' : 'disabled'}>−</button>
           </div>
         </div>
 
         <div class="team">
-          ${teamCrest(equipo2De(match))}
+          ${teamCrest(equipo2De(match), match.equipo2EscudoUrl)}
           <div class="team__name">${equipo2De(match)}</div>
         </div>
       </div>
 
-      <button class="btn-save" aria-label="Guardar predicción para ${equipo1De(match)} vs ${equipo2De(match)}">
-        ${hasSavedPrediction ? 'Actualizar predicción' : 'Guardar predicción'}
+      <button class="btn-save" ${editable ? '' : 'disabled'} aria-label="Guardar predicción para ${equipo1De(match)} vs ${equipo2De(match)}">
+        ${editable ? (hasSavedPrediction ? 'Actualizar predicción' : 'Guardar predicción') : 'Predicción cerrada'}
       </button>
     `;
 
     state.set(match.id, { equipo1: initialEquipo1, equipo2: initialEquipo2, saved: hasSavedPrediction });
+
+    if (!editable) return card;
 
     card.querySelectorAll('.score-spinner').forEach(spinner => {
       const side  = spinner.dataset.side;
@@ -188,24 +205,26 @@ const Predictions = (() => {
 
       <div class="match-card__body">
         <div class="team">
-          ${teamCrest(equipo1De(match))}
+          ${teamCrest(equipo1De(match), match.equipo1EscudoUrl)}
           <div class="team__name">${equipo1De(match)}</div>
         </div>
 
         <div class="match-score">
           <div class="match-score__nums">
-            <span class="match-score__num">${score1De(match)}</span>
+            <span class="match-score__num">${scoreLabel(score1De(match))}</span>
             <span class="match-score__sep">:</span>
-            <span class="match-score__num">${score2De(match)}</span>
+            <span class="match-score__num">${scoreLabel(score2De(match))}</span>
           </div>
-          <span class="match-score__minute">${match.minuto}</span>
+          <span class="match-score__minute">${minuteLabel(match)}</span>
         </div>
 
         <div class="team">
-          ${teamCrest(equipo2De(match))}
+          ${teamCrest(equipo2De(match), match.equipo2EscudoUrl)}
           <div class="team__name">${equipo2De(match)}</div>
         </div>
       </div>
+
+      ${predictionSummary(match)}
     `;
 
     return card;
@@ -227,9 +246,10 @@ const Predictions = (() => {
     if (pred) {
       const isExact    = pred.exacto === true ||
         (predScore1De(pred) === score1De(match) && predScore2De(pred) === score2De(match));
-      const badgeCls   = isExact ? 'exact' : pred.estado === 'acierto' ? 'hit' : 'miss';
-      const badgeLabel = isExact ? 'Exacto' : pred.estado === 'acierto' ? 'Acierto' : 'Fallo';
-      const ptsLabel   = pred.puntos > 0 ? `+${pred.puntos} pts` : '—';
+      const pending = match.resultadoConfirmado === false || pred.estado === 'pendiente';
+      const badgeCls   = pending ? 'pending' : isExact ? 'exact' : pred.estado === 'acierto' ? 'hit' : 'miss';
+      const badgeLabel = pending ? 'A confirmar' : isExact ? 'Exacto' : pred.estado === 'acierto' ? 'Acierto' : 'Fallo';
+      const ptsLabel   = pending ? 'pts pendientes' : pred.puntos > 0 ? `+${pred.puntos} pts` : '—';
 
       feedbackHtml = `
         <div class="match-feedback ${badgeCls}">
@@ -254,20 +274,21 @@ const Predictions = (() => {
 
       <div class="match-card__body">
         <div class="team">
-          ${teamCrest(equipo1De(match))}
+          ${teamCrest(equipo1De(match), match.equipo1EscudoUrl)}
           <div class="team__name">${equipo1De(match)}</div>
         </div>
 
         <div class="match-score">
           <div class="match-score__nums">
-            <span class="match-score__num">${score1De(match)}</span>
+            <span class="match-score__num">${scoreLabel(score1De(match))}</span>
             <span class="match-score__sep">–</span>
-            <span class="match-score__num">${score2De(match)}</span>
+            <span class="match-score__num">${scoreLabel(score2De(match))}</span>
           </div>
+          <span class="match-score__minute">${minuteLabel(match)}</span>
         </div>
 
         <div class="team">
-          ${teamCrest(equipo2De(match))}
+          ${teamCrest(equipo2De(match), match.equipo2EscudoUrl)}
           <div class="team__name">${equipo2De(match)}</div>
         </div>
       </div>
@@ -278,7 +299,48 @@ const Predictions = (() => {
     return card;
   }
 
+  function createStatusCard(match) {
+    const card = document.createElement('div');
+    card.classList.add('match-card', match.estado === 'cancelado' ? 'is-cancelled' : 'is-suspended');
+    card.dataset.matchId = match.id;
+    const label = match.estado === 'cancelado' ? 'Cancelado' : 'Suspendido';
+
+    card.innerHTML = `
+      <div class="match-card__meta">
+        <span class="badge badge-league">${match.liga}</span>
+        <span class="badge badge-stopped">${label}</span>
+      </div>
+
+      <div class="match-card__body">
+        <div class="team">
+          ${teamCrest(equipo1De(match), match.equipo1EscudoUrl)}
+          <div class="team__name">${equipo1De(match)}</div>
+        </div>
+        <div class="match-score">
+          <span class="match-score__minute">${label}</span>
+        </div>
+        <div class="team">
+          ${teamCrest(equipo2De(match), match.equipo2EscudoUrl)}
+          <div class="team__name">${equipo2De(match)}</div>
+        </div>
+      </div>
+      ${predictionSummary(match)}
+    `;
+
+    return card;
+  }
+
   // ─── Helpers ──────────────────────────────────────────────────────
+
+  function predictionSummary(match) {
+    if (!match.userPred) return '';
+    return `
+      <div class="match-feedback pending">
+        <span class="match-feedback__label">Tu predicción:</span>
+        <span class="match-feedback__score">${predScore1De(match.userPred)}–${predScore2De(match.userPred)}</span>
+      </div>
+    `;
+  }
 
   function animateValue(el, val) {
     el.textContent = val;

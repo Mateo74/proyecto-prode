@@ -14,11 +14,15 @@ function pickScores(body) {
 }
 
 function assertEditable(partido) {
-  if (partido.estado === "TERMINADO") {
-    throw httpError(409, "No se puede modificar la prediccion de un partido terminado");
+  const now = new Date();
+  const inicio = partido.fechaInicioReal || partido.fecha;
+
+  if (partido.estado !== "FUTURO" && partido.estado !== "PROGRAMADO") {
+    throw httpError(409, "No se puede modificar la predicción de un partido que ya empezó");
   }
-  if (partido.estado === "EN_JUEGO") {
-    throw httpError(409, "No se puede modificar la prediccion de un partido en juego");
+
+  if (inicio && now >= inicio) {
+    throw httpError(409, "No se puede modificar la predicción después del inicio del partido");
   }
 }
 

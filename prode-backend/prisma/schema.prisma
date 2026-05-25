@@ -62,10 +62,16 @@ model Competencia {
   id                   String           @id @default(cuid())
   nombre               String
   slug                 String           @unique
+  externalId           String?
+  proveedor            String?
+  visible              Boolean          @default(false)
   fechaCreacion        DateTime         @default(now())
   fechaActualizacion   DateTime         @updatedAt
   partidos             Partido[]
   torneosDeAmigos      TorneoDeAmigos[]
+
+  @@unique([proveedor, externalId])
+  @@index([visible])
 }
 
 model TorneoDeAmigos {
@@ -111,11 +117,16 @@ model Equipo {
   tipo                 TipoEquipo @default(CLUB)
   slug                 String    @unique
   abreviatura          String?
+  externalId           String?
+  proveedor            String?
+  escudoUrl            String?
   fechaInsercion       DateTime  @default(now())
   fechaActualizacion   DateTime  @updatedAt
   partidosComoEquipo1  Partido[] @relation("PartidoEquipo1")
   partidosComoEquipo2  Partido[] @relation("PartidoEquipo2")
   hinchas              Usuario[] @relation("UsuarioHinchaDe")
+
+  @@unique([proveedor, externalId])
 }
 
 model Partido {
@@ -125,9 +136,17 @@ model Partido {
   equipo2Id            String
   equipo1EsLocal       Boolean        @default(false)
   fecha                DateTime
+  externalId           String?
+  proveedor            String?
   estado               EstadoPartido  @default(FUTURO)
   golesEquipo1         Int?
   golesEquipo2         Int?
+  minutoActual         Int?
+  fechaInicioReal      DateTime?
+  ultimaSyncExterna    DateTime?
+  ultimaActualizacionEstado DateTime?
+  resultadoConfirmado  Boolean        @default(false)
+  confirmacionesResultado Int          @default(0)
   fechaCreacion        DateTime       @default(now())
   fechaActualizacion   DateTime       @updatedAt
   competencia          Competencia    @relation(fields: [competenciaId], references: [id], onDelete: Cascade)
@@ -140,6 +159,7 @@ model Partido {
   @@index([equipo2Id])
   @@index([estado])
   @@index([fecha])
+  @@unique([proveedor, externalId])
 }
 
 model Prediccion {
@@ -157,4 +177,3 @@ model Prediccion {
   @@unique([partidoId, usuarioId])
   @@index([usuarioId])
 }
-

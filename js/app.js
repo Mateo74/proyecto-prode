@@ -19,6 +19,8 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 });
 
+let matchesPollingId = null;
+
 function detectPage() {
   const p = window.location.pathname;
   if (p.includes('invitaciones.html')) return 'invitaciones';
@@ -277,6 +279,7 @@ async function loadCompetencias() {
 }
 
 function showCompetitionPicker() {
+  stopMatchesPolling();
   document.getElementById('competition-picker')?.classList.remove('hidden');
   document.getElementById('competencia-workspace')?.classList.add('hidden');
   history.replaceState(null, '', 'index.html');
@@ -290,6 +293,7 @@ async function selectCompetencia(competencia, preferredTab = 'predicciones') {
   setText('competencia-title', competencia.nombre);
   switchHomeTab(preferredTab === 'torneos' ? 'torneos' : 'predicciones');
   await loadPartidos();
+  startMatchesPolling();
   await loadTorneosForCompetencia(competencia);
 }
 
@@ -397,6 +401,7 @@ function setHomeError(message) {
 function initPartidos() {
   renderSelectedContext();
   loadPartidos();
+  startMatchesPolling();
 
   document.querySelectorAll('.filter-chip[data-group="estado"]').forEach(chip => {
     chip.addEventListener('click', () => {
@@ -408,7 +413,18 @@ function initPartidos() {
   });
 }
 
-async function loadPartidos() {
+function startMatchesPolling() {
+  stopMatchesPolling();
+  matchesPollingId = setInterval(() => loadPartidos({ quiet: true }), 30000);
+}
+
+function stopMatchesPolling() {
+  if (!matchesPollingId) return;
+  clearInterval(matchesPollingId);
+  matchesPollingId = null;
+}
+
+async function loadPartidos({ quiet = false } = {}) {
   const el = document.getElementById('matches-list');
   if (!el) return;
 
@@ -421,7 +437,7 @@ async function loadPartidos() {
   const active = document.querySelector('.filter-chip[data-group="estado"].active');
   const estado = active?.dataset.value || '';
 
-  showSkeleton(el, 4);
+  if (!quiet) showSkeleton(el, 4);
 
   try {
     const matches = await API.getMatches({ competenciaId: competencia.id, estado });

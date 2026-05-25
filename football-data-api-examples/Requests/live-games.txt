@@ -1,0 +1,5 @@
+Invoke-WebRequest `
+  -Uri "https://api.football-data.org/v4/matches?status=LIVE" `
+  -Headers @{
+    "X-Auth-Token" = "API_TOKEN"
+  }

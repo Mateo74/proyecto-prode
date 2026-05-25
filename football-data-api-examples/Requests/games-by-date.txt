@@ -1,0 +1,5 @@
+Invoke-WebRequest `
+  -Uri "https://api.football-data.org/v4/matches?dateFrom=2026-05-24&dateTo=2026-05-24" `
+  -Headers @{
+    "X-Auth-Token" = "API_TOKEN"
+  }

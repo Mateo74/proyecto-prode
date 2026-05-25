@@ -18,6 +18,10 @@ function estadoPrediccion(prediccion) {
 
 function partidoResponse(partido, userPrediccion) {
   const pred = userPrediccion || partido.predicciones?.[0];
+  const prediccionEditable = Boolean(
+    ["FUTURO", "PROGRAMADO"].includes(partido.estado) &&
+    new Date() < new Date(partido.fechaInicioReal || partido.fecha),
+  );
   const exacto = Boolean(
     pred &&
     partido.golesEquipo1 != null &&
@@ -36,14 +40,22 @@ function partidoResponse(partido, userPrediccion) {
     equipo1: partido.equipo1.nombre,
     equipo1NombreCompleto: partido.equipo1.nombreCompleto,
     equipo1Tipo: partido.equipo1.tipo,
+    equipo1EscudoUrl: partido.equipo1.escudoUrl,
     equipo2: partido.equipo2.nombre,
     equipo2NombreCompleto: partido.equipo2.nombreCompleto,
     equipo2Tipo: partido.equipo2.tipo,
+    equipo2EscudoUrl: partido.equipo2.escudoUrl,
     equipo1EsLocal: partido.equipo1EsLocal,
     estado: estadoParaFrontend(partido.estado),
     estadoRaw: partido.estado,
     scoreEquipo1: partido.golesEquipo1,
     scoreEquipo2: partido.golesEquipo2,
+    minutoActual: partido.minutoActual,
+    fechaInicioReal: partido.fechaInicioReal,
+    ultimaSyncExterna: partido.ultimaSyncExterna,
+    ultimaActualizacion: partido.ultimaActualizacionEstado || partido.fechaActualizacion,
+    resultadoConfirmado: partido.resultadoConfirmado,
+    prediccionEditable,
     fecha: partido.fecha,
     userPred: pred
       ? {

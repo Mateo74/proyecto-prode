@@ -332,6 +332,7 @@ button { font-family: var(--font); cursor: pointer; }
 .badge-league { background: var(--bg-4); color: var(--text-3); }
 .badge-soon   { background: var(--blue-dim); color: var(--blue); }
 .badge-done   { background: var(--bg-4); color: var(--text-4); }
+.badge-stopped { background: rgba(255,145,0,0.12); color: var(--warning); }
 
 .badge-live {
   background: rgba(255,68,68,0.12);
@@ -817,6 +818,10 @@ button { font-family: var(--font); cursor: pointer; }
 
 .match-card:hover { background: var(--bg-3); }
 
+.match-card.is-locked {
+  opacity: 0.82;
+}
+
 /* saved state */
 .match-card.pred-saved::before {
   content: '';
@@ -915,6 +920,12 @@ button { font-family: var(--font); cursor: pointer; }
   transition: all var(--t);
   user-select: none;
   -webkit-tap-highlight-color: transparent;
+}
+
+.spin-btn:disabled,
+.btn-save:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
 }
 
 .spin-btn:hover  { background: var(--bg-3); border-color: var(--border-2); }
@@ -1659,6 +1670,12 @@ body {
   border: 1px solid rgba(255,68,68,0.2);
 }
 
+.match-feedback__badge.pending {
+  background: rgba(255,145,0,0.1);
+  color: var(--warning);
+  border: 1px solid rgba(255,145,0,0.2);
+}
+
 .match-feedback__pts {
   font-size: 0.6875rem;
   font-weight: 700;
@@ -1682,6 +1699,16 @@ svg.team__badge {
   flex-shrink: 0;
   /* filter para sombra sutil debajo del escudo */
   filter: drop-shadow(0 2px 4px rgba(0,0,0,0.45));
+}
+
+img.team__badge-img {
+  width: 36px;
+  height: 36px;
+  object-fit: contain;
+  background: transparent;
+  border: none;
+  border-radius: 0;
+  flex-shrink: 0;
 }
 
 /* =============================================

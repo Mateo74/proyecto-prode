@@ -6,6 +6,8 @@ const competenciaPayload = registry.register(
     id: z.string(),
     nombre: z.string(),
     slug: z.string(),
+    externalId: z.string().nullable().optional(),
+    proveedor: z.string().nullable().optional(),
   }),
 );
 
