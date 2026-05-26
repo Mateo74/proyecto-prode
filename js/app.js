@@ -551,10 +551,11 @@ function calcularRacha(preds) {
 /* --------------------------------------------------------
    CLASIFICACION
    -------------------------------------------------------- */
-function initClasificacion() {
+async function initClasificacion() {
   renderSelectedContext();
-  loadSelectedTorneoHeader();
+  await loadSelectedTorneoHeader();
   loadLeaderboard();
+  loadTournamentUpcomingMatches();
   initInvitePanel();
 }
 
@@ -910,6 +911,39 @@ async function loadLeaderboard() {
   } catch (error) {
     if (podiumEl) podiumEl.innerHTML = '';
     rankingEl.innerHTML = errorState(error.message);
+  }
+}
+
+async function loadTournamentUpcomingMatches() {
+  const el = document.getElementById('torneo-upcoming-matches');
+  if (!el) return;
+
+  const torneo = API.getSelectedTorneo();
+  const competenciaId = torneo?.competenciaId || torneo?.competencia?.id || API.getSelectedCompetencia()?.id;
+
+  if (!torneo || !competenciaId) {
+    el.innerHTML = emptyState('Elegí un Torneo de Amigos para ver los próximos partidos.');
+    return;
+  }
+
+  showSkeleton(el, 3);
+
+  try {
+    const matches = await API.getMatches({ competenciaId, estado: 'proximo' });
+    const upcoming = matches
+      .filter(match => new Date(match.fecha) >= new Date())
+      .sort((a, b) => new Date(a.fecha) - new Date(b.fecha))
+      .slice(0, 3);
+
+    el.innerHTML = '';
+    if (!upcoming.length) {
+      el.innerHTML = emptyState('No hay partidos próximos para esta competencia.');
+      return;
+    }
+
+    upcoming.forEach(match => el.appendChild(Predictions.createMatchCard(match)));
+  } catch (error) {
+    el.innerHTML = errorState(error.message);
   }
 }
 

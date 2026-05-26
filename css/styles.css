@@ -454,6 +454,13 @@ button { font-family: var(--font); cursor: pointer; }
   margin-bottom: 1rem;
 }
 
+.section-title {
+  margin: 0.25rem 0 0;
+  font-size: 1.1rem;
+  font-weight: 850;
+  color: var(--text);
+}
+
 .section-label {
   font-size: 0.6875rem;
   font-weight: 700;
@@ -1263,7 +1270,7 @@ button { font-family: var(--font); cursor: pointer; }
 
 .tab-btn.active { background: var(--bg-2); color: var(--text); }
 
-.hidden { display: none; }
+.hidden { display: none !important; }
 
 /* =============================================
    AUTH

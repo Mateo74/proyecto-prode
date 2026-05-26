@@ -30,6 +30,27 @@
       </div>
     </section>
 
+    <section class="section">
+      <div class="section-header">
+        <div>
+          <span class="section-label"><span class="dot"></span>Tabla</span>
+          <h2 class="section-title">Posiciones</h2>
+        </div>
+      </div>
+      <div id="podium" class="podium"></div>
+      <div id="ranking-list" class="ranking-list"></div>
+    </section>
+
+    <section class="section tournament-upcoming">
+      <div class="section-header">
+        <div>
+          <span class="section-label"><span class="dot"></span>Próximos</span>
+          <h2 class="section-title">Partidos cercanos</h2>
+        </div>
+      </div>
+      <div id="torneo-upcoming-matches" class="matches-grid"></div>
+    </section>
+
     <section id="invite-panel" class="section invite-panel hidden">
       <div class="invite-panel__head">
         <strong>Invitar al torneo</strong>
@@ -50,7 +71,7 @@
       <div class="invite-link">
         <div class="invite-link__head">
           <strong>Enlace de invitación</strong>
-          <button id="invite-link-rotate" class="btn btn-outline btn-sm" type="button">Regenerar</button>
+          <button id="invite-link-rotate" class="btn btn-outline btn-sm hidden" type="button">Regenerar</button>
         </div>
         <div class="invite-link__row">
           <input id="invite-link-url" type="text" readonly placeholder="Generá un enlace para compartir">
@@ -68,10 +89,6 @@
       </div>
     </section>
 
-    <section class="section">
-      <div id="podium" class="podium"></div>
-      <div id="ranking-list" class="ranking-list"></div>
-    </section>
   </main>
 
   <nav class="bottom-nav">
