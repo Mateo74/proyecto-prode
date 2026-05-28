@@ -12,8 +12,7 @@
       <a class="logo" href="../index.html"><span class="logo-pulse"></span>Once Metros</a>
       <div class="nav-links">
         <a href="../index.html">Competencias</a>
-        <a href="partidos.html">Predicciones</a>
-        <a href="../index.html#torneos" class="active">Torneos</a>
+        <a href="torneos.html" class="active">Torneos de amigos</a>
       </div>
     </nav>
   </header>
@@ -21,81 +20,54 @@
   <main>
     <section class="page-header page-header--compact">
       <div class="page-header-inner">
-        <a class="icon-btn" href="../index.html#torneos" aria-label="Volver">‹</a>
+        <a class="icon-btn" href="torneos.html" aria-label="Volver">‹</a>
         <div>
           <span id="torneo-subtitle" class="section-label"><span class="dot"></span>Torneo de Amigos</span>
           <h1 id="torneo-title" class="page-title">Ranking</h1>
         </div>
-        <button id="invite-toggle" class="btn btn-outline btn-sm hidden" type="button">Invitar</button>
+        <a class="icon-btn" href="puntos.html" aria-label="Cómo se calculan los puntos" title="Cómo se calculan los puntos">ⓘ</a>
+        <button id="invite-btn" class="btn btn-primary btn-sm hidden" type="button">Invitar</button>
       </div>
     </section>
 
-    <section class="section">
-      <div class="section-header">
-        <div>
-          <span class="section-label"><span class="dot"></span>Tabla</span>
-          <h2 class="section-title">Posiciones</h2>
-        </div>
-      </div>
-      <div id="podium" class="podium"></div>
-      <div id="ranking-list" class="ranking-list"></div>
-    </section>
+    <div class="tabs workspace-tabs">
+      <button class="tab-btn active" data-clasif-tab="posiciones">Posiciones</button>
+      <button class="tab-btn" data-clasif-tab="predicciones">Mis predicciones</button>
+    </div>
 
-    <section class="section tournament-upcoming">
-      <div class="section-header">
-        <div>
-          <span class="section-label"><span class="dot"></span>Próximos</span>
-          <h2 class="section-title">Partidos cercanos</h2>
-        </div>
-      </div>
-      <div id="torneo-upcoming-matches" class="matches-grid"></div>
-    </section>
+    <div id="clasif-tab-posiciones" class="tab-content">
+      <section class="section">
+        <div id="podium" class="podium"></div>
+        <div id="ranking-list" class="ranking-list"></div>
+      </section>
 
-    <section id="invite-panel" class="section invite-panel hidden">
-      <div class="invite-panel__head">
-        <strong>Invitar al torneo</strong>
-        <button id="invite-close" class="icon-btn" type="button" aria-label="Cerrar">×</button>
-      </div>
+    </div>
 
-      <div id="invite-feedback" class="invite-feedback hidden"></div>
-
-      <form id="invite-search-form" class="invite-search">
-        <label class="invite-search__label">
-          Por usuario o email
-          <input id="invite-identificador" name="identificador" type="text"
-                 placeholder="usuario o email@dominio" autocomplete="off" required>
-        </label>
-        <button class="btn btn-primary" type="submit">Invitar</button>
-      </form>
-
-      <div class="invite-link">
-        <div class="invite-link__head">
-          <strong>Enlace de invitación</strong>
-          <button id="invite-link-rotate" class="btn btn-outline btn-sm hidden" type="button">Regenerar</button>
-        </div>
-        <div class="invite-link__row">
-          <input id="invite-link-url" type="text" readonly placeholder="Generá un enlace para compartir">
-          <button id="invite-link-copy" class="btn btn-outline btn-sm" type="button" disabled>Copiar</button>
-        </div>
-        <div class="invite-link__actions">
-          <button id="invite-link-generate" class="btn btn-primary btn-sm" type="button">Generar enlace</button>
-          <button id="invite-link-revoke" class="btn btn-outline btn-sm hidden" type="button">Revocar</button>
-        </div>
-      </div>
-
-      <div class="invite-list">
-        <strong>Invitaciones enviadas</strong>
-        <div id="invite-sent-list"></div>
-      </div>
-    </section>
-
+    <div id="clasif-tab-predicciones" class="tab-content hidden">
+      <section class="section">
+        <div id="mis-predicciones-list" class="pred-list"></div>
+      </section>
+    </div>
   </main>
+
+  <!-- Drawer: predicciones de otro usuario -->
+  <div id="user-preds-overlay" class="user-preds-overlay hidden" aria-hidden="true"></div>
+  <div id="user-preds-drawer" class="user-preds-drawer hidden" role="dialog" aria-modal="true">
+    <div class="user-preds-drawer__handle"></div>
+    <div class="user-preds-drawer__head">
+      <div>
+        <span id="user-preds-name" class="user-preds-drawer__title">Usuario</span>
+        <span id="user-preds-meta" class="user-preds-drawer__meta"></span>
+      </div>
+      <button id="user-preds-close" class="icon-btn" type="button" aria-label="Cerrar">×</button>
+    </div>
+    <div id="user-preds-list" class="user-preds-list"></div>
+  </div>
 
   <nav class="bottom-nav">
     <div class="bottom-nav__inner">
       <a class="bottom-nav__item" href="../index.html">Competencias</a>
-      <a class="bottom-nav__item" href="partidos.html">Predicciones</a>
-      <a class="bottom-nav__item active" href="../index.html#torneos">Torneos</a>
+      <a class="bottom-nav__item active" href="torneos.html">Torneos de amigos</a>
     </div>
   </nav>
 

@@ -262,6 +262,10 @@ const API = (() => {
     return request(`/torneos/${id}/mis-predicciones`);
   }
 
+  async function getPrediccionesUsuarioEnTorneo(torneoId, usuarioId) {
+    return request(`/torneos/${torneoId}/usuarios/${usuarioId}/predicciones`);
+  }
+
   // --- AUTH ---
 
   async function register({ username, nombre, email, password }) {
@@ -411,6 +415,7 @@ const API = (() => {
     getMatches,
     getMisInvitacionesPendientes,
     getMisPrediccionesEnTorneoDeAmigos,
+    getPrediccionesUsuarioEnTorneo,
     getSelectedCompetencia,
     getSelectedTorneo,
     getTablaTorneoDeAmigos,

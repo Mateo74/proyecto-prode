@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Invitar al torneo | Once Metros</title>
+  <link rel="stylesheet" href="../css/styles.css">
+</head>
+<body>
+  <header class="header">
+    <nav class="navbar">
+      <a class="logo" href="../index.html"><span class="logo-pulse"></span>Once Metros</a>
+      <div class="nav-links">
+        <a href="../index.html">Competencias</a>
+        <a href="torneos.html">Torneos de amigos</a>
+      </div>
+    </nav>
+  </header>
+
+  <main>
+    <section class="page-header page-header--compact">
+      <div class="page-header-inner">
+        <a id="invite-back-btn" class="icon-btn" href="clasificacion.html" aria-label="Volver">‹</a>
+        <div>
+          <span id="invite-torneo-label" class="section-label"><span class="dot"></span>Torneo de amigos</span>
+          <h1 id="invite-torneo-title" class="page-title">Invitar</h1>
+        </div>
+      </div>
+    </section>
+
+    <section class="section">
+      <div id="invite-feedback" class="invite-feedback hidden"></div>
+
+      <form id="invite-search-form" class="invite-search">
+        <label class="invite-search__label">
+          Por usuario o email
+          <input id="invite-identificador" name="identificador" type="text"
+                 placeholder="usuario o email@dominio" autocomplete="off" required>
+        </label>
+        <button class="btn btn-primary" type="submit">Invitar</button>
+      </form>
+
+      <div class="invite-link">
+        <div class="invite-link__head">
+          <strong>Enlace de invitación</strong>
+          <button id="invite-link-rotate" class="btn btn-outline btn-sm hidden" type="button">Regenerar</button>
+        </div>
+        <div class="invite-link__row">
+          <input id="invite-link-url" type="text" readonly placeholder="Generá un enlace para compartir">
+          <button id="invite-link-copy" class="btn btn-outline btn-sm" type="button" disabled>Copiar</button>
+        </div>
+        <div class="invite-link__actions">
+          <button id="invite-link-generate" class="btn btn-primary btn-sm" type="button">Generar enlace</button>
+          <button id="invite-link-revoke" class="btn btn-outline btn-sm hidden" type="button">Revocar</button>
+        </div>
+      </div>
+
+      <div class="invite-list">
+        <strong>Invitaciones enviadas</strong>
+        <div id="invite-sent-list"></div>
+      </div>
+    </section>
+  </main>
+
+  <nav class="bottom-nav">
+    <div class="bottom-nav__inner">
+      <a class="bottom-nav__item" href="../index.html">Competencias</a>
+      <a class="bottom-nav__item active" href="torneos.html">Torneos de amigos</a>
+    </div>
+  </nav>
+
+  <script src="../js/config.js"></script>
+  <script src="../js/api.js"></script>
+  <script src="../js/predictions.js"></script>
+  <script src="../js/app.js"></script>
+</body>
+</html>

@@ -17,6 +17,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     case 'auth':           initAuth();          break;
     case 'invitaciones':   initInvitaciones();  break;
     case 'invitacion':     initInviteLanding(); break;
+    case 'torneos':        initTorneos();       break;
+    case 'invitar':        initInvitar();       break;
   }
 });
 
@@ -26,9 +28,11 @@ function detectPage() {
   const p = window.location.pathname;
   if (p.includes('invitaciones.html')) return 'invitaciones';
   if (p.includes('invitacion.html'))   return 'invitacion';
+  if (p.includes('invitar.html'))      return 'invitar';
   if (p.includes('partidos'))          return 'partidos';
   if (p.includes('predicciones'))      return 'predicciones';
   if (p.includes('clasificacion'))     return 'clasificacion';
+  if (p.includes('torneos.html'))      return 'torneos';
   if (p.includes('auth'))              return 'auth';
   return 'home';
 }
@@ -302,7 +306,6 @@ function renderCompetenciaCard(competencia, active) {
   return `
     <button class="competition-card ${active ? 'active' : ''}" data-competencia-id="${competencia.id}">
       <span class="competition-card__name">${escapeHtml(competencia.nombre)}</span>
-      <span class="competition-card__slug">${escapeHtml(competencia.slug)}</span>
     </button>
   `;
 }
@@ -315,10 +318,15 @@ async function loadTorneosForCompetencia(competencia = API.getSelectedCompetenci
   showSkeleton(listEl, 2);
   formEl?.classList.toggle('hidden', !API.getToken());
 
+  if (!API.getToken()) {
+    listEl.innerHTML = emptyState('Iniciá sesión para ver los Torneos de Amigos.');
+    return;
+  }
+
   try {
-    const torneos = await API.getTorneosDeAmigos({ competenciaId: competencia.id });
+    const torneos = await API.getTorneosDeAmigos({ mias: 'true', competenciaId: competencia.id });
     if (!torneos.length) {
-      listEl.innerHTML = emptyState('Todavía no hay Torneos de Amigos para esta competencia.');
+      listEl.innerHTML = emptyState('Todavía no sos parte de ningún Torneo de Amigos para esta competencia.');
       return;
     }
 
@@ -554,30 +562,155 @@ function calcularRacha(preds) {
 async function initClasificacion() {
   renderSelectedContext();
   await loadSelectedTorneoHeader();
+  initClasifTabs();
   loadLeaderboard();
-  loadTournamentUpcomingMatches();
-  initInvitePanel();
+  initInviteButton();
 }
 
-async function initInvitePanel() {
-  const toggleBtn = document.getElementById('invite-toggle');
-  const panel = document.getElementById('invite-panel');
-  if (!toggleBtn || !panel) return;
+function initClasifTabs() {
+  document.querySelectorAll('[data-clasif-tab]').forEach(btn => {
+    btn.addEventListener('click', () => switchClasifTab(btn.dataset.clasifTab));
+  });
+}
 
+function switchClasifTab(tab) {
+  document.querySelectorAll('[data-clasif-tab]').forEach(b => b.classList.toggle('active', b.dataset.clasifTab === tab));
+  document.getElementById('clasif-tab-posiciones')?.classList.toggle('hidden', tab !== 'posiciones');
+  const predTab = document.getElementById('clasif-tab-predicciones');
+  if (predTab) {
+    predTab.classList.toggle('hidden', tab !== 'predicciones');
+    if (tab === 'predicciones' && !predTab.dataset.loaded) {
+      predTab.dataset.loaded = '1';
+      loadMisPrediccionesEnTorneo();
+    }
+  }
+}
+
+async function loadMisPrediccionesEnTorneo() {
+  const el = document.getElementById('mis-predicciones-list');
+  if (!el) return;
+  const torneo = API.getSelectedTorneo();
+  if (!torneo) {
+    el.innerHTML = emptyState('Elegí un Torneo de Amigos.');
+    return;
+  }
+  if (!API.getToken()) {
+    el.innerHTML = emptyState('Iniciá sesión para ver tus predicciones.');
+    return;
+  }
+  showSkeleton(el, 4);
+  try {
+    const preds = (await API.getUserPredictions()).filter(p => p.estado !== 'pendiente');
+    el.className = preds.length ? 'pred-list' : '';
+    el.innerHTML = preds.length
+      ? preds.map(renderPredRow).join('')
+      : emptyState('Todavía no tenés predicciones cerradas en este torneo.');
+  } catch (err) {
+    el.innerHTML = errorState(err.message);
+  }
+}
+
+function initInviteButton() {
+  const btn = document.getElementById('invite-btn');
+  if (!btn) return;
   const selected = API.getSelectedTorneo();
   const user = API.getCurrentUser();
   if (!selected || !user) return;
 
+  let inviteUrl = null;
+
+  API.getTorneoDeAmigos(selected.id).then(async torneo => {
+    if (torneo.creadorId !== user.id) return;
+    btn.classList.remove('hidden');
+
+    // Pre-load invite link in background
+    try {
+      const result = await API.getInviteLink(torneo.id);
+      inviteUrl = result.url || null;
+    } catch {}
+    if (!inviteUrl) {
+      try {
+        const generated = await API.generarInviteLink(torneo.id);
+        inviteUrl = generated.url || null;
+      } catch {}
+    }
+
+    btn.addEventListener('click', async () => {
+      if (!inviteUrl) {
+        try {
+          const generated = await API.generarInviteLink(torneo.id);
+          inviteUrl = generated.url || null;
+        } catch {
+          alert('No se pudo generar el enlace. Intentá de nuevo.');
+          return;
+        }
+      }
+      if (!inviteUrl) return;
+
+      if (navigator.share) {
+        navigator.share({
+          title: `Sumate al torneo "${torneo.nombre}"`,
+          text: `Te invito a jugar al prode de ${torneo.competencia?.nombre || 'fútbol'}`,
+          url: inviteUrl,
+        }).catch(() => {});
+      } else {
+        try {
+          await navigator.clipboard.writeText(inviteUrl);
+        } catch {
+          prompt('Copiá este enlace para invitar:', inviteUrl);
+          return;
+        }
+        const original = btn.textContent;
+        btn.textContent = '¡Link copiado!';
+        setTimeout(() => { btn.textContent = original; }, 2000);
+      }
+    });
+  }).catch(() => {});
+}
+
+async function initInvitePanel() {
+  // Legacy: no-op, kept for safety
+}
+
+/* --------------------------------------------------------
+   INVITAR (standalone page)
+   -------------------------------------------------------- */
+async function initInvitar() {
+  const params = new URLSearchParams(window.location.search);
+  const torneoId = params.get('torneo');
+
+  if (!API.getToken()) {
+    const next = encodeURIComponent(`invitar.html?torneo=${torneoId}`);
+    window.location.href = `auth.html?next=${next}`;
+    return;
+  }
+
+  if (!torneoId) {
+    window.location.href = 'torneos.html';
+    return;
+  }
+
   let torneo;
   try {
-    torneo = await API.getTorneoDeAmigos(selected.id);
-  } catch { return; }
+    torneo = await API.getTorneoDeAmigos(torneoId);
+  } catch {
+    window.location.href = 'torneos.html';
+    return;
+  }
 
-  if (torneo.creadorId !== user.id) return;
+  const user = API.getCurrentUser();
+  if (torneo.creadorId !== user?.id) {
+    window.location.href = `clasificacion.html`;
+    return;
+  }
 
-  toggleBtn.classList.remove('hidden');
-  toggleBtn.addEventListener('click', () => panel.classList.toggle('hidden'));
-  document.getElementById('invite-close')?.addEventListener('click', () => panel.classList.add('hidden'));
+  const titleEl = document.getElementById('invite-torneo-title');
+  const labelEl = document.getElementById('invite-torneo-label');
+  if (titleEl) titleEl.textContent = torneo.nombre;
+  if (labelEl) labelEl.innerHTML = `<span class="dot"></span>${escapeHtml(torneo.competencia?.nombre || 'Torneo de amigos')}`;
+
+  const backBtn = document.getElementById('invite-back-btn');
+  if (backBtn) backBtn.href = 'clasificacion.html';
 
   const form = document.getElementById('invite-search-form');
   const input = document.getElementById('invite-identificador');
@@ -865,6 +998,23 @@ async function loadSelectedTorneoHeader() {
   }
 }
 
+function computePositions(ranking) {
+  const positions = [];
+  for (let i = 0; i < ranking.length; i++) {
+    if (i === 0) {
+      positions.push(1);
+    } else {
+      const prev = ranking[i - 1];
+      const curr = ranking[i];
+      const tied = curr.puntos === prev.puntos &&
+                   curr.aciertos === prev.aciertos &&
+                   curr.exactos === prev.exactos;
+      positions.push(tied ? positions[i - 1] : i + 1);
+    }
+  }
+  return positions;
+}
+
 async function loadLeaderboard() {
   const podiumEl  = document.getElementById('podium');
   const rankingEl = document.getElementById('ranking-list');
@@ -878,6 +1028,7 @@ async function loadLeaderboard() {
 
   try {
     const ranking = await API.getLeaderboard();
+    const positions = computePositions(ranking);
 
     if (!ranking.length) {
       if (podiumEl) podiumEl.innerHTML = '';
@@ -887,14 +1038,14 @@ async function loadLeaderboard() {
 
     if (podiumEl) {
       const top = ranking.slice(0, 3);
-      const order   = [top[1], top[0], top[2]];
-      const mClasses = ['medal medal-2', 'medal medal-1', 'medal medal-3'];
-      const mNums    = ['2', '1', '3'];
-      const classes  = ['podium-item--2', 'podium-item--1', 'podium-item--3'];
+      const order     = [top[1], top[0], top[2]];
+      const topPos    = [positions[1], positions[0], positions[2]];
+      const mClasses  = ['medal medal-2', 'medal medal-1', 'medal medal-3'];
+      const classes   = ['podium-item--2', 'podium-item--1', 'podium-item--3'];
 
       podiumEl.innerHTML = order.map((r, i) => r ? `
-        <div class="podium-item ${classes[i]}">
-          <span class="${mClasses[i]}">${mNums[i]}</span>
+        <div class="podium-item ${classes[i]}" data-user-id="${escapeHtml(r.usuarioId || '')}" data-user-name="${escapeHtml(r.nombre)}">
+          <span class="${mClasses[i]}">${topPos[i] ?? i + 1}</span>
           <div class="podium-avatar">${initial(r.nombre)}</div>
           <div class="podium-name">${escapeHtml(r.nombre)}</div>
           <div class="podium-pts">${r.puntos} pts</div>
@@ -905,8 +1056,17 @@ async function loadLeaderboard() {
 
     const rest = ranking.slice(3);
     rankingEl.innerHTML = rest.length
-      ? rest.map((r, i) => renderRankRow(r, i + 3)).join('')
+      ? rest.map((r, i) => renderRankRow(r, positions[i + 3])).join('')
       : '';
+
+    // Attach click handlers to podium items and rank rows
+    document.querySelectorAll('[data-user-id]').forEach(el => {
+      el.addEventListener('click', () => {
+        const userId = el.dataset.userId;
+        const userName = el.dataset.userName;
+        if (userId) openUserPredsDrawer(userId, userName);
+      });
+    });
 
   } catch (error) {
     if (podiumEl) podiumEl.innerHTML = '';
@@ -947,13 +1107,13 @@ async function loadTournamentUpcomingMatches() {
   }
 }
 
-function renderRankRow(r, i) {
-  const posEl = i === 0 ? `<span class="medal medal-1">1</span>`
-              : i === 1 ? `<span class="medal medal-2">2</span>`
-              : i === 2 ? `<span class="medal medal-3">3</span>`
-              : `<span class="rank-pos">${i + 1}</span>`;
+function renderRankRow(r, pos) {
+  const posEl = pos === 1 ? `<span class="medal medal-1">1</span>`
+              : pos === 2 ? `<span class="medal medal-2">2</span>`
+              : pos === 3 ? `<span class="medal medal-3">3</span>`
+              : `<span class="rank-pos">${pos}</span>`;
   return `
-    <div class="ranking-row">
+    <div class="ranking-row" data-user-id="${escapeHtml(r.usuarioId || '')}" data-user-name="${escapeHtml(r.nombre)}">
       ${posEl}
       <div class="rank-avatar">${initial(r.nombre)}</div>
       <div class="rank-info">
@@ -976,10 +1136,7 @@ function renderSelectedContext() {
   const isPredictionsView = window.location.pathname.includes('partidos');
 
   if (isPredictionsView) {
-    el.innerHTML = `
-      <span>${escapeHtml(competencia?.nombre || 'Sin competencia')}</span>
-      <a class="btn btn-outline btn-sm" href="${homeRelativePath('#predicciones')}">Cambiar</a>
-    `;
+    el.innerHTML = `<span>${escapeHtml(competencia?.nombre || 'Sin competencia')}</span>`;
     return;
   }
 
@@ -988,6 +1145,129 @@ function renderSelectedContext() {
     <strong>${escapeHtml(torneo?.nombre || 'Sin torneo')}</strong>
     <a class="btn btn-outline btn-sm" href="${homeRelativePath('#torneos')}">Cambiar</a>
   `;
+}
+
+/* --------------------------------------------------------
+   USER PREDICTIONS DRAWER
+   -------------------------------------------------------- */
+function openUserPredsDrawer(userId, userName) {
+  const overlay = document.getElementById('user-preds-overlay');
+  const drawer = document.getElementById('user-preds-drawer');
+  const nameEl = document.getElementById('user-preds-name');
+  const listEl = document.getElementById('user-preds-list');
+  if (!overlay || !drawer || !listEl) return;
+
+  if (nameEl) nameEl.textContent = userName;
+  overlay.classList.remove('hidden');
+  overlay.removeAttribute('aria-hidden');
+  drawer.classList.remove('hidden');
+  drawer.removeAttribute('aria-hidden');
+  document.body.style.overflow = 'hidden';
+
+  showSkeleton(listEl, 4);
+
+  const torneo = API.getSelectedTorneo();
+  if (!torneo?.id) {
+    listEl.innerHTML = emptyState('No se encontró el torneo.');
+    return;
+  }
+
+  API.getPrediccionesUsuarioEnTorneo(torneo.id, userId)
+    .then(partidos => {
+      if (!partidos.length) {
+        listEl.innerHTML = emptyState('No hay partidos cerrados en esta competencia.');
+        return;
+      }
+      listEl.innerHTML = partidos.map(renderUserPredRow).join('');
+    })
+    .catch(err => {
+      listEl.innerHTML = errorState(err.message);
+    });
+
+  overlay.onclick = closeUserPredsDrawer;
+  document.getElementById('user-preds-close')?.addEventListener('click', closeUserPredsDrawer, { once: true });
+}
+
+function closeUserPredsDrawer() {
+  const overlay = document.getElementById('user-preds-overlay');
+  const drawer = document.getElementById('user-preds-drawer');
+  overlay?.classList.add('hidden');
+  overlay?.setAttribute('aria-hidden', 'true');
+  drawer?.classList.add('hidden');
+  drawer?.setAttribute('aria-hidden', 'true');
+  document.body.style.overflow = '';
+}
+
+function renderUserPredRow(partido) {
+  const pred = partido.userPred;
+  const fecha = partido.fecha ? new Date(partido.fecha).toLocaleDateString('es-AR', { day: '2-digit', month: 'short' }) : '';
+  const resultadoReal = partido.scoreEquipo1 != null ? `${partido.scoreEquipo1}-${partido.scoreEquipo2}` : '-';
+  const predScore = pred ? `${pred.scoreEquipo1}-${pred.scoreEquipo2}` : '?-?';
+  const cls = !pred ? 'no-pred' : pred.estado === 'acierto' ? 'is-hit' : 'is-miss';
+  const tag = !pred
+    ? `<span class="pred-tag no-pred">Sin pred.</span>`
+    : pred.estado === 'acierto'
+      ? `<span class="pred-tag hit">Acierto</span>`
+      : `<span class="pred-tag miss">Fallo</span>`;
+
+  return `
+    <div class="user-pred-row ${cls}">
+      <div class="user-pred-match">
+        <div class="user-pred-teams">${escapeHtml(partido.equipo1)} vs ${escapeHtml(partido.equipo2)}</div>
+        <div class="user-pred-meta">${fecha} · ${escapeHtml(partido.liga || '')}</div>
+      </div>
+      <div class="user-pred-scores">
+        <span class="user-pred-result">${resultadoReal}</span>
+        <span class="user-pred-sep">›</span>
+        <span class="user-pred-pick">${predScore}</span>
+      </div>
+      ${tag}
+    </div>
+  `;
+}
+
+/* --------------------------------------------------------
+   TORNEOS (standalone page)
+   -------------------------------------------------------- */
+async function initTorneos() {
+  const listEl = document.getElementById('torneos-list');
+  const feedbackEl = document.getElementById('torneos-feedback');
+  if (!listEl) return;
+
+  if (!API.getToken()) {
+    listEl.innerHTML = `
+      <div class="empty-state">
+        <div class="empty-state-icon">!</div>
+        <p>Iniciá sesión para ver tus Torneos de Amigos</p>
+        <a href="auth.html?next=torneos.html" class="btn btn-primary" style="margin-top:.75rem">Ingresar</a>
+      </div>
+    `;
+    return;
+  }
+
+  showSkeleton(listEl, 3);
+
+  try {
+    const torneos = await API.getTorneosDeAmigos({ mias: 'true' });
+    if (!torneos.length) {
+      listEl.innerHTML = emptyState('Todavía no sos parte de ningún Torneo de Amigos. ¡Creá uno o pedí una invitación!');
+      return;
+    }
+    listEl.innerHTML = torneos.map(t => renderTorneoCard(t, false)).join('');
+    listEl.querySelectorAll('[data-torneo-id]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const torneo = torneos.find(t => t.id === btn.dataset.torneoId);
+        API.setSelectedTorneo(torneo);
+        window.location.href = 'clasificacion.html';
+      });
+    });
+  } catch (err) {
+    listEl.innerHTML = errorState(err.message);
+    if (feedbackEl) {
+      feedbackEl.textContent = err.message;
+      feedbackEl.classList.remove('hidden');
+    }
+  }
 }
 
 /* --------------------------------------------------------

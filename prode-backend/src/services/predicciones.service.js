@@ -88,4 +88,24 @@ async function listByTorneoForUser(torneoId, usuarioId) {
   });
 }
 
-module.exports = { listByTorneoForUser, updateById, upsertForUser };
+async function listClosedMatchesWithPredictionForUser(torneoId, usuarioId) {
+  const torneo = await prisma.torneoDeAmigos.findUnique({
+    where: { id: torneoId },
+    select: { competenciaId: true },
+  });
+  if (!torneo) throw httpError(404, "Torneo no encontrado");
+
+  return prisma.partido.findMany({
+    where: {
+      competenciaId: torneo.competenciaId,
+      estado: "TERMINADO",
+    },
+    include: {
+      ...includePartido,
+      predicciones: { where: { usuarioId }, take: 1 },
+    },
+    orderBy: { fecha: "desc" },
+  });
+}
+
+module.exports = { listByTorneoForUser, listClosedMatchesWithPredictionForUser, updateById, upsertForUser };

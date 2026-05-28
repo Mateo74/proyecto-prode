@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Invitaciones | Once Metros</title>
+  <title>Torneos de amigos | Once Metros</title>
   <link rel="stylesheet" href="../css/styles.css">
 </head>
 <body>
@@ -12,8 +12,7 @@
       <a class="logo" href="../index.html"><span class="logo-pulse"></span>Once Metros</a>
       <div class="nav-links">
         <a href="../index.html">Competencias</a>
-        <a href="torneos.html">Torneos de amigos</a>
-        <a href="auth.html" data-auth-link data-auth-href="auth.html">Ingresar</a>
+        <a href="torneos.html" class="active">Torneos de amigos</a>
       </div>
     </nav>
   </header>
@@ -23,22 +22,23 @@
       <div class="page-header-inner">
         <a class="icon-btn" href="../index.html" aria-label="Volver">‹</a>
         <div>
-          <span class="section-label"><span class="dot"></span>Cuenta</span>
-          <h1 class="page-title">Invitaciones</h1>
+          <span class="section-label"><span class="dot"></span>Mis torneos</span>
+          <h1 class="page-title">Torneos de amigos</h1>
         </div>
+        <a id="create-torneo-btn" class="btn btn-primary btn-sm" href="../index.html#torneos">+ Crear</a>
       </div>
     </section>
 
     <section class="section">
-      <div id="invitaciones-feedback" class="invite-feedback hidden"></div>
-      <div id="invitaciones-list"></div>
+      <div id="torneos-feedback" class="invite-feedback hidden"></div>
+      <div id="torneos-list" class="tournament-list"></div>
     </section>
   </main>
 
   <nav class="bottom-nav">
     <div class="bottom-nav__inner">
       <a class="bottom-nav__item" href="../index.html">Competencias</a>
-      <a class="bottom-nav__item" href="torneos.html">Torneos de amigos</a>
+      <a class="bottom-nav__item active" href="torneos.html">Torneos de amigos</a>
     </div>
   </nav>
 

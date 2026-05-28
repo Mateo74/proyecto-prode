@@ -7,6 +7,7 @@ const {
   torneoDeAmigosResponse,
 } = require("../serializers/torneoDeAmigos.serializer");
 const { prediccionResponse } = require("../serializers/prediccion.serializer");
+const { partidoResponse } = require("../serializers/partido.serializer");
 const { invitacionResponse } = require("../serializers/invitacion.serializer");
 
 function torneoToJson(torneo) {
@@ -60,6 +61,14 @@ async function getMisPredicciones(req, res) {
   res.json(predicciones.map(prediccionResponse));
 }
 
+async function getPrediccionesDeUsuario(req, res) {
+  const partidos = await prediccionesService.listClosedMatchesWithPredictionForUser(
+    req.params.id,
+    req.params.usuarioId,
+  );
+  res.json(partidos.map(p => partidoResponse(p)));
+}
+
 async function invitarUsuario(req, res) {
   const invitacion = await invitacionesService.crearInvitacion({
     torneoId: req.params.id,
@@ -111,6 +120,7 @@ module.exports = {
   getByInviteToken,
   getInviteLink,
   getMisPredicciones,
+  getPrediccionesDeUsuario,
   getTabla,
   invitarUsuario,
   joinByInviteToken,

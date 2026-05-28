@@ -1,0 +1,261 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Cómo se calculan los puntos | Once Metros</title>
+  <link rel="stylesheet" href="../css/styles.css">
+</head>
+<body>
+  <header class="header">
+    <nav class="navbar">
+      <a class="logo" href="../index.html"><span class="logo-pulse"></span>Once Metros</a>
+      <div class="nav-links">
+        <a href="../index.html">Competencias</a>
+        <a href="torneos.html">Torneos de amigos</a>
+      </div>
+    </nav>
+  </header>
+
+  <main>
+    <section class="page-header page-header--compact">
+      <div class="page-header-inner">
+        <a class="icon-btn" onclick="history.back(); return false;" href="#" aria-label="Volver">‹</a>
+        <div>
+          <span class="section-label"><span class="dot"></span>Reglas</span>
+          <h1 class="page-title">Cómo se calculan los puntos</h1>
+        </div>
+      </div>
+    </section>
+
+    <!-- Tabla de puntuación -->
+    <section class="section">
+      <div class="scoring-table">
+        <div class="scoring-row">
+          <div class="scoring-row__label">Resultado exacto</div>
+          <div class="scoring-row__pts">3 pts <small>(o más)</small></div>
+        </div>
+        <div class="scoring-row">
+          <div class="scoring-row__label">Misma diferencia de goles</div>
+          <div class="scoring-row__pts">2 pts</div>
+        </div>
+        <div class="scoring-row">
+          <div class="scoring-row__label">Ganador o empate correcto</div>
+          <div class="scoring-row__pts">1 pt</div>
+        </div>
+        <div class="scoring-row scoring-row--miss">
+          <div class="scoring-row__label">Resultado incorrecto</div>
+          <div class="scoring-row__pts">0 pts</div>
+        </div>
+      </div>
+      <p class="scoring-note">
+        <strong>Bonus de goles:</strong> cuando el marcador exacto tiene muchos goles, los puntos por acierto exacto son iguales a la suma total de goles del partido (con un mínimo de 3). Por ejemplo, acertar un 4–2 vale 6 pts.
+      </p>
+    </section>
+
+    <!-- Ejemplo 1: Argentina 2–0 Francia -->
+    <section class="section">
+      <div class="section-header">
+        <div>
+          <span class="section-label"><span class="dot"></span>Ejemplo 1</span>
+          <h2 class="section-title">Argentina 2–0 Francia</h2>
+        </div>
+      </div>
+      <p class="scoring-note">Este fue el resultado real. Según tu predicción, así se puntúa:</p>
+
+      <div class="scoring-examples">
+
+        <!-- Exacto: 2-0 → 3 pts -->
+        <div class="match-card is-done">
+          <div class="match-card__meta">
+            <span class="badge badge-league">Copa del Mundo</span>
+            <span class="badge badge-done">Finalizado</span>
+          </div>
+          <div class="match-card__body">
+            <div class="team">
+              <div class="team__badge">ARG</div>
+              <div class="team__name">Argentina</div>
+            </div>
+            <div class="match-score">
+              <div class="match-score__nums">
+                <span class="match-score__num">2</span>
+                <span class="match-score__sep">–</span>
+                <span class="match-score__num">0</span>
+              </div>
+              <span class="match-score__minute">FINAL</span>
+            </div>
+            <div class="team">
+              <div class="team__badge">FRA</div>
+              <div class="team__name">Francia</div>
+            </div>
+          </div>
+          <div class="match-feedback exact">
+            <span class="match-feedback__label">Tu pred:</span>
+            <span class="match-feedback__score">2–0</span>
+            <span class="match-feedback__badge exact">Exacto</span>
+            <span class="match-feedback__pts positive">+3 pts</span>
+          </div>
+        </div>
+
+        <!-- Misma diferencia: 3-1 → 2 pts -->
+        <div class="match-card is-done">
+          <div class="match-card__meta">
+            <span class="badge badge-league">Copa del Mundo</span>
+            <span class="badge badge-done">Finalizado</span>
+          </div>
+          <div class="match-card__body">
+            <div class="team">
+              <div class="team__badge">ARG</div>
+              <div class="team__name">Argentina</div>
+            </div>
+            <div class="match-score">
+              <div class="match-score__nums">
+                <span class="match-score__num">2</span>
+                <span class="match-score__sep">–</span>
+                <span class="match-score__num">0</span>
+              </div>
+              <span class="match-score__minute">FINAL</span>
+            </div>
+            <div class="team">
+              <div class="team__badge">FRA</div>
+              <div class="team__name">Francia</div>
+            </div>
+          </div>
+          <div class="match-feedback hit">
+            <span class="match-feedback__label">Tu pred:</span>
+            <span class="match-feedback__score">3–1</span>
+            <span class="match-feedback__badge hit">Misma dif.</span>
+            <span class="match-feedback__pts positive">+2 pts</span>
+          </div>
+        </div>
+
+        <!-- Ganador correcto: 1-0 → 1 pt -->
+        <div class="match-card is-done">
+          <div class="match-card__meta">
+            <span class="badge badge-league">Copa del Mundo</span>
+            <span class="badge badge-done">Finalizado</span>
+          </div>
+          <div class="match-card__body">
+            <div class="team">
+              <div class="team__badge">ARG</div>
+              <div class="team__name">Argentina</div>
+            </div>
+            <div class="match-score">
+              <div class="match-score__nums">
+                <span class="match-score__num">2</span>
+                <span class="match-score__sep">–</span>
+                <span class="match-score__num">0</span>
+              </div>
+              <span class="match-score__minute">FINAL</span>
+            </div>
+            <div class="team">
+              <div class="team__badge">FRA</div>
+              <div class="team__name">Francia</div>
+            </div>
+          </div>
+          <div class="match-feedback hit">
+            <span class="match-feedback__label">Tu pred:</span>
+            <span class="match-feedback__score">1–0</span>
+            <span class="match-feedback__badge hit">Ganador</span>
+            <span class="match-feedback__pts positive">+1 pt</span>
+          </div>
+        </div>
+
+        <!-- Incorrecto: 0-1 → 0 pts -->
+        <div class="match-card is-done">
+          <div class="match-card__meta">
+            <span class="badge badge-league">Copa del Mundo</span>
+            <span class="badge badge-done">Finalizado</span>
+          </div>
+          <div class="match-card__body">
+            <div class="team">
+              <div class="team__badge">ARG</div>
+              <div class="team__name">Argentina</div>
+            </div>
+            <div class="match-score">
+              <div class="match-score__nums">
+                <span class="match-score__num">2</span>
+                <span class="match-score__sep">–</span>
+                <span class="match-score__num">0</span>
+              </div>
+              <span class="match-score__minute">FINAL</span>
+            </div>
+            <div class="team">
+              <div class="team__badge">FRA</div>
+              <div class="team__name">Francia</div>
+            </div>
+          </div>
+          <div class="match-feedback miss">
+            <span class="match-feedback__label">Tu pred:</span>
+            <span class="match-feedback__score">0–1</span>
+            <span class="match-feedback__badge miss">Fallaste</span>
+            <span class="match-feedback__pts">+0 pts</span>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- Ejemplo 2: Bonus por muchos goles -->
+    <section class="section">
+      <div class="section-header">
+        <div>
+          <span class="section-label"><span class="dot"></span>Ejemplo 2</span>
+          <h2 class="section-title">Bonus por partido con muchos goles</h2>
+        </div>
+      </div>
+      <p class="scoring-note">
+        Si acertás un partido que termina 4–2, los puntos son 4+2 = <strong>6 pts</strong> (no los 3 habituales).
+      </p>
+
+      <div class="scoring-examples">
+
+        <!-- Exacto: 4-2 → 6 pts -->
+        <div class="match-card is-done">
+          <div class="match-card__meta">
+            <span class="badge badge-league">Champions League</span>
+            <span class="badge badge-done">Finalizado</span>
+          </div>
+          <div class="match-card__body">
+            <div class="team">
+              <div class="team__badge">ARG</div>
+              <div class="team__name">Argentina</div>
+            </div>
+            <div class="match-score">
+              <div class="match-score__nums">
+                <span class="match-score__num">4</span>
+                <span class="match-score__sep">–</span>
+                <span class="match-score__num">2</span>
+              </div>
+              <span class="match-score__minute">FINAL</span>
+            </div>
+            <div class="team">
+              <div class="team__badge">BRA</div>
+              <div class="team__name">Brasil</div>
+            </div>
+          </div>
+          <div class="match-feedback exact">
+            <span class="match-feedback__label">Tu pred:</span>
+            <span class="match-feedback__score">4–2</span>
+            <span class="match-feedback__badge exact">Exacto</span>
+            <span class="match-feedback__pts positive">+6 pts</span>
+          </div>
+        </div>
+
+      </div>
+    </section>
+  </main>
+
+  <nav class="bottom-nav">
+    <div class="bottom-nav__inner">
+      <a class="bottom-nav__item" href="../index.html">Competencias</a>
+      <a class="bottom-nav__item" href="torneos.html">Torneos de amigos</a>
+    </div>
+  </nav>
+
+  <script src="../js/config.js"></script>
+  <script src="../js/api.js"></script>
+  <script src="../js/predictions.js"></script>
+  <script src="../js/app.js"></script>
+</body>
+</html>
