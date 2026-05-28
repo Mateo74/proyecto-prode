@@ -1,6 +1,7 @@
 import * as AuthSession from "expo-auth-session";
+import * as Crypto from "expo-crypto";
 import * as WebBrowser from "expo-web-browser";
-import { useEffect, useRef, useState } from "react";
+import { useState } from "react";
 import {
   ActivityIndicator,
   KeyboardAvoidingView,
@@ -12,17 +13,26 @@ import {
   TextInput,
   View,
 } from "react-native";
-import { GOOGLE_WEB_CLIENT_ID } from "./config";
+import { EXPO_AUTH_REDIRECT_URI, GOOGLE_WEB_CLIENT_ID } from "./config";
 
 // Required so the auth session can complete when Chrome Custom Tabs returns to the app.
 WebBrowser.maybeCompleteAuthSession();
 
-// Use Google's OpenID Connect authorization endpoint directly.
-// Authorization code + PKCE flow: avoids the deprecated implicit flow that Google
-// blocks, and keeps the client_secret on the backend (never in the app).
-const GOOGLE_DISCOVERY = {
-  authorizationEndpoint: "https://accounts.google.com/o/oauth2/v2/auth",
-};
+const PKCE_MASK = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-._~";
+
+function randomString(length: number): string {
+  const bytes = Crypto.getRandomValues(new Uint8Array(length));
+  return Array.from(bytes).map((b) => PKCE_MASK[b % PKCE_MASK.length]).join("");
+}
+
+async function buildCodeChallenge(verifier: string): Promise<string> {
+  const hash = await Crypto.digestStringAsync(
+    Crypto.CryptoDigestAlgorithm.SHA256,
+    verifier,
+    { encoding: Crypto.CryptoEncoding.BASE64 }
+  );
+  return hash.replace(/\+/g, "-").replace(/\//g, "_").replace(/=/g, "");
+}
 
 export type AuthCredentials =
   | { type: "login"; identificador: string; password: string }
@@ -48,39 +58,66 @@ export default function LoginScreen({ onSubmit }: Props) {
   const [regEmail, setRegEmail] = useState("");
   const [regPassword, setRegPassword] = useState("");
 
-  // Stable redirect URI for the OAuth request
-  const redirectUri = AuthSession.makeRedirectUri({ useProxy: true });
+  const [googleLoading, setGoogleLoading] = useState(false);
 
-  const [googleRequest, googleResponse, promptGoogleAsync] =
-    AuthSession.useAuthRequest(
-      {
-        clientId: GOOGLE_WEB_CLIENT_ID,
-        redirectUri,
-        scopes: ["openid", "profile", "email"],
-        responseType: AuthSession.ResponseType.Code,
-        usePKCE: true,
-      },
-      GOOGLE_DISCOVERY
-    );
+  async function handleGoogleSignIn() {
+    if (googleLoading || loading) return;
+    setError("");
+    setGoogleLoading(true);
+    try {
+      // Generate PKCE code verifier + challenge
+      const codeVerifier = randomString(64);
+      const codeChallenge = await buildCodeChallenge(codeVerifier);
+      const state = randomString(16);
 
-  // Handle Google OAuth response — pass code + PKCE verifier to backend for exchange
-  useEffect(() => {
-    if (googleResponse?.type === "success" && googleRequest?.codeVerifier) {
-      const code = googleResponse.params.code;
-      if (code) {
-        handleSubmit({
-          type: "google",
-          code,
-          codeVerifier: googleRequest.codeVerifier,
-          redirectUri,
-        });
-      } else {
-        setError("Google no devolvió el código. Intentá de nuevo.");
+      // Build Google OAuth URL with the Expo proxy as redirect_uri
+      const googleParams = new URLSearchParams({
+        client_id: GOOGLE_WEB_CLIENT_ID,
+        redirect_uri: EXPO_AUTH_REDIRECT_URI,
+        response_type: "code",
+        scope: "openid profile email",
+        code_challenge: codeChallenge,
+        code_challenge_method: "S256",
+        state,
+      });
+      const googleAuthUrl = `https://accounts.google.com/o/oauth2/v2/auth?${googleParams}`;
+
+      // The local Expo Go URI where the proxy will redirect the result back to
+      const returnUrl = AuthSession.makeRedirectUri();
+
+      // Route through the proxy's /start endpoint so it stores the returnUrl
+      const startUrl = `${EXPO_AUTH_REDIRECT_URI}/start?${new URLSearchParams({ authUrl: googleAuthUrl, returnUrl })}`;
+
+      const result = await WebBrowser.openAuthSessionAsync(startUrl, returnUrl);
+
+      if (result.type === "cancel" || result.type === "dismiss") return;
+      if (result.type !== "success") {
+        setError("Error al conectar con Google.");
+        return;
       }
-    } else if (googleResponse?.type === "error") {
-      setError("Error al conectar con Google.");
+
+      // Parse code + state from the URL the proxy redirected back to
+      const queryString = result.url.includes("?") ? result.url.split("?")[1] : "";
+      const params = new URLSearchParams(queryString);
+      const code = params.get("code");
+      const returnedState = params.get("state");
+
+      if (!code) {
+        setError("Google no devolvió el código. Intentá de nuevo.");
+        return;
+      }
+      if (returnedState !== state) {
+        setError("Error de seguridad en la autenticación. Intentá de nuevo.");
+        return;
+      }
+
+      await handleSubmit({ type: "google", code, codeVerifier, redirectUri: EXPO_AUTH_REDIRECT_URI });
+    } catch (e: any) {
+      setError(e.message || "Error al conectar con Google.");
+    } finally {
+      setGoogleLoading(false);
     }
-  }, [googleResponse]);
+  }
 
   async function handleSubmit(credentials: AuthCredentials) {
     setError("");
@@ -142,11 +179,18 @@ export default function LoginScreen({ onSubmit }: Props) {
 
         {/* Google button */}
         <Pressable
-          style={[styles.googleBtn, (!googleRequest || loading) && styles.btnDisabled]}
-          onPress={() => promptGoogleAsync()}
-          disabled={!googleRequest || loading}
+          style={[styles.googleBtn, (googleLoading || loading) && styles.btnDisabled]}
+          onPress={handleGoogleSignIn}
+          disabled={googleLoading || loading}
         >
-          <Text style={styles.googleBtnText}>Continuar con Google</Text>
+          {googleLoading ? (
+            <ActivityIndicator color={TEXT} size="small" />
+          ) : (
+            <>
+              <GoogleIcon />
+              <Text style={styles.googleBtnText}>Continuar con Google</Text>
+            </>
+          )}
         </Pressable>
 
         <View style={styles.divider}>
@@ -273,12 +317,28 @@ export default function LoginScreen({ onSubmit }: Props) {
   );
 }
 
-const PRIMARY = "#165A4A";
+const BG        = "#0a0a0f";
+const BG2       = "#111118";
+const BG3       = "#17171f";
+const PRIMARY   = "#00c853";
+const BORDER    = "rgba(255,255,255,0.10)";
+const TEXT      = "#ffffff";
+const TEXT2     = "rgba(255,255,255,0.60)";
+const TEXT3     = "rgba(255,255,255,0.35)";
+const DANGER    = "#ff4444";
+
+function GoogleIcon() {
+  return (
+    <View style={styles.googleIconWrap}>
+      <Text style={styles.googleIconB}>G</Text>
+    </View>
+  );
+}
 
 const styles = StyleSheet.create({
   root: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: "#fff",
+    backgroundColor: BG,
     zIndex: 10,
   },
   scroll: {
@@ -307,13 +367,13 @@ const styles = StyleSheet.create({
   pageTitle: {
     fontSize: 26,
     fontWeight: "700",
-    color: "#111",
+    color: TEXT,
     marginBottom: 20,
   },
   tabs: {
     flexDirection: "row",
     borderBottomWidth: 1,
-    borderBottomColor: "#E5E7EB",
+    borderBottomColor: BORDER,
     marginBottom: 20,
   },
   tab: {
@@ -325,47 +385,62 @@ const styles = StyleSheet.create({
     borderBottomColor: "transparent",
   },
   tabActive: { borderBottomColor: PRIMARY },
-  tabText: { fontSize: 14, color: "#6B7280", fontWeight: "500" },
+  tabText: { fontSize: 14, color: TEXT3, fontWeight: "500" },
   tabTextActive: { color: PRIMARY, fontWeight: "600" },
   errorBox: {
-    backgroundColor: "#FEE2E2",
+    backgroundColor: "rgba(255,68,68,0.15)",
     borderRadius: 8,
     padding: 12,
     marginBottom: 16,
-  },
-  errorText: { color: "#B91C1C", fontSize: 14 },
-  googleBtn: {
     borderWidth: 1,
-    borderColor: "#D1D5DB",
+    borderColor: "rgba(255,68,68,0.30)",
+  },
+  errorText: { color: DANGER, fontSize: 14 },
+  googleBtn: {
+    flexDirection: "row",
+    borderWidth: 1,
+    borderColor: BORDER,
     borderRadius: 8,
     paddingVertical: 13,
     alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: BG3,
     marginBottom: 20,
   },
-  googleBtnText: { fontSize: 15, fontWeight: "600", color: "#111" },
+  googleIconWrap: {
+    width: 20,
+    height: 20,
+    borderRadius: 4,
+    backgroundColor: "#fff",
+    alignItems: "center",
+    justifyContent: "center",
+    marginRight: 10,
+  },
+  googleIconB: { fontSize: 13, fontWeight: "800", color: "#4285F4", lineHeight: 20 },
+  googleBtnText: { fontSize: 15, fontWeight: "600", color: TEXT },
   divider: {
     flexDirection: "row",
     alignItems: "center",
     marginBottom: 16,
   },
-  line: { flex: 1, height: 1, backgroundColor: "#E5E7EB" },
-  dividerText: { marginHorizontal: 12, color: "#9CA3AF", fontSize: 13 },
+  line: { flex: 1, height: 1, backgroundColor: BORDER },
+  dividerText: { marginHorizontal: 12, color: TEXT3, fontSize: 13 },
   label: {
     fontSize: 13,
     fontWeight: "500",
-    color: "#374151",
+    color: TEXT2,
     marginTop: 10,
     marginBottom: 5,
   },
   input: {
     borderWidth: 1,
-    borderColor: "#D1D5DB",
+    borderColor: BORDER,
     borderRadius: 8,
     paddingHorizontal: 12,
     paddingVertical: 11,
     fontSize: 15,
-    color: "#111",
-    backgroundColor: "#FAFAFA",
+    color: TEXT,
+    backgroundColor: BG2,
   },
   submitBtn: {
     backgroundColor: PRIMARY,

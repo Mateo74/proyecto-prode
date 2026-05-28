@@ -65,7 +65,9 @@ export default function App() {
     if (data.type === "LOGIN_SUCCESS") {
       loginResolverRef.current?.resolve();
       loginResolverRef.current = null;
-      setShowLogin(false);
+      // Navigate the WebView to the main page so auth.html is no longer shown
+      webViewRef.current?.injectJavaScript(`window.location.href = '${FRONTEND_URL}'; true;`);
+      // setShowLogin will be cleared by onNavigationStateChange when URL changes
     } else if (data.type === "LOGIN_ERROR") {
       loginResolverRef.current?.reject(new Error(data.message || "Error al iniciar sesión"));
       loginResolverRef.current = null;
