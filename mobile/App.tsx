@@ -1,5 +1,5 @@
 import { StatusBar } from "expo-status-bar";
-import { useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
   Platform,
@@ -10,20 +10,87 @@ import {
   Text,
   View,
 } from "react-native";
-import { WebView } from "react-native-webview";
+import { WebView, WebViewNavigation } from "react-native-webview";
 
 import { FRONTEND_URL } from "./src/config";
+import LoginScreen, { AuthCredentials } from "./src/LoginScreen";
+
+type LoginResolver = { resolve: () => void; reject: (e: Error) => void };
 
 export default function App() {
   const [isLoading, setIsLoading] = useState(true);
   const [hasError, setHasError] = useState(false);
   const [webViewKey, setWebViewKey] = useState(0);
+  const [showLogin, setShowLogin] = useState(false);
+
+  const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const webViewRef = useRef<WebView>(null);
+  const loginResolverRef = useRef<LoginResolver | null>(null);
+
+  // Safety-net: hide spinner after 15 s in case load events don't fire
+  useEffect(() => {
+    if (!isLoading) return;
+    timeoutRef.current = setTimeout(() => setIsLoading(false), 15000);
+    return () => {
+      if (timeoutRef.current) clearTimeout(timeoutRef.current);
+    };
+  }, [isLoading, webViewKey]);
+
+  function finishLoading() {
+    if (timeoutRef.current) clearTimeout(timeoutRef.current);
+    setIsLoading(false);
+  }
 
   function retry() {
     setHasError(false);
     setIsLoading(true);
-    setWebViewKey((current) => current + 1);
+    setShowLogin(false);
+    setWebViewKey((k) => k + 1);
   }
+
+  // Show native login when WebView navigates to auth.html
+  const onNavigationStateChange = useCallback((state: WebViewNavigation) => {
+    const isAuthPage = state.url.includes("auth.html");
+    setShowLogin(isAuthPage);
+    if (!isAuthPage) {
+      loginResolverRef.current?.resolve();
+      loginResolverRef.current = null;
+    }
+  }, []);
+
+  // Handle LOGIN_SUCCESS / LOGIN_ERROR messages from injected scripts
+  const onMessage = useCallback((event: { nativeEvent: { data: string } }) => {
+    let data: { type: string; message?: string };
+    try { data = JSON.parse(event.nativeEvent.data); } catch { return; }
+    if (data.type === "LOGIN_SUCCESS") {
+      loginResolverRef.current?.resolve();
+      loginResolverRef.current = null;
+      setShowLogin(false);
+    } else if (data.type === "LOGIN_ERROR") {
+      loginResolverRef.current?.reject(new Error(data.message || "Error al iniciar sesión"));
+      loginResolverRef.current = null;
+    }
+  }, []);
+
+  // Inject the API call into the WebView so the httpOnly cookie is set in its own cookie jar
+  const handleNativeSubmit = useCallback((credentials: AuthCredentials): Promise<void> => {
+    return new Promise((resolve, reject) => {
+      loginResolverRef.current = { resolve, reject };
+      let js: string;
+      if (credentials.type === "login") {
+        const creds = JSON.stringify({ identificador: credentials.identificador, password: credentials.password });
+        js = `(async()=>{try{await API.login(${creds});window.ReactNativeWebView.postMessage(JSON.stringify({type:'LOGIN_SUCCESS'}));}catch(e){window.ReactNativeWebView.postMessage(JSON.stringify({type:'LOGIN_ERROR',message:e.message}));}})();true;`;
+      } else if (credentials.type === "register") {
+        const creds = JSON.stringify({ username: credentials.username, nombre: credentials.nombre, email: credentials.email, password: credentials.password });
+        js = `(async()=>{try{await API.register(${creds});window.ReactNativeWebView.postMessage(JSON.stringify({type:'LOGIN_SUCCESS'}));}catch(e){window.ReactNativeWebView.postMessage(JSON.stringify({type:'LOGIN_ERROR',message:e.message}));}})();true;`;
+      } else {
+        // google — send code + PKCE verifier to backend for server-side token exchange
+        const params = JSON.stringify({ code: credentials.code, codeVerifier: credentials.codeVerifier, redirectUri: credentials.redirectUri });
+        js = `(async()=>{try{await API.loginWithGoogleCode(${params});window.ReactNativeWebView.postMessage(JSON.stringify({type:'LOGIN_SUCCESS'}));}catch(e){window.ReactNativeWebView.postMessage(JSON.stringify({type:'LOGIN_ERROR',message:e.message}));}})();true;`;
+      }
+      webViewRef.current?.injectJavaScript(js);
+    });
+  }, []);
 
   return (
     <SafeAreaView style={styles.safeArea}>
@@ -43,9 +110,13 @@ export default function App() {
           <>
             <WebView
               key={webViewKey}
+              ref={webViewRef}
               source={{ uri: FRONTEND_URL }}
               style={styles.webView}
-              originWhitelist={["https://*"]}
+              // Allow both https and http so redirects don't get blocked
+              originWhitelist={["https://*", "http://*"]}
+              // Mark the WebView context so the web app can adapt (e.g. hide Google auth)
+              injectedJavaScriptBeforeContentLoaded={`window.__ONCE_METROS_NATIVE_WEBVIEW__=true;true;`}
               javaScriptEnabled
               domStorageEnabled
               sharedCookiesEnabled
@@ -58,16 +129,32 @@ export default function App() {
                 setHasError(false);
                 setIsLoading(true);
               }}
-              onLoadEnd={() => setIsLoading(false)}
+              // onLoad fires when main document has loaded (more reliable on Android)
+              onLoad={finishLoading}
+              // onLoadEnd as fallback
+              onLoadEnd={finishLoading}
               onError={() => {
-                setIsLoading(false);
+                finishLoading();
                 setHasError(true);
               }}
+              onHttpError={(e) => {
+                if (e.nativeEvent.statusCode >= 500) {
+                  finishLoading();
+                  setHasError(true);
+                } else {
+                  finishLoading();
+                }
+              }}
+              onNavigationStateChange={onNavigationStateChange}
+              onMessage={onMessage}
             />
             {isLoading ? (
               <View style={styles.loadingOverlay}>
                 <ActivityIndicator color="#165A4A" size="large" />
               </View>
+            ) : null}
+            {showLogin ? (
+              <LoginScreen onSubmit={handleNativeSubmit} />
             ) : null}
           </>
         )}
@@ -75,7 +162,6 @@ export default function App() {
     </SafeAreaView>
   );
 }
-
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,

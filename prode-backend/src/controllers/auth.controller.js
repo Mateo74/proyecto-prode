@@ -222,4 +222,88 @@ async function logout(req, res) {
   res.json({ ok: true });
 }
 
-module.exports = { googleLogin, login, logout, me, refresh, register };
+// Accepts an OAuth 2.0 authorization code (+ PKCE verifier) from a native mobile
+// client and exchanges it for a Google id_token server-side, so the client_secret
+// never needs to leave the backend.
+async function mobileGoogleLogin(req, res) {
+  if (!env.GOOGLE_CLIENT_ID || !env.GOOGLE_CLIENT_SECRET) {
+    throw httpError(503, "Google auth no esta configurado");
+  }
+
+  const { code, codeVerifier, redirectUri } = req.body;
+
+  const tokenRes = await fetch("https://oauth2.googleapis.com/token", {
+    method: "POST",
+    headers: { "Content-Type": "application/x-www-form-urlencoded" },
+    body: new URLSearchParams({
+      code,
+      client_id: env.GOOGLE_CLIENT_ID,
+      client_secret: env.GOOGLE_CLIENT_SECRET,
+      redirect_uri: redirectUri,
+      code_verifier: codeVerifier,
+      grant_type: "authorization_code",
+    }).toString(),
+  });
+
+  if (!tokenRes.ok) {
+    const err = await tokenRes.json().catch(() => ({}));
+    throw httpError(401, err.error_description || "Error al autenticar con Google");
+  }
+
+  const tokens = await tokenRes.json();
+  const idToken = tokens.id_token;
+  if (!idToken) throw httpError(401, "Google no devolvio un id_token");
+
+  let payload;
+  try {
+    payload = await verifyGoogleIdToken(idToken);
+  } catch {
+    throw httpError(401, "Token de Google invalido");
+  }
+
+  const googleId = payload?.sub;
+  const email = normalizeEmail(payload?.email);
+  const emailVerificado = payload?.email_verified === true || payload?.email_verified === "true";
+
+  if (!googleId || !email || !emailVerificado) {
+    throw httpError(401, "Google no verifico el email de la cuenta");
+  }
+
+  let usuario = await prisma.usuario.findUnique({ where: { googleId }, include: { hinchaDe: true } });
+  if (!usuario) {
+    usuario = await prisma.usuario.findUnique({ where: { email }, include: { hinchaDe: true } });
+  }
+
+  if (usuario) {
+    if (!usuario.activo) throw httpError(401, "La cuenta esta inactiva");
+    if (usuario.googleId && usuario.googleId !== googleId) {
+      throw httpError(409, "Ese email ya esta asociado a otra cuenta de Google");
+    }
+    if (!usuario.googleId || !usuario.emailVerificado) {
+      usuario = await prisma.usuario.update({
+        where: { id: usuario.id },
+        data: { googleId, emailVerificado: true },
+        include: { hinchaDe: true },
+      });
+    }
+  } else {
+    const baseUsername = baseUsernameFromGoogleProfile({ email, name: payload.name });
+    const username = await generateUniqueUsername(baseUsername);
+    usuario = await prisma.usuario.create({
+      data: {
+        nombre: payload.given_name || payload.name || username,
+        apellido: payload.family_name || null,
+        username,
+        email,
+        emailVerificado: true,
+        googleId,
+      },
+      include: { hinchaDe: true },
+    });
+  }
+
+  const token = await issueTokens(res, usuario);
+  res.json({ token, usuario: usuarioResponse(usuario) });
+}
+
+module.exports = { googleLogin, login, logout, me, mobileGoogleLogin, refresh, register };

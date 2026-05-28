@@ -22,6 +22,7 @@ const env = {
   NODE_ENV: process.env.NODE_ENV || "development",
   DATABASE_URL: required("DATABASE_URL"),
   GOOGLE_CLIENT_ID: process.env.GOOGLE_CLIENT_ID || "",
+  GOOGLE_CLIENT_SECRET: process.env.GOOGLE_CLIENT_SECRET || "",
   JWT_SECRET: getJwtSecret(),
   JWT_ACCESS_TTL: process.env.JWT_ACCESS_TTL || "15m",
   JWT_TTL: process.env.JWT_TTL || "7d",

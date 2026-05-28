@@ -69,4 +69,13 @@ const sessionResponse = registry.register(
   }),
 );
 
-module.exports = { googleLoginBody, loginBody, registerBody, sessionResponse, usuarioPayload };
+const mobileGoogleLoginBody = registry.register(
+  "AuthMobileGoogleLoginBody",
+  z.object({
+    code: z.string().trim().min(1, "Code requerido"),
+    codeVerifier: z.string().trim().min(1, "Code verifier requerido"),
+    redirectUri: z.string().trim().min(1, "Redirect URI requerida"),
+  }),
+);
+
+module.exports = { googleLoginBody, loginBody, mobileGoogleLoginBody, registerBody, sessionResponse, usuarioPayload };

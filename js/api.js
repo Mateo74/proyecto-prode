@@ -131,12 +131,19 @@ const API = (() => {
     }
 
     if (res.status === 401 && !_isRetry) {
-      try {
-        await doRefresh();
-      } catch {
-        throw new Error('Sesión expirada. Iniciá sesión de nuevo.');
+      // Only attempt a token refresh if we currently have an access token in memory.
+      // If there's no token, this 401 belongs to the request itself (e.g. wrong login
+      // credentials) — surfacing "Sesión expirada" in that case is misleading.
+      if (accessToken) {
+        try {
+          await doRefresh();
+        } catch {
+          throw new Error('Sesión expirada. Iniciá sesión de nuevo.');
+        }
+        return request(endpoint, options, true);
       }
-      return request(endpoint, options, true);
+      const error = await res.json().catch(() => ({}));
+      throw new Error(error.message || 'No autorizado');
     }
 
     if (!res.ok) {
@@ -295,6 +302,15 @@ const API = (() => {
     return session;
   }
 
+  async function loginWithGoogleCode({ code, codeVerifier, redirectUri }) {
+    const session = await request('/auth/google/mobile', {
+      method: 'POST',
+      body: JSON.stringify({ code, codeVerifier, redirectUri }),
+    });
+    setSession(session);
+    return session;
+  }
+
   async function me() {
     const response = await request('/auth/me');
     localStorage.setItem(USER_KEY, JSON.stringify(response.usuario));
@@ -428,6 +444,7 @@ const API = (() => {
     invitarAlTorneo,
     login,
     loginWithGoogle,
+    loginWithGoogleCode,
     logout,
     me,
     rechazarInvitacion,

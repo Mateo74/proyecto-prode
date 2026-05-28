@@ -176,6 +176,9 @@ function redirectAfterAuth() {
 }
 
 function initGoogleAuth() {
+  // Google Sign-In doesn't work inside Android/iOS WebViews — the GSI script
+  // intentionally blocks button rendering in embedded browsers.
+  if (window.__ONCE_METROS_NATIVE_WEBVIEW__) return;
   const wrapper = document.getElementById('google-auth');
   const target = document.getElementById('google-signin');
   const clientId = window.ONCE_METROS_CONFIG?.GOOGLE_CLIENT_ID?.trim();
@@ -409,6 +412,13 @@ function setHomeError(message) {
    -------------------------------------------------------- */
 function initPartidos() {
   renderSelectedContext();
+
+  // Always start on "Próximos" regardless of HTML defaults or browser cache
+  document.querySelectorAll('.filter-chip[data-group="estado"]')
+    .forEach(c => c.classList.remove('active'));
+  document.querySelector('.filter-chip[data-group="estado"][data-value="proximo"]')
+    ?.classList.add('active');
+
   loadPartidos();
   startMatchesPolling();
 
@@ -1233,6 +1243,12 @@ async function initTorneos() {
   const listEl = document.getElementById('torneos-list');
   const feedbackEl = document.getElementById('torneos-feedback');
   if (!listEl) return;
+
+  // If restoreSession on page load failed (e.g. rotated token race),
+  // try once more before giving up.
+  if (!API.getToken() && API.getCurrentUser()) {
+    await API.restoreSession();
+  }
 
   if (!API.getToken()) {
     listEl.innerHTML = `
