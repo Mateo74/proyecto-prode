@@ -12,6 +12,7 @@ const invitacionesRoutes = require("./invitaciones.routes");
 const invitesRoutes = require("./invites.routes");
 
 const { buildSpec } = require("../openapi/spec");
+const env = require("../config/env");
 
 const router = Router();
 
@@ -27,7 +28,10 @@ router.use("/predicciones", prediccionesRoutes);
 router.use("/invitaciones", invitacionesRoutes);
 router.use("/invites", invitesRoutes);
 
-router.get("/openapi.json", (req, res) => res.json(buildSpec()));
-router.use("/docs", swaggerUi.serve, swaggerUi.setup(undefined, { swaggerOptions: { url: "/api/openapi.json" } }));
+// Only expose API docs in non-production environments
+if (env.NODE_ENV !== "production") {
+  router.get("/openapi.json", (req, res) => res.json(buildSpec()));
+  router.use("/docs", swaggerUi.serve, swaggerUi.setup(undefined, { swaggerOptions: { url: "/api/openapi.json" } }));
+}
 
 module.exports = router;

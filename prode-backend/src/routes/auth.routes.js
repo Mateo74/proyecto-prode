@@ -1,4 +1,5 @@
 const { Router } = require("express");
+const rateLimit = require("express-rate-limit");
 const { registry } = require("../openapi/registry");
 const { asyncRoute } = require("../utils/asyncRoute");
 const { validate } = require("../middlewares/validate.middleware");
@@ -11,11 +12,29 @@ const controller = require("../controllers/auth.controller");
 
 const router = Router();
 
-router.post("/register", validate({ body: registerBody }), asyncRoute(controller.register));
-router.post("/login", validate({ body: loginBody }), asyncRoute(controller.login));
-router.post("/google", validate({ body: googleLoginBody }), asyncRoute(controller.googleLogin));
-router.post("/google/mobile", validate({ body: mobileGoogleLoginBody }), asyncRoute(controller.mobileGoogleLogin));
-router.post("/refresh", asyncRoute(controller.refresh));
+// 10 attempts per 15 minutes per IP on sensitive auth endpoints
+const authLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 10,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: "Demasiados intentos. Intentá de nuevo en 15 minutos." },
+});
+
+// More lenient limit for refresh (used silently by the app)
+const refreshLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 60,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: "Demasiadas solicitudes. Intentá de nuevo más tarde." },
+});
+
+router.post("/register", authLimiter, validate({ body: registerBody }), asyncRoute(controller.register));
+router.post("/login", authLimiter, validate({ body: loginBody }), asyncRoute(controller.login));
+router.post("/google", authLimiter, validate({ body: googleLoginBody }), asyncRoute(controller.googleLogin));
+router.post("/google/mobile", authLimiter, validate({ body: mobileGoogleLoginBody }), asyncRoute(controller.mobileGoogleLogin));
+router.post("/refresh", refreshLimiter, asyncRoute(controller.refresh));
 router.post("/logout", asyncRoute(controller.logout));
 router.get("/me", requireAuth, asyncRoute(controller.me));
 

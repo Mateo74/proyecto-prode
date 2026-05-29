@@ -2,6 +2,8 @@
   "expo": {
     "name": "Once Metros",
     "slug": "once-metros-mobile",
+    "owner": "mateomarenco",
+    "scheme": "once-metros",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",

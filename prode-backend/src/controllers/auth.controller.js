@@ -232,6 +232,14 @@ async function mobileGoogleLogin(req, res) {
 
   const { code, codeVerifier, redirectUri } = req.body;
 
+  // Whitelist the only valid redirect URI to prevent open redirect / token exchange abuse
+  const ALLOWED_REDIRECT_URIS = [
+    "https://auth.expo.io/@mateomarenco/once-metros-mobile",
+  ];
+  if (!redirectUri || !ALLOWED_REDIRECT_URIS.includes(redirectUri)) {
+    throw httpError(400, "redirect_uri invalido");
+  }
+
   const tokenRes = await fetch("https://oauth2.googleapis.com/token", {
     method: "POST",
     headers: { "Content-Type": "application/x-www-form-urlencoded" },

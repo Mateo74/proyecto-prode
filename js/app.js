@@ -1332,7 +1332,7 @@ function setText(id, val) {
 }
 
 function initial(value) {
-  return String(value || '?').trim()[0]?.toUpperCase() || '?';
+  return escapeHtml(String(value || '?').trim()[0]?.toUpperCase() || '?');
 }
 
 function escapeHtml(value) {
