@@ -1,4 +1,4 @@
-export const FRONTEND_URL = "https://proyecto-prode.vercel.app";
+export const FRONTEND_URL = "https://www.oncemetros.com";
 
 // Same web client ID used by the deployed web app and the backend to verify Google tokens.
 export const GOOGLE_WEB_CLIENT_ID =
