@@ -230,6 +230,12 @@ function setAuthError(message) {
    HOME: COMPETENCIAS -> PREDICCIONES / TORNEOS DE AMIGOS
    -------------------------------------------------------- */
 function initHome() {
+  // Always start on "Próximos" filter regardless of HTML defaults
+  document.querySelectorAll('.filter-chip[data-group="estado"]')
+    .forEach(c => c.classList.remove('active'));
+  document.querySelector('.filter-chip[data-group="estado"][data-value="proximo"]')
+    ?.classList.add('active');
+
   loadCompetencias();
   document.getElementById('create-torneo-form')?.addEventListener('submit', handleCreateTorneo);
   document.querySelector('[data-back-to-competencias]')?.addEventListener('click', () => showCompetitionPicker());

@@ -118,8 +118,8 @@ const Predictions = (() => {
     const card = document.createElement('div');
     card.classList.add('match-card');
     card.dataset.matchId = match.id;
-    const initialEquipo1 = match.userPred?.scoreEquipo1 ?? 0;
-    const initialEquipo2 = match.userPred?.scoreEquipo2 ?? 0;
+    const initialEquipo1 = match.userPred?.scoreEquipo1 ?? null;
+    const initialEquipo2 = match.userPred?.scoreEquipo2 ?? null;
     const hasSavedPrediction = Boolean(match.userPred);
     const editable = match.prediccionEditable !== false;
     if (hasSavedPrediction) card.classList.add('pred-saved');
@@ -144,17 +144,19 @@ const Predictions = (() => {
         </div>
 
         <div class="score-input">
-          <div class="score-spinner" data-side="equipo1">
-            <button class="spin-btn spin-inc" aria-label="Más goles equipo 1" ${editable ? '' : 'disabled'}>+</button>
-            <span class="spin-value" aria-live="polite">${initialEquipo1}</span>
-            <button class="spin-btn spin-dec" aria-label="Menos goles equipo 1" ${editable ? '' : 'disabled'}>−</button>
-          </div>
+          <input class="score-box${hasSavedPrediction ? ' has-value' : ''}"
+                 type="text" inputmode="numeric"
+                 value="${hasSavedPrediction ? initialEquipo1 : ''}"
+                 placeholder="-" data-side="equipo1"
+                 ${editable ? '' : 'disabled'}
+                 autocomplete="off" spellcheck="false">
           <div class="score-sep">:</div>
-          <div class="score-spinner" data-side="equipo2">
-            <button class="spin-btn spin-inc" aria-label="Más goles equipo 2" ${editable ? '' : 'disabled'}>+</button>
-            <span class="spin-value" aria-live="polite">${initialEquipo2}</span>
-            <button class="spin-btn spin-dec" aria-label="Menos goles equipo 2" ${editable ? '' : 'disabled'}>−</button>
-          </div>
+          <input class="score-box${hasSavedPrediction ? ' has-value' : ''}"
+                 type="text" inputmode="numeric"
+                 value="${hasSavedPrediction ? initialEquipo2 : ''}"
+                 placeholder="-" data-side="equipo2"
+                 ${editable ? '' : 'disabled'}
+                 autocomplete="off" spellcheck="false">
         </div>
 
         <div class="team">
@@ -162,33 +164,72 @@ const Predictions = (() => {
           <div class="team__name">${equipo2De(match)}</div>
         </div>
       </div>
-
-      <button class="btn-save" ${editable ? '' : 'disabled'} aria-label="Guardar predicción para ${equipo1De(match)} vs ${equipo2De(match)}">
-        ${editable ? (hasSavedPrediction ? 'Actualizar predicción' : 'Guardar predicción') : 'Predicción cerrada'}
-      </button>
     `;
 
     state.set(match.id, { equipo1: initialEquipo1, equipo2: initialEquipo2, saved: hasSavedPrediction });
 
     if (!editable) return card;
 
-    card.querySelectorAll('.score-spinner').forEach(spinner => {
-      const side  = spinner.dataset.side;
-      const valEl = spinner.querySelector('.spin-value');
+    card.querySelectorAll('.score-box').forEach(input => {
+      const side = input.dataset.side;
 
-      spinner.querySelector('.spin-inc').addEventListener('click', () => {
-        const s = state.get(match.id);
-        if (s[side] < 20) { s[side]++; animateValue(valEl, s[side]); markDirty(card); }
+      input.addEventListener('focus', () => {
+        // Clear the box so the placeholder shows and the user types fresh
+        input.value = '';
+        input.classList.remove('has-value');
       });
 
-      spinner.querySelector('.spin-dec').addEventListener('click', () => {
+      input.addEventListener('blur', () => {
+        // If the user left without typing, restore the saved value
         const s = state.get(match.id);
-        if (s[side] > 0) { s[side]--; animateValue(valEl, s[side]); markDirty(card); }
+        if (s[side] !== null) {
+          input.value = s[side];
+          input.classList.add('has-value');
+        }
+      });
+
+      // Block non-digit keys on desktop keyboards
+      input.addEventListener('keydown', e => {
+        if (['Backspace', 'Delete', 'Tab', 'ArrowLeft', 'ArrowRight', 'Enter'].includes(e.key)) return;
+        if (/^[0-9]$/.test(e.key)) return;
+        e.preventDefault();
+      });
+
+      // Primary handler — fires reliably on both desktop and mobile virtual keyboards
+      input.addEventListener('input', () => {
+        const digit = input.value.replace(/\D/g, '').slice(-1);
+        input.value = digit;
+        const num = digit === '' ? null : parseInt(digit, 10);
+        state.get(match.id)[side] = num;
+        input.classList.toggle('has-value', num !== null);
+        if (num !== null) {
+          advanceFocus(input);
+          tryAutoSave(card, match.id);
+        } else {
+          card.classList.remove('pred-saved', 'just-saved');
+        }
       });
     });
 
-    card.querySelector('.btn-save').addEventListener('click', () => onSave(card, match.id));
     return card;
+  }
+
+  /** Move focus to the next editable score-box in DOM order. */
+  function advanceFocus(current) {
+    const all = Array.from(document.querySelectorAll('.score-box:not([disabled])'));
+    const idx = all.indexOf(current);
+    if (idx >= 0 && idx < all.length - 1) {
+      const next = all[idx + 1];
+      next.focus();
+      next.select();
+    }
+  }
+
+  /** Save automatically once both scores for a match are filled. */
+  async function tryAutoSave(card, matchId) {
+    const s = state.get(matchId);
+    if (s.equipo1 === null || s.equipo2 === null) return;
+    await onSave(card, matchId);
   }
 
   // ─── PARTIDO EN VIVO ──────────────────────────────────────────────
@@ -342,30 +383,13 @@ const Predictions = (() => {
     `;
   }
 
-  function animateValue(el, val) {
-    el.textContent = val;
-    el.classList.remove('changed');
-    void el.offsetWidth;
-    el.classList.add('changed');
-  }
-
-  function markDirty(card) {
-    card.classList.remove('pred-saved');
-    const btn = card.querySelector('.btn-save');
-    if (btn) btn.textContent = 'Guardar predicción';
-  }
-
   async function onSave(card, matchId) {
-    const s   = state.get(matchId);
-    const btn = card.querySelector('.btn-save');
+    const s = state.get(matchId);
 
     if (!API.getToken()) {
       window.location.href = `${authPathPrefix()}auth.html`;
       return;
     }
-
-    btn.disabled    = true;
-    btn.textContent = 'Guardando…';
 
     const prediccion = s.equipo1 > s.equipo2 ? 'equipo1'
                      : s.equipo1 < s.equipo2 ? 'equipo2'
@@ -374,16 +398,15 @@ const Predictions = (() => {
     try {
       await API.savePrediction({ matchId, scoreEquipo1: s.equipo1, scoreEquipo2: s.equipo2, prediccion });
     } catch (err) {
-      btn.disabled = false;
-      btn.textContent = 'No se pudo guardar';
       console.warn('No se pudo guardar la predicción:', err.message);
+      card.classList.add('save-error');
+      setTimeout(() => card.classList.remove('save-error'), 2500);
       return;
     }
 
     s.saved = true;
+    card.classList.remove('save-error');
     card.classList.add('pred-saved', 'just-saved');
-    btn.disabled    = false;
-    btn.textContent = '✓ Guardado';
     setTimeout(() => card.classList.remove('just-saved'), 500);
   }
 

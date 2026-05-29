@@ -152,7 +152,7 @@ export default function App() {
             />
             {isLoading ? (
               <View style={styles.loadingOverlay}>
-                <ActivityIndicator color="#165A4A" size="large" />
+                <ActivityIndicator color="#00c853" size="large" />
               </View>
             ) : null}
             {showLogin ? (
@@ -167,16 +167,16 @@ export default function App() {
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: "#FFFFFF",
+    backgroundColor: "#0a0a0f",
     paddingTop: Platform.OS === "android" ? NativeStatusBar.currentHeight : 0,
   },
   container: {
     flex: 1,
-    backgroundColor: "#FFFFFF",
+    backgroundColor: "#0a0a0f",
   },
   webView: {
     flex: 1,
-    backgroundColor: "#FFFFFF",
+    backgroundColor: "#0a0a0f",
   },
   loadingOverlay: {
     bottom: 0,
@@ -185,7 +185,7 @@ const styles = StyleSheet.create({
     right: 0,
     top: 0,
     alignItems: "center",
-    backgroundColor: "rgba(255,255,255,0.86)",
+    backgroundColor: "#0a0a0f",
     justifyContent: "center",
   },
   centered: {
