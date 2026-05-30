@@ -13,6 +13,15 @@ async function getById(id) {
   return usuario;
 }
 
+async function deleteById(id) {
+  // Null out creadorId on owned torneos so they persist for other members
+  await prisma.torneoDeAmigos.updateMany({ where: { creadorId: id }, data: { creadorId: null } });
+  // Disconnect from all torneos (many-to-many join table)
+  await prisma.usuario.update({ where: { id }, data: { torneosDeAmigos: { set: [] } } });
+  // Predicciones, RefreshTokens, and Invitaciones have onDelete: Cascade in schema
+  await prisma.usuario.delete({ where: { id } });
+}
+
 async function update(id, data) {
   if (data.hinchaDeEquipoId === null) {
     data = { ...data, hinchaDeEquipoId: null };
@@ -33,4 +42,4 @@ async function update(id, data) {
   }
 }
 
-module.exports = { getById, update };
+module.exports = { deleteById, getById, update };

@@ -17,6 +17,7 @@ router.put(
   validate({ params: idParam, body: updateUsuarioBody }),
   asyncRoute(controller.update),
 );
+router.delete("/:id", requireAuth, validate({ params: idParam }), asyncRoute(controller.deleteById));
 
 const usuarioPublico = z.object({
   id: z.string(),

@@ -16,4 +16,13 @@ async function update(req, res) {
   res.json(usuarioResponse(usuario));
 }
 
-module.exports = { getById, update };
+async function deleteById(req, res) {
+  if (req.usuario.id !== req.params.id && req.usuario.rol !== "ADMIN") {
+    throw httpError(403, "Solo podes eliminar tu propia cuenta");
+  }
+  await usuariosService.deleteById(req.params.id);
+  res.clearCookie("refreshToken", { path: "/api/auth" });
+  res.status(204).end();
+}
+
+module.exports = { getById, update, deleteById };

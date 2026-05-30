@@ -216,6 +216,10 @@ const API = (() => {
     });
   }
 
+  async function deleteUsuario(id) {
+    return request(`/usuarios/${id}`, { method: 'DELETE' });
+  }
+
   // --- COMPETENCIAS ---
 
   async function getCompetencias() {
@@ -458,5 +462,6 @@ const API = (() => {
     unirseConInviteToken,
     updatePrediction,
     updateUsuario,
+    deleteUsuario,
   };
 })();

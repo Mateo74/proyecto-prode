@@ -7,6 +7,10 @@
     {
       "source": "/privacidad",
       "destination": "/pages/privacidad.html"
+    },
+    {
+      "source": "/perfil",
+      "destination": "/pages/perfil.html"
     }
   ]
 }

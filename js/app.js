@@ -69,7 +69,7 @@ function initAccountMenu() {
           <strong>${escapeHtml(user?.nombre || user?.username || 'Invitado')}</strong>
           <small>${user ? 'Sesión activa' : 'Sin sesión'}</small>
         </div>
-        <a href="${authRelativePath('auth.html')}">${user ? 'Mi cuenta' : 'Ingresar'}</a>
+        <a href="${user ? authRelativePath('perfil.html') : authRelativePath('auth.html')}">${user ? 'Mi cuenta' : 'Ingresar'}</a>
         <a href="${homeRelativePath()}">Competencias</a>
         <a class="${user ? '' : 'hidden'}" href="${authRelativePath('invitaciones.html')}">Invitaciones</a>
         <button class="${user ? '' : 'hidden'}" data-menu-logout>Cerrar Sesión</button>
