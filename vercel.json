@@ -3,6 +3,10 @@
     {
       "source": "/api/:path*",
       "destination": "https://once-metros-api-gzhrhka4d4gac3cq.chilecentral-01.azurewebsites.net/api/:path*"
+    },
+    {
+      "source": "/privacidad",
+      "destination": "/pages/privacidad.html"
     }
   ]
 }
