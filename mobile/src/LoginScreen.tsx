@@ -82,8 +82,11 @@ export default function LoginScreen({ onSubmit }: Props) {
       });
       const googleAuthUrl = `https://accounts.google.com/o/oauth2/v2/auth?${googleParams}`;
 
-      // The local Expo Go URI where the proxy will redirect the result back to
-      const returnUrl = AuthSession.makeRedirectUri();
+      // The URI the proxy will redirect back to after Google auth.
+      // Must have a host component to pass the proxy's URI validation, so we
+      // always use the custom scheme + explicit path (works in both Expo Go and
+      // standalone APK/AAB).
+      const returnUrl = AuthSession.makeRedirectUri({ scheme: 'once-metros', path: 'redirect' });
 
       // Route through the proxy's /start endpoint so it stores the returnUrl
       const startUrl = `${EXPO_AUTH_REDIRECT_URI}/start?${new URLSearchParams({ authUrl: googleAuthUrl, returnUrl })}`;
