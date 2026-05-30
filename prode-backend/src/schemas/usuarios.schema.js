@@ -7,6 +7,7 @@ const updateUsuarioBody = registry.register(
     apellido: z.string().trim().max(80).nullish(),
     telefono: z.string().trim().max(40).nullish(),
     hinchaDeEquipoId: z.string().nullish(),
+    fotoPerfil: z.string().max(200_000).nullish(),
   }).strict(),
 );
 

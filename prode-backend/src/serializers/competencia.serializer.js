@@ -5,6 +5,7 @@ function competenciaResponse(competencia) {
     slug: competencia.slug,
     externalId: competencia.externalId,
     proveedor: competencia.proveedor,
+    terminada: competencia.terminada ?? false,
   };
 }
 

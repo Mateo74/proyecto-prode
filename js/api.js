@@ -94,6 +94,7 @@ const API = (() => {
       }
       const json = await res.json();
       accessToken = json.token;
+      if (json.usuario) localStorage.setItem(USER_KEY, JSON.stringify(json.usuario));
     }).finally(() => {
       refreshPromise = null;
     });

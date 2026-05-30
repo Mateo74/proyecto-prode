@@ -92,7 +92,13 @@ async function getTabla(torneoId) {
   const predicciones = await prisma.prediccion.findMany({
     where: {
       usuarioId: { in: usuarioIds },
-      partido: { competenciaId: torneo.competenciaId, estado: "TERMINADO" },
+      partido: {
+        competenciaId: torneo.competenciaId,
+        estado: "TERMINADO",
+        // Only count matches that were played after this torneo was created,
+        // so all participants compete on an even footing from day one.
+        fecha: { gte: torneo.fechaCreacion },
+      },
       puntosOtorgados: { not: null },
     },
     include: { partido: true },

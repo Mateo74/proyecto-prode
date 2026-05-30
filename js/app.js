@@ -5,10 +5,22 @@
  */
 
 document.addEventListener('DOMContentLoaded', async () => {
+  // Detect React Native WebView early so CSS can adapt
+  if (window.__ONCE_METROS_NATIVE_WEBVIEW__) {
+    document.body.classList.add('native-webview');
+  }
+
   await API.restoreSession();
   updateAuthNav();
   initAccountMenu();
   const page = detectPage();
+
+  // Redirect unauthenticated users from home to login
+  if (!API.getToken() && page === 'home') {
+    window.location.href = authRelativePath('auth.html');
+    return;
+  }
+
   switch (page) {
     case 'home':           initHome();          break;
     case 'partidos':       initPartidos();      break;
@@ -19,6 +31,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     case 'invitacion':     initInviteLanding(); break;
     case 'torneos':        initTorneos();       break;
     case 'invitar':        initInvitar();       break;
+    case 'perfil':         initPerfil();        break;
   }
 });
 
@@ -34,6 +47,7 @@ function detectPage() {
   if (p.includes('clasificacion'))     return 'clasificacion';
   if (p.includes('torneos.html'))      return 'torneos';
   if (p.includes('auth'))              return 'auth';
+  if (p.includes('perfil'))            return 'perfil';
   return 'home';
 }
 
@@ -60,19 +74,31 @@ function initAccountMenu() {
     const user = API.getCurrentUser();
     const menu = document.createElement('div');
     menu.className = 'account-menu';
+
+    if (!user) {
+      // Guest: show a plain text link instead of the avatar circle
+      menu.innerHTML = `
+        <a class="account-menu__button account-menu__button--guest" href="${authRelativePath('auth.html')}">Ingresar</a>
+      `;
+      navbar.appendChild(menu);
+      return;
+    }
+
     menu.innerHTML = `
       <button class="account-menu__button" data-menu-toggle aria-label="Abrir menú">
-        <span>${initial(user?.nombre || user?.username || 'U')}</span>
+        ${user.fotoPerfil
+          ? `<img src="${escapeHtml(user.fotoPerfil)}" alt="foto de perfil" style="width:100%;height:100%;border-radius:50%;object-fit:cover;">`
+          : `<span>${initial(user.nombre || user.username || 'U')}</span>`}
       </button>
       <div class="account-drawer" data-menu-drawer>
         <div class="account-drawer__head">
-          <strong>${escapeHtml(user?.nombre || user?.username || 'Invitado')}</strong>
-          <small>${user ? 'Sesión activa' : 'Sin sesión'}</small>
+          <strong>${escapeHtml(user.nombre || user.username)}</strong>
+          <small>Sesión activa</small>
         </div>
-        <a href="${user ? authRelativePath('perfil.html') : authRelativePath('auth.html')}">${user ? 'Mi cuenta' : 'Ingresar'}</a>
+        <a href="${authRelativePath('perfil.html')}">Mi cuenta</a>
         <a href="${homeRelativePath()}">Competencias</a>
-        <a class="${user ? '' : 'hidden'}" href="${authRelativePath('invitaciones.html')}">Invitaciones</a>
-        <button class="${user ? '' : 'hidden'}" data-menu-logout>Cerrar Sesión</button>
+        <a href="${authRelativePath('invitaciones.html')}">Invitaciones</a>
+        <button data-menu-logout>Cerrar Sesión</button>
       </div>
     `;
     navbar.appendChild(menu);
@@ -114,6 +140,10 @@ function homeRelativePath(hash = '') {
    AUTH
    -------------------------------------------------------- */
 function initAuth() {
+  // Support ?tab=login or ?tab=register to open a specific tab on load
+  const tabParam = new URLSearchParams(window.location.search).get('tab');
+  if (tabParam) switchTab(tabParam);
+
   if (API.getToken()) {
     API.me().then(() => updateAuthNav()).catch(() => API.logout());
   }
@@ -151,8 +181,9 @@ function initAuth() {
     try {
       await API.register({
         username: form.get('username'),
-        nombre: form.get('nombre'),
-        email: form.get('email'),
+        nombre:   form.get('nombre'),
+        apellido: form.get('apellido'),
+        email:    form.get('email'),
         password: form.get('password'),
       });
       redirectAfterAuth();
@@ -615,12 +646,16 @@ async function loadMisPrediccionesEnTorneo() {
     return;
   }
   showSkeleton(el, 4);
+  const competenciaId = torneo.competenciaId || torneo.competencia?.id;
   try {
-    const preds = (await API.getUserPredictions()).filter(p => p.estado !== 'pendiente');
-    el.className = preds.length ? 'pred-list' : '';
-    el.innerHTML = preds.length
-      ? preds.map(renderPredRow).join('')
-      : emptyState('Todavía no tenés predicciones cerradas en este torneo.');
+    // Show upcoming matches for this competition so the user can make predictions
+    const matches = await API.getMatches({ competenciaId, estado: 'proximo' });
+    el.innerHTML = '';
+    if (!matches.length) {
+      el.innerHTML = emptyState('No hay partidos próximos en esta competencia.');
+      return;
+    }
+    matches.forEach(m => el.appendChild(Predictions.createMatchCard(m)));
   } catch (err) {
     el.innerHTML = errorState(err.message);
   }
@@ -1342,4 +1377,145 @@ function escapeHtml(value) {
     .replace(/>/g, '&gt;')
     .replace(/"/g, '&quot;')
     .replace(/'/g, '&#039;');
+}
+
+/* --------------------------------------------------------
+   PERFIL
+   -------------------------------------------------------- */
+async function initPerfil() {
+  const user = API.getCurrentUser();
+  if (!user) {
+    window.location.replace('auth.html');
+    return;
+  }
+
+  function showMsg(text, type) {
+    const el = document.getElementById('perfil-msg');
+    if (!el) return;
+    el.textContent = text;
+    el.className = type;
+    el.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    setTimeout(() => { el.style.display = 'none'; el.className = ''; }, 4000);
+  }
+
+  function setPerfilHead(u) {
+    const avatarEl = document.getElementById('perfil-avatar');
+    const nameEl = document.getElementById('perfil-display-name');
+    const usernameEl = document.getElementById('perfil-display-username');
+    if (u.fotoPerfil) {
+      avatarEl.innerHTML = `<img src="${escapeHtml(u.fotoPerfil)}" alt="foto de perfil" style="width:100%;height:100%;border-radius:50%;object-fit:cover;">`;
+    } else {
+      avatarEl.textContent = initial(u.nombre || u.username);
+    }
+    if (nameEl) nameEl.textContent = u.nombre || u.username;
+    if (usernameEl) usernameEl.textContent = '@' + u.username;
+  }
+
+  let profile;
+  try {
+    profile = await API.getUsuario(user.id);
+  } catch {
+    showMsg('No se pudo cargar el perfil.', 'error');
+    return;
+  }
+
+  setPerfilHead(profile);
+  const fieldUsername = document.getElementById('field-username');
+  const fieldNombre   = document.getElementById('field-nombre');
+  const fieldApellido = document.getElementById('field-apellido');
+  const fieldEmail    = document.getElementById('field-email');
+  if (fieldUsername) fieldUsername.value = profile.username || '';
+  if (fieldNombre)   fieldNombre.value   = profile.nombre || '';
+  if (fieldApellido) fieldApellido.value = profile.apellido || '';
+  if (fieldEmail)    fieldEmail.value    = profile.email || '';
+
+  // Avatar photo picker
+  const photoInput  = document.getElementById('perfil-photo-input');
+  const changePhotoBtn = document.getElementById('perfil-change-photo');
+  changePhotoBtn?.addEventListener('click', () => photoInput?.click());
+  photoInput?.addEventListener('change', async () => {
+    const file = photoInput.files?.[0];
+    if (!file) return;
+    if (!file.type.startsWith('image/')) { showMsg('El archivo debe ser una imagen.', 'error'); return; }
+    changePhotoBtn.disabled = true;
+    changePhotoBtn.textContent = 'Procesando...';
+    try {
+      const dataUrl = await resizeImageToDataUrl(file, 256);
+      const updated = await API.updateUsuario(user.id, { fotoPerfil: dataUrl });
+      setPerfilHead(updated);
+      showMsg('Foto actualizada.', 'success');
+    } catch (err) {
+      showMsg(err.message || 'Error al actualizar la foto.', 'error');
+    } finally {
+      changePhotoBtn.disabled = false;
+      changePhotoBtn.textContent = 'Cambiar foto';
+      photoInput.value = '';
+    }
+  });
+
+  // Save form
+  document.getElementById('perfil-form')?.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const btn = document.getElementById('perfil-save-btn');
+    btn.disabled = true;
+    btn.textContent = 'Guardando...';
+    try {
+      const updated = await API.updateUsuario(user.id, {
+        nombre:   fieldNombre?.value.trim()   || undefined,
+        apellido: fieldApellido?.value.trim() || undefined,
+      });
+      setPerfilHead(updated);
+      showMsg('Cambios guardados.', 'success');
+    } catch (err) {
+      showMsg(err.message || 'Error al guardar.', 'error');
+    } finally {
+      btn.disabled = false;
+      btn.textContent = 'Guardar cambios';
+    }
+  });
+
+  // Delete account
+  document.getElementById('perfil-delete-btn')?.addEventListener('click', async () => {
+    const confirmed = window.confirm(
+      '¿Estás seguro de que querés eliminar tu cuenta?\n\nSe borrarán todas tus predicciones de forma permanente.'
+    );
+    if (!confirmed) return;
+    const btn = document.getElementById('perfil-delete-btn');
+    btn.disabled = true;
+    btn.textContent = 'Eliminando...';
+    try {
+      await API.deleteUsuario(user.id);
+      API.logout();
+      window.location.replace('auth.html');
+    } catch (err) {
+      showMsg(err.message || 'Error al eliminar la cuenta.', 'error');
+      btn.disabled = false;
+      btn.textContent = 'Eliminar mi cuenta';
+    }
+  });
+}
+
+function resizeImageToDataUrl(file, maxSize) {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    const url = URL.createObjectURL(file);
+    img.onload = () => {
+      URL.revokeObjectURL(url);
+      const scale = Math.min(maxSize / img.width, maxSize / img.height, 1);
+      const w = Math.round(img.width * scale);
+      const h = Math.round(img.height * scale);
+      const canvas = document.createElement('canvas');
+      canvas.width = w;
+      canvas.height = h;
+      canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+      const dataUrl = canvas.toDataURL('image/jpeg', 0.82);
+      if (dataUrl.length > 200_000) {
+        reject(new Error('La imagen es demasiado grande. Elegí una más pequeña.'));
+      } else {
+        resolve(dataUrl);
+      }
+    };
+    img.onerror = () => { URL.revokeObjectURL(url); reject(new Error('No se pudo leer la imagen.')); };
+    img.src = url;
+  });
 }

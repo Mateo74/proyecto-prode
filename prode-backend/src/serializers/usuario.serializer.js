@@ -17,6 +17,7 @@ function usuarioResponse(usuario) {
     email: usuario.email,
     emailVerificado: usuario.emailVerificado,
     telefono: usuario.telefono,
+    fotoPerfil: usuario.fotoPerfil ?? null,
     rol: usuario.rol,
     activo: usuario.activo,
     hinchaDe: equipoBreve(usuario.hinchaDe),

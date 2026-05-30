@@ -42,6 +42,7 @@ model Usuario {
   hashClave            String?
   googleId             String?          @unique
   telefono             String?
+  fotoPerfil           String?
   hinchaDeEquipoId     String?
   rol                  RolUsuario       @default(USER)
   activo               Boolean          @default(true)
@@ -66,6 +67,7 @@ model Competencia {
   externalId           String?
   proveedor            String?
   visible              Boolean          @default(false)
+  terminada            Boolean          @default(false)
   fechaCreacion        DateTime         @default(now())
   fechaActualizacion   DateTime         @updatedAt
   partidos             Partido[]

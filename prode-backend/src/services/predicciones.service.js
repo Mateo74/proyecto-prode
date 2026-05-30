@@ -98,7 +98,8 @@ async function listClosedMatchesWithPredictionForUser(torneoId, usuarioId) {
   return prisma.partido.findMany({
     where: {
       competenciaId: torneo.competenciaId,
-      estado: "TERMINADO",
+      // Include matches that are finished OR have already started (can no longer predict)
+      estado: { in: ["TERMINADO", "EN_JUEGO"] },
     },
     include: {
       ...includePartido,

@@ -2,7 +2,7 @@ const { prisma } = require("../config/prisma");
 const logger = require("../utils/logger");
 const { calcularPuntos } = require("./scoring.service");
 const footballDataProvider = require("../providers/footballData.provider");
-const { PROVIDER } = require("../providers/footballData.mapper");
+const { PROVIDER, deriveMinute } = require("../providers/footballData.mapper");
 const { COMPETITION_ALIASES } = require("./externalCompetitionSync.service");
 
 const TRACKED_COMPETITION_CODES = ["WC", "CL", "BSA"];
@@ -152,6 +152,11 @@ async function upsertExternalMatch(dto, now = new Date()) {
       existing?.fechaInicioReal ||
       (["EN_JUEGO", "TERMINADO"].includes(dto.status) ? dto.utcDate : null);
 
+    // Use the actual kickoff time (fechaInicioReal) when available so that
+    // delayed matches show the correct elapsed minute instead of one based on
+    // the originally scheduled time.
+    const minutoActual = deriveMinute(dto.statusExternal, fechaInicioReal || dto.utcDate);
+
     const data = {
       competenciaId: competencia.id,
       equipo1Id: equipo1.id,
@@ -163,7 +168,7 @@ async function upsertExternalMatch(dto, now = new Date()) {
       estado: dto.status,
       golesEquipo1: dto.scoreHome,
       golesEquipo2: dto.scoreAway,
-      minutoActual: dto.minuteActual,
+      minutoActual,
       fechaInicioReal,
       ultimaSyncExterna: now,
       ultimaActualizacionEstado: changed ? now : existing?.ultimaActualizacionEstado,

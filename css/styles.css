@@ -73,6 +73,26 @@ body {
 
 @media (min-width: 701px) { body { padding-bottom: 0; } }
 
+/* =============================================
+   REACT NATIVE WEBVIEW — header fix
+   In some Android WebView versions position:sticky can render the header
+   at the wrong position. Use position:fixed inside the WebView context.
+   ============================================= */
+body.native-webview .header {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+}
+body.native-webview {
+  padding-top: 60px;
+}
+@media (max-width: 700px) {
+  body.native-webview {
+    padding-top: 54px;
+  }
+}
+
 a { color: inherit; text-decoration: none; }
 button { font-family: var(--font); cursor: pointer; }
 
@@ -150,6 +170,29 @@ button { font-family: var(--font); cursor: pointer; }
 
 .account-menu {
   position: relative;
+}
+
+/* Guest (unauthenticated) state: show a simple text link instead of the avatar circle */
+.account-menu__button--guest {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 38px;
+  padding: 0 0.9rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--bg-2);
+  color: var(--text-2);
+  font-size: 0.875rem;
+  font-weight: 600;
+  white-space: nowrap;
+  -webkit-tap-highlight-color: transparent;
+  text-decoration: none;
+  transition: border-color var(--t), color var(--t);
+}
+.account-menu__button--guest:hover {
+  border-color: var(--border-2);
+  color: var(--text);
 }
 
 .account-menu__button,

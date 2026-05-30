@@ -22,7 +22,31 @@
       font-size: 1.75rem;
       font-weight: 700;
       flex-shrink: 0;
+      overflow: hidden;
     }
+    .perfil-avatar-wrap {
+      position: relative;
+      flex-shrink: 0;
+    }
+    .perfil-avatar-change {
+      position: absolute;
+      bottom: 0;
+      right: 0;
+      width: 22px;
+      height: 22px;
+      border-radius: 50%;
+      background: var(--bg-2);
+      border: 1px solid var(--border-2);
+      color: var(--text-2);
+      font-size: 0.65rem;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 0;
+      transition: background 0.15s;
+    }
+    .perfil-avatar-change:hover { background: var(--bg-3); }
     .perfil-head {
       display: flex;
       align-items: center;
@@ -172,7 +196,11 @@
 
         <!-- Avatar + nombre -->
         <div class="perfil-head">
-          <div class="perfil-avatar" id="perfil-avatar">?</div>
+          <div class="perfil-avatar-wrap">
+            <div class="perfil-avatar" id="perfil-avatar">?</div>
+            <button class="perfil-avatar-change" id="perfil-change-photo" type="button" title="Cambiar foto">&#9998;</button>
+            <input type="file" id="perfil-photo-input" accept="image/*" style="display:none">
+          </div>
           <div class="perfil-head__info">
             <p class="perfil-head__name" id="perfil-display-name">Cargando...</p>
             <span class="perfil-head__username" id="perfil-display-username"></span>
@@ -226,87 +254,5 @@
   <script src="../js/config.js"></script>
   <script src="../js/api.js"></script>
   <script src="../js/app.js"></script>
-  <script>
-    (async function initPerfil() {
-      const user = API.getCurrentUser();
-      if (!user) {
-        window.location.replace('auth.html');
-        return;
-      }
-
-      // Populate avatar & head
-      function setHead(u) {
-        const initial = (u.nombre || u.username || '?')[0].toUpperCase();
-        document.getElementById('perfil-avatar').textContent = initial;
-        document.getElementById('perfil-display-name').textContent = u.nombre || u.username;
-        document.getElementById('perfil-display-username').textContent = '@' + u.username;
-      }
-
-      function showMsg(text, type) {
-        const el = document.getElementById('perfil-msg');
-        el.textContent = text;
-        el.className = type;
-        el.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-        setTimeout(() => { el.style.display = 'none'; el.className = ''; }, 4000);
-      }
-
-      // Load full profile
-      let profile;
-      try {
-        profile = await API.getUsuario(user.id);
-      } catch {
-        showMsg('No se pudo cargar el perfil.', 'error');
-        return;
-      }
-
-      setHead(profile);
-      document.getElementById('field-username').value = profile.username || '';
-      document.getElementById('field-nombre').value = profile.nombre || '';
-      document.getElementById('field-apellido').value = profile.apellido || '';
-      document.getElementById('field-email').value = profile.email || '';
-
-      // Save form
-      document.getElementById('perfil-form').addEventListener('submit', async (e) => {
-        e.preventDefault();
-        const btn = document.getElementById('perfil-save-btn');
-        btn.disabled = true;
-        btn.textContent = 'Guardando...';
-        try {
-          const updated = await API.updateUsuario(user.id, {
-            nombre: document.getElementById('field-nombre').value.trim() || undefined,
-            apellido: document.getElementById('field-apellido').value.trim() || undefined,
-          });
-          setHead(updated);
-          showMsg('Cambios guardados.', 'success');
-        } catch (err) {
-          showMsg(err.message || 'Error al guardar.', 'error');
-        } finally {
-          btn.disabled = false;
-          btn.textContent = 'Guardar cambios';
-        }
-      });
-
-      // Delete account
-      document.getElementById('perfil-delete-btn').addEventListener('click', async () => {
-        const confirmed = window.confirm(
-          '¿Estás seguro de que querés eliminar tu cuenta?\n\nSe borrarán todas tus predicciones de forma permanente.'
-        );
-        if (!confirmed) return;
-
-        const btn = document.getElementById('perfil-delete-btn');
-        btn.disabled = true;
-        btn.textContent = 'Eliminando...';
-        try {
-          await API.deleteUsuario(user.id);
-          API.logout();
-          window.location.replace('auth.html');
-        } catch (err) {
-          showMsg(err.message || 'Error al eliminar la cuenta.', 'error');
-          btn.disabled = false;
-          btn.textContent = 'Eliminar mi cuenta';
-        }
-      });
-    })();
-  </script>
 </body>
 </html>

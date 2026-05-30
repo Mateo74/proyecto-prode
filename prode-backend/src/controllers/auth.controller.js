@@ -143,10 +143,12 @@ async function googleLogin(req, res) {
       throw httpError(409, "Ese email ya esta asociado a otra cuenta de Google");
     }
 
-    if (!usuario.googleId || !usuario.emailVerificado) {
+    const needsUpdate = !usuario.googleId || !usuario.emailVerificado;
+    const photoUpdate = payload.picture && !usuario.fotoPerfil ? { fotoPerfil: payload.picture } : {};
+    if (needsUpdate || Object.keys(photoUpdate).length > 0) {
       usuario = await prisma.usuario.update({
         where: { id: usuario.id },
-        data: { googleId, emailVerificado: true },
+        data: { googleId, emailVerificado: true, ...photoUpdate },
         include: { hinchaDe: true },
       });
     }
@@ -161,6 +163,7 @@ async function googleLogin(req, res) {
         email,
         emailVerificado: true,
         googleId,
+        fotoPerfil: payload.picture || null,
       },
       include: { hinchaDe: true },
     });
@@ -201,7 +204,7 @@ async function refresh(req, res) {
   }
 
   const token = await issueTokens(res, usuario);
-  res.json({ token });
+  res.json({ token, usuario: usuarioResponse(usuario) });
 }
 
 async function me(req, res) {

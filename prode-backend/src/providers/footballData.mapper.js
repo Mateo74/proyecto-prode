@@ -20,15 +20,53 @@ function tipoEquipoDeCompetencia(competitionCode) {
   return competitionCode === "WC" ? "SELECCION" : "CLUB";
 }
 
-function deriveMinute(status, utcDate, now = new Date()) {
+/**
+ * Derive the current match minute from the actual kickoff time.
+ * The football-data.org free tier does not expose a live minute field,
+ * so we calculate elapsed time from the real start (or scheduled start).
+ * Pass fechaInicioReal when available so delayed matches are handled correctly.
+ */
+function deriveMinute(status, kickoffDate, now = new Date()) {
   if (status === "PAUSED") return 45;
-  if (!["LIVE", "IN_PLAY"].includes(status) || !utcDate) return null;
+  if (!["LIVE", "IN_PLAY"].includes(status) || !kickoffDate) return null;
 
-  const started = new Date(utcDate).getTime();
+  const started = new Date(kickoffDate).getTime();
   if (Number.isNaN(started)) return null;
 
   const elapsed = Math.max(1, Math.floor((now.getTime() - started) / 60000) + 1);
   return Math.min(elapsed, 120);
+}
+
+/**
+ * Extract the effective (pre-penalty) score from a football-data score object.
+ *
+ * Some football-data API tiers embed penalty goals into score.fullTime for
+ * PENALTY_SHOOTOUT matches (e.g. a 1-1 AET match decided 4-3 on pens would
+ * be reported as fullTime {home:5, away:4}). We detect this by subtracting
+ * score.penalties from fullTime; if the result is non-negative we use it,
+ * otherwise fullTime does NOT include penalties and we use it directly.
+ */
+function extractEffectiveScore(score) {
+  if (!score) return { scoreHome: null, scoreAway: null };
+
+  if (score.duration === "PENALTY_SHOOTOUT") {
+    const ft = score.fullTime ?? {};
+    const pen = score.penalties ?? {};
+
+    if (ft.home != null && ft.away != null && pen.home != null && pen.away != null) {
+      const h = ft.home - pen.home;
+      const a = ft.away - pen.away;
+      // Sanity check: result must be non-negative (otherwise API did NOT embed penalties)
+      if (h >= 0 && a >= 0) {
+        return { scoreHome: h, scoreAway: a };
+      }
+    }
+  }
+
+  return {
+    scoreHome: score.fullTime?.home ?? null,
+    scoreAway: score.fullTime?.away ?? null,
+  };
 }
 
 function mapTeam(team, competitionCode) {
@@ -45,6 +83,7 @@ function mapTeam(team, competitionCode) {
 
 function mapMatch(match, now = new Date()) {
   const competitionCode = match.competition?.code;
+  const effectiveScore = extractEffectiveScore(match.score);
   return {
     externalId: String(match.id),
     provider: PROVIDER,
@@ -52,9 +91,10 @@ function mapMatch(match, now = new Date()) {
     status: mapStatus(match.status),
     utcDate: match.utcDate ? new Date(match.utcDate) : null,
     lastUpdatedExternal: match.lastUpdated ? new Date(match.lastUpdated) : null,
+    // minuteActual is recalculated in the sync service using fechaInicioReal
     minuteActual: deriveMinute(match.status, match.utcDate, now),
-    scoreHome: match.score?.fullTime?.home ?? null,
-    scoreAway: match.score?.fullTime?.away ?? null,
+    scoreHome: effectiveScore.scoreHome,
+    scoreAway: effectiveScore.scoreAway,
     competition: match.competition
       ? {
           externalId: String(match.competition.id),
@@ -97,4 +137,4 @@ function mapCompetitions(payload) {
   return (payload.competitions || []).map(mapCompetition);
 }
 
-module.exports = { PROVIDER, mapCompetition, mapCompetitions, mapMatch, mapMatches, mapStatus };
+module.exports = { PROVIDER, deriveMinute, mapCompetition, mapCompetitions, mapMatch, mapMatches, mapStatus };
