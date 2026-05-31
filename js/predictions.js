@@ -288,16 +288,22 @@ const Predictions = (() => {
       const isExact    = pred.exacto === true ||
         (predScore1De(pred) === score1De(match) && predScore2De(pred) === score2De(match));
       const pending = match.resultadoConfirmado === false || pred.estado === 'pendiente';
-      const badgeCls   = pending ? 'pending' : isExact ? 'exact' : pred.estado === 'acierto' ? 'hit' : 'miss';
-      const badgeLabel = pending ? 'A confirmar' : isExact ? 'Exacto' : pred.estado === 'acierto' ? 'Acierto' : 'Fallo';
-      const ptsLabel   = pending ? 'pts pendientes' : pred.puntos > 0 ? `+${pred.puntos} pts` : '—';
+
+      const ptsCls = pending            ? 'pending'
+                   : pred.puntos === 0  ? '0'
+                   : pred.puntos === 1  ? '1'
+                   : pred.puntos === 2  ? '2'
+                   : pred.puntos === 3  ? '3'
+                   :                     '4plus';
+      const ptsLabel = pending           ? 'Pendiente'
+                     : pred.puntos === 0 ? '+0 pts'
+                     :                    `+${pred.puntos} pts`;
 
       feedbackHtml = `
-        <div class="match-feedback ${badgeCls}">
+        <div class="match-feedback">
           <span class="match-feedback__label">Tu pred:</span>
           <span class="match-feedback__score">${predScore1De(pred)}–${predScore2De(pred)}</span>
-          <span class="match-feedback__badge ${badgeCls}">${badgeLabel}</span>
-          <span class="match-feedback__pts ${pred.puntos > 0 ? 'positive' : ''}">${ptsLabel}</span>
+          <span class="pts-badge pts-badge--${ptsCls}">${ptsLabel}</span>
         </div>
       `;
 

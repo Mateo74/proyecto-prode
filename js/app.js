@@ -1249,7 +1249,8 @@ function openUserPredsDrawer(userId, userName) {
         listEl.innerHTML = emptyState('No hay partidos cerrados en esta competencia.');
         return;
       }
-      listEl.innerHTML = partidos.map(renderUserPredRow).join('');
+      listEl.innerHTML = '';
+      partidos.forEach(p => listEl.appendChild(Predictions.createMatchCard(p)));
     })
     .catch(err => {
       listEl.innerHTML = errorState(err.message);

@@ -2,6 +2,7 @@ import { StatusBar } from "expo-status-bar";
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
+  AppState,
   Linking,
   Platform,
   Pressable,
@@ -27,6 +28,8 @@ export default function App() {
   const [initialUrl, setInitialUrl] = useState(FRONTEND_URL);
   // Track how many times we've auto-retried to avoid infinite loops
   const autoRetryCountRef = useRef(0);
+  // Mirror of hasError for use in AppState callback (avoids stale closure)
+  const hasErrorRef = useRef(false);
 
   const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const webViewRef = useRef<WebView>(null);
@@ -57,11 +60,25 @@ export default function App() {
 
   function retry() {
     autoRetryCountRef.current = 0;
+    hasErrorRef.current = false;
+    // Clear cached responses so a stale error page isn't served again
+    webViewRef.current?.clearCache(true);
     setHasError(false);
     setIsLoading(true);
     setShowLogin(false);
     setWebViewKey((k) => k + 1);
   }
+
+  // Auto-recover when the app is foregrounded while an error is shown
+  useEffect(() => {
+    const sub = AppState.addEventListener("change", (state) => {
+      if (state === "active" && hasErrorRef.current) {
+        retry();
+      }
+    });
+    return () => sub.remove();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // Show native login when WebView navigates to auth.html
   const onNavigationStateChange = useCallback((state: WebViewNavigation) => {
@@ -152,25 +169,29 @@ export default function App() {
               onLoadEnd={finishLoading}
               onError={() => {
                 finishLoading();
-                // Auto-retry once on transient network errors before showing the error screen
-                if (autoRetryCountRef.current < 1) {
+                // Auto-retry up to 3 times on transient network errors (gives Azure
+                // cold-start enough time to warm up) before showing the error screen.
+                if (autoRetryCountRef.current < 3) {
                   autoRetryCountRef.current += 1;
+                  const delay = autoRetryCountRef.current === 1 ? 3000 : 6000;
                   setTimeout(() => {
+                    webViewRef.current?.clearCache(true);
                     setHasError(false);
                     setIsLoading(true);
                     setWebViewKey((k) => k + 1);
-                  }, 2000);
+                  }, delay);
                 } else {
+                  hasErrorRef.current = true;
                   setHasError(true);
                 }
               }}
               onHttpError={(e) => {
+                finishLoading();
                 if (e.nativeEvent.statusCode >= 500) {
-                  finishLoading();
+                  hasErrorRef.current = true;
                   setHasError(true);
-                } else {
-                  finishLoading();
                 }
+                // 4xx errors are handled by the web app itself
               }}
               onNavigationStateChange={onNavigationStateChange}
               onMessage={onMessage}
@@ -220,7 +241,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 28,
   },
   title: {
-    color: "#13231F",
+    color: "#e8ede9",
     fontSize: 20,
     fontWeight: "700",
     marginBottom: 8,
