@@ -10,11 +10,31 @@
     "userInterfaceStyle": "light",
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.oncemetros.mobile"
+      "bundleIdentifier": "com.oncemetros.mobile",
+      "associatedDomains": ["applinks:www.oncemetros.com", "applinks:oncemetros.com"]
     },
     "android": {
       "package": "com.oncemetros.mobile",
       "softwareKeyboardLayoutMode": "resize",
+      "intentFilters": [
+        {
+          "action": "VIEW",
+          "autoVerify": true,
+          "data": [
+            {
+              "scheme": "https",
+              "host": "www.oncemetros.com",
+              "pathPrefix": "/pages/invitacion.html"
+            },
+            {
+              "scheme": "https",
+              "host": "oncemetros.com",
+              "pathPrefix": "/pages/invitacion.html"
+            }
+          ],
+          "category": ["BROWSABLE", "DEFAULT"]
+        }
+      ],
       "adaptiveIcon": {
         "backgroundColor": "#E6F4FE",
         "foregroundImage": "./assets/android-icon-foreground.png",

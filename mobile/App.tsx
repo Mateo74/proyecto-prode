@@ -2,6 +2,7 @@ import { StatusBar } from "expo-status-bar";
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
+  Linking,
   Platform,
   Pressable,
   SafeAreaView,
@@ -22,10 +23,21 @@ export default function App() {
   const [hasError, setHasError] = useState(false);
   const [webViewKey, setWebViewKey] = useState(0);
   const [showLogin, setShowLogin] = useState(false);
+  // Deep-link URL: if the app was opened via a universal/app link, load that URL instead
+  const [initialUrl, setInitialUrl] = useState(FRONTEND_URL);
 
   const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const webViewRef = useRef<WebView>(null);
   const loginResolverRef = useRef<LoginResolver | null>(null);
+
+  // Resolve the initial URL from a cold-start deep link
+  useEffect(() => {
+    Linking.getInitialURL().then((url) => {
+      if (url && url.startsWith("https://")) {
+        setInitialUrl(url);
+      }
+    });
+  }, []);
 
   // Safety-net: hide spinner after 15 s in case load events don't fire
   useEffect(() => {
@@ -113,7 +125,7 @@ export default function App() {
             <WebView
               key={webViewKey}
               ref={webViewRef}
-              source={{ uri: FRONTEND_URL }}
+              source={{ uri: initialUrl }}
               style={styles.webView}
               // Allow both https and http so redirects don't get blocked
               originWhitelist={["https://*", "http://*"]}
