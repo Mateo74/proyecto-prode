@@ -16,6 +16,9 @@ function createApp() {
   app.use(cookieParser());
   app.use(express.json());
 
+  // Health-check — used by Azure "Always On" and uptime monitors to prevent cold starts
+  app.get("/health", (_req, res) => res.json({ status: "ok" }));
+
   app.use("/api", apiRouter);
 
   app.use(notFound);

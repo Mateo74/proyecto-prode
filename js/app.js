@@ -10,10 +10,21 @@ document.addEventListener('DOMContentLoaded', async () => {
     document.body.classList.add('native-webview');
   }
 
-  await API.restoreSession();
+  const page = detectPage();
+
+  // Start session restore without blocking — pages that need auth will handle the
+  // not-yet-authenticated state gracefully once the promise resolves
+  const sessionPromise = API.restoreSession();
+
+  // Pages that must know auth state before rendering anything
+  const authBlockingPages = ['home', 'auth'];
+
+  if (authBlockingPages.includes(page)) {
+    await sessionPromise;
+  }
+
   updateAuthNav();
   initAccountMenu();
-  const page = detectPage();
 
   // Redirect unauthenticated users from home to login
   if (!API.getToken() && page === 'home') {
@@ -32,6 +43,15 @@ document.addEventListener('DOMContentLoaded', async () => {
     case 'torneos':        initTorneos();       break;
     case 'invitar':        initInvitar();       break;
     case 'perfil':         initPerfil();        break;
+  }
+
+  // For non-blocking pages: once the session resolves, update the nav/account menu
+  // so the avatar/Ingresar button reflects the real auth state
+  if (!authBlockingPages.includes(page)) {
+    sessionPromise.then(() => {
+      updateAuthNav();
+      initAccountMenu();
+    });
   }
 });
 

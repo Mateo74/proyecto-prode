@@ -25,6 +25,8 @@ export default function App() {
   const [showLogin, setShowLogin] = useState(false);
   // Deep-link URL: if the app was opened via a universal/app link, load that URL instead
   const [initialUrl, setInitialUrl] = useState(FRONTEND_URL);
+  // Track how many times we've auto-retried to avoid infinite loops
+  const autoRetryCountRef = useRef(0);
 
   const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const webViewRef = useRef<WebView>(null);
@@ -54,6 +56,7 @@ export default function App() {
   }
 
   function retry() {
+    autoRetryCountRef.current = 0;
     setHasError(false);
     setIsLoading(true);
     setShowLogin(false);
@@ -149,7 +152,17 @@ export default function App() {
               onLoadEnd={finishLoading}
               onError={() => {
                 finishLoading();
-                setHasError(true);
+                // Auto-retry once on transient network errors before showing the error screen
+                if (autoRetryCountRef.current < 1) {
+                  autoRetryCountRef.current += 1;
+                  setTimeout(() => {
+                    setHasError(false);
+                    setIsLoading(true);
+                    setWebViewKey((k) => k + 1);
+                  }, 2000);
+                } else {
+                  setHasError(true);
+                }
               }}
               onHttpError={(e) => {
                 if (e.nativeEvent.statusCode >= 500) {
