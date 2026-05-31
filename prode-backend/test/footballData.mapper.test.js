@@ -32,6 +32,32 @@ test("mapMatch devuelve un DTO interno desacoplado de football-data", () => {
   assert.equal(dto.scoreAway, 0);
 });
 
+test("mapMatch usa regularTime+extraTime para PENALTY_SHOOTOUT (ignora penalties incorrecto)", () => {
+  // CL Final 2026: PSG 1-1 Arsenal (aet), PSG wins 4-3 on pens
+  // API reported penalties: {home:3, away:3} which is wrong — we should get 1-1
+  const dto = mapMatch({
+    id: 552096,
+    utcDate: "2026-05-30T16:00:00Z",
+    status: "FINISHED",
+    lastUpdated: "2026-05-30T19:19:09Z",
+    competition: { id: 2001, name: "UEFA Champions League", code: "CL", type: "CUP" },
+    homeTeam: { id: 524, name: "Paris Saint-Germain FC", shortName: "PSG", tla: "PSG", crest: "" },
+    awayTeam: { id: 57, name: "Arsenal FC", shortName: "Arsenal", tla: "ARS", crest: "" },
+    score: {
+      winner: null,
+      duration: "PENALTY_SHOOTOUT",
+      fullTime:    { home: 5, away: 4 },
+      halfTime:    { home: 0, away: 1 },
+      regularTime: { home: 1, away: 1 },
+      extraTime:   { home: 0, away: 0 },
+      penalties:   { home: 3, away: 3 }, // wrong API data — should be 4-3
+    },
+  });
+
+  assert.equal(dto.scoreHome, 1, "score should be 1 (regularTime), not 2 (fullTime - wrongPenalties)");
+  assert.equal(dto.scoreAway, 1, "score should be 1 (regularTime), not 1");
+});
+
 test("mapCompetition normaliza competencias externas", () => {
   const dto = mapCompetition({
     id: 2001,

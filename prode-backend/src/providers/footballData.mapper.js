@@ -40,29 +40,30 @@ function deriveMinute(status, kickoffDate, now = new Date()) {
 /**
  * Extract the effective (pre-penalty) score from a football-data score object.
  *
- * Some football-data API tiers embed penalty goals into score.fullTime for
- * PENALTY_SHOOTOUT matches (e.g. a 1-1 AET match decided 4-3 on pens would
- * be reported as fullTime {home:5, away:4}). We detect this by subtracting
- * score.penalties from fullTime; if the result is non-negative we use it,
- * otherwise fullTime does NOT include penalties and we use it directly.
+ * For PENALTY_SHOOTOUT (and EXTRA_TIME) matches the v4 API exposes both
+ * `regularTime` and `extraTime` as separate fields. We sum those instead of
+ * relying on `fullTime` (which embeds penalty goals) or `penalties` (which
+ * has been observed to contain incorrect data, e.g. CL final 2026 returned
+ * penalties: {home:3, away:3} for a match won 4-3 on pens).
+ *
+ * REGULAR matches only have `fullTime` + `halfTime`, so we fall back to that.
  */
 function extractEffectiveScore(score) {
   if (!score) return { scoreHome: null, scoreAway: null };
 
-  if (score.duration === "PENALTY_SHOOTOUT") {
-    const ft = score.fullTime ?? {};
-    const pen = score.penalties ?? {};
+  if (score.duration === "PENALTY_SHOOTOUT" || score.duration === "EXTRA_TIME") {
+    const rt = score.regularTime ?? {};
+    const et = score.extraTime ?? {};
 
-    if (ft.home != null && ft.away != null && pen.home != null && pen.away != null) {
-      const h = ft.home - pen.home;
-      const a = ft.away - pen.away;
-      // Sanity check: result must be non-negative (otherwise API did NOT embed penalties)
-      if (h >= 0 && a >= 0) {
-        return { scoreHome: h, scoreAway: a };
-      }
+    if (rt.home != null && rt.away != null) {
+      return {
+        scoreHome: rt.home + (et.home ?? 0),
+        scoreAway: rt.away + (et.away ?? 0),
+      };
     }
   }
 
+  // REGULAR or fallback: fullTime is reliable
   return {
     scoreHome: score.fullTime?.home ?? null,
     scoreAway: score.fullTime?.away ?? null,
