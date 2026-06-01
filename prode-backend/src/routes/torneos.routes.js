@@ -83,6 +83,20 @@ router.delete(
   asyncRoute(controller.revokeInviteLink),
 );
 
+router.patch(
+  "/:id",
+  requireAuth,
+  validate({ params: idParam, body: z.object({ nombre: z.string().min(1).max(80) }) }),
+  asyncRoute(controller.update),
+);
+
+router.delete(
+  "/:id",
+  requireAuth,
+  validate({ params: idParam }),
+  asyncRoute(controller.remove),
+);
+
 registry.registerPath({
   method: "get",
   path: "/torneos",

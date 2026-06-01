@@ -30,6 +30,7 @@ function usuarioPublico(usuario) {
     nombre: usuario.nombre,
     apellido: usuario.apellido,
     username: usuario.username,
+    fotoPerfil: usuario.fotoPerfil ?? null,
     hinchaDe: equipoBreve(usuario.hinchaDe),
   };
 }

@@ -153,6 +153,8 @@ export default function App() {
               injectedJavaScriptBeforeContentLoaded={`window.__ONCE_METROS_NATIVE_WEBVIEW__=true;true;`}
               javaScriptEnabled
               domStorageEnabled
+              // Prevent Android system font-size setting from scaling down WebView content
+              textZoom={100}
               sharedCookiesEnabled
               thirdPartyCookiesEnabled
               cacheEnabled

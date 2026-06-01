@@ -17,7 +17,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   const sessionPromise = API.restoreSession();
 
   // Pages that must know auth state before rendering anything
-  const authBlockingPages = ['home', 'auth', 'invitacion'];
+  const authBlockingPages = ['home', 'auth', 'invitacion', 'torneo-edit'];
 
   if (authBlockingPages.includes(page)) {
     await sessionPromise;
@@ -43,6 +43,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     case 'torneos':        initTorneos();       break;
     case 'invitar':        initInvitar();       break;
     case 'perfil':         initPerfil();        break;
+    case 'torneo-edit':    initTorneoEdit();    break;
   }
 
   // For non-blocking pages: once the session resolves, update the nav/account menu
@@ -62,6 +63,7 @@ function detectPage() {
   if (p.includes('invitaciones.html')) return 'invitaciones';
   if (p.includes('invitacion.html'))   return 'invitacion';
   if (p.includes('invitar.html'))      return 'invitar';
+  if (p.includes('torneo-edit.html')) return 'torneo-edit';
   if (p.includes('partidos'))          return 'partidos';
   if (p.includes('predicciones'))      return 'predicciones';
   if (p.includes('clasificacion'))     return 'clasificacion';
@@ -288,7 +290,6 @@ function initHome() {
     ?.classList.add('active');
 
   loadCompetencias();
-  document.getElementById('create-torneo-form')?.addEventListener('submit', handleCreateTorneo);
   document.querySelector('[data-back-to-competencias]')?.addEventListener('click', () => showCompetitionPicker());
   document.querySelectorAll('[data-home-tab]').forEach(btn => {
     btn.addEventListener('click', () => switchHomeTab(btn.dataset.homeTab));
@@ -372,11 +373,17 @@ function renderCompetenciaCard(competencia, active) {
 
 async function loadTorneosForCompetencia(competencia = API.getSelectedCompetencia()) {
   const listEl = document.getElementById('torneos-list');
-  const formEl = document.getElementById('create-torneo-form');
+  const createBtn = document.getElementById('create-torneo-btn');
   if (!listEl || !competencia) return;
 
   showSkeleton(listEl, 2);
-  formEl?.classList.toggle('hidden', !API.getToken());
+
+  if (createBtn) {
+    const show = !!API.getToken();
+    createBtn.style.display = show ? '' : 'none';
+    createBtn.classList.toggle('hidden', !show);
+    if (show) createBtn.href = `pages/torneo-edit.html?competenciaId=${encodeURIComponent(competencia.id)}`;
+  }
 
   if (!API.getToken()) {
     listEl.innerHTML = emptyState('Iniciá sesión para ver los Torneos de Amigos.');
@@ -427,34 +434,6 @@ function renderTorneoCard(torneo, active) {
       <span class="tournament-card__meta">${miembros}</span>
     </button>
   `;
-}
-
-async function handleCreateTorneo(event) {
-  event.preventDefault();
-  const form = event.currentTarget;
-  const submit = form.querySelector('button[type="submit"]');
-  const input = form.querySelector('[name="nombre"]');
-  const competencia = API.getSelectedCompetencia();
-  const listEl = document.getElementById('torneos-list');
-  if (!competencia || !input?.value.trim()) return;
-
-  submit.disabled = true;
-  submit.textContent = 'Creando...';
-
-  try {
-    const torneo = await API.createTorneoDeAmigos({
-      nombre: input.value.trim(),
-      competenciaId: competencia.id,
-    });
-    API.setSelectedTorneo(torneo);
-    form.reset();
-    await loadTorneosForCompetencia(competencia);
-  } catch (error) {
-    if (listEl) listEl.innerHTML = errorState(error.message);
-  } finally {
-    submit.disabled = false;
-    submit.textContent = 'Crear';
-  }
 }
 
 function setHomeError(message) {
@@ -632,6 +611,7 @@ async function initClasificacion() {
   initClasifTabs();
   loadLeaderboard();
   initInviteButton();
+  initEditTorneoButton();
 }
 
 function initClasifTabs() {
@@ -741,6 +721,20 @@ function initInviteButton() {
 
 async function initInvitePanel() {
   // Legacy: no-op, kept for safety
+}
+
+function initEditTorneoButton() {
+  const btn = document.getElementById('edit-torneo-btn');
+  if (!btn) return;
+  const selected = API.getSelectedTorneo();
+  const user = API.getCurrentUser();
+  if (!selected || !user) return;
+
+  API.getTorneoDeAmigos(selected.id).then(torneo => {
+    if (torneo.creadorId !== user.id) return;
+    btn.href = `torneo-edit.html?id=${encodeURIComponent(torneo.id)}`;
+    btn.classList.remove('hidden');
+  }).catch(() => {});
 }
 
 /* --------------------------------------------------------
@@ -1117,7 +1111,7 @@ async function loadLeaderboard() {
       podiumEl.innerHTML = order.map((r, i) => r ? `
         <div class="podium-item ${classes[i]}" data-user-id="${escapeHtml(r.usuarioId || '')}" data-user-name="${escapeHtml(r.nombre)}">
           <span class="${mClasses[i]}">${topPos[i] ?? i + 1}</span>
-          <div class="podium-avatar">${initial(r.nombre)}</div>
+          <div class="podium-avatar">${r.fotoPerfil ? `<img src="${escapeHtml(r.fotoPerfil)}" alt="" style="width:100%;height:100%;object-fit:cover;border-radius:50%;">` : initial(r.nombre)}</div>
           <div class="podium-name">${escapeHtml(r.nombre)}</div>
           <div class="podium-pts">${r.puntos} pts</div>
           <div class="podium-bar"></div>
@@ -1183,10 +1177,13 @@ function renderRankRow(r, pos) {
               : pos === 2 ? `<span class="medal medal-2">2</span>`
               : pos === 3 ? `<span class="medal medal-3">3</span>`
               : `<span class="rank-pos">${pos}</span>`;
+  const avatarInner = r.fotoPerfil
+    ? `<img src="${escapeHtml(r.fotoPerfil)}" alt="" style="width:100%;height:100%;object-fit:cover;border-radius:50%;">`
+    : initial(r.nombre);
   return `
     <div class="ranking-row" data-user-id="${escapeHtml(r.usuarioId || '')}" data-user-name="${escapeHtml(r.nombre)}">
       ${posEl}
-      <div class="rank-avatar">${initial(r.nombre)}</div>
+      <div class="rank-avatar">${avatarInner}</div>
       <div class="rank-info">
         <div class="rank-name">${escapeHtml(r.nombre)}</div>
         <div class="rank-sub">${r.aciertos ?? 0} aciertos · ${r.exactos ?? 0} exactos</div>
@@ -1346,6 +1343,109 @@ async function initTorneos() {
       feedbackEl.classList.remove('hidden');
     }
   }
+}
+
+/* --------------------------------------------------------
+   TORNEO EDIT / CREATE
+   -------------------------------------------------------- */
+async function initTorneoEdit() {
+  const params = new URLSearchParams(window.location.search);
+  const torneoId = params.get('id');
+  const competenciaId = params.get('competenciaId');
+  const isEdit = !!torneoId;
+
+  // Auth already guaranteed by authBlockingPages, but guard just in case
+  if (!API.getToken()) {
+    const next = encodeURIComponent(window.location.pathname + window.location.search);
+    window.location.href = `auth.html?next=${next}`;
+    return;
+  }
+
+  const titleEl    = document.getElementById('torneo-edit-title');
+  const subtitleEl = document.getElementById('torneo-edit-subtitle');
+  const nameInput  = document.getElementById('torneo-nombre');
+  const saveBtn    = document.getElementById('torneo-edit-save');
+  const deleteBtn  = document.getElementById('torneo-edit-delete');
+  const backBtn    = document.getElementById('torneo-edit-back');
+  const feedbackEl = document.getElementById('torneo-edit-feedback');
+
+  let torneo = null;
+
+  if (isEdit) {
+    try {
+      torneo = await API.getTorneoDeAmigos(torneoId);
+    } catch {
+      window.location.href = 'torneos.html';
+      return;
+    }
+    const user = API.getCurrentUser();
+    if (torneo.creadorId !== user?.id) {
+      window.location.href = 'clasificacion.html';
+      return;
+    }
+    if (titleEl)    titleEl.textContent = 'Editar torneo';
+    if (subtitleEl) subtitleEl.textContent = torneo.competencia?.nombre || 'Torneo de Amigos';
+    if (nameInput)  nameInput.value = torneo.nombre;
+    if (deleteBtn)  deleteBtn.classList.remove('hidden');
+    if (backBtn)    backBtn.href = 'clasificacion.html';
+    API.setSelectedTorneo(torneo);
+  } else {
+    if (!competenciaId) {
+      window.location.href = '../index.html#torneos';
+      return;
+    }
+    const stored = API.getSelectedCompetencia();
+    if (titleEl)    titleEl.textContent = 'Nuevo torneo';
+    if (subtitleEl) subtitleEl.textContent = stored?.nombre || '';
+    if (deleteBtn)  deleteBtn.classList.add('hidden');
+    if (backBtn)    backBtn.href = '../index.html#torneos';
+  }
+
+  document.getElementById('torneo-edit-form')?.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const nombre = nameInput?.value.trim();
+    if (!nombre) return;
+    saveBtn.disabled = true;
+    saveBtn.textContent = isEdit ? 'Guardando...' : 'Creando...';
+    if (feedbackEl) { feedbackEl.textContent = ''; feedbackEl.classList.add('hidden'); }
+
+    try {
+      if (isEdit) {
+        const updated = await API.updateTorneoDeAmigos(torneoId, { nombre });
+        API.setSelectedTorneo(updated);
+      } else {
+        const nuevo = await API.createTorneoDeAmigos({ nombre, competenciaId });
+        API.setSelectedTorneo(nuevo);
+      }
+      window.location.href = 'clasificacion.html';
+    } catch (err) {
+      if (feedbackEl) {
+        feedbackEl.textContent = err.message;
+        feedbackEl.classList.remove('hidden', 'error');
+        feedbackEl.classList.add('error');
+      }
+      saveBtn.disabled = false;
+      saveBtn.textContent = isEdit ? 'Guardar' : 'Crear torneo';
+    }
+  });
+
+  deleteBtn?.addEventListener('click', async () => {
+    if (!confirm(`¿Eliminar el torneo "${torneo?.nombre}"? Esta acción no se puede deshacer.`)) return;
+    deleteBtn.disabled = true;
+    if (feedbackEl) { feedbackEl.textContent = ''; feedbackEl.classList.add('hidden'); }
+    try {
+      await API.deleteTorneoDeAmigos(torneoId);
+      API.setSelectedTorneo(null);
+      window.location.href = '../index.html#torneos';
+    } catch (err) {
+      if (feedbackEl) {
+        feedbackEl.textContent = err.message;
+        feedbackEl.classList.remove('hidden', 'error');
+        feedbackEl.classList.add('error');
+      }
+      deleteBtn.disabled = false;
+    }
+  });
 }
 
 /* --------------------------------------------------------

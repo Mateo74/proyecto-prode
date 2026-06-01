@@ -89,7 +89,11 @@ const API = (() => {
       credentials: 'include',
     }).then(async (res) => {
       if (!res.ok) {
-        clearSession();
+        // Only clear the session on a definitive auth rejection (401).
+        // Transient server errors (5xx, network timeouts) should NOT log the
+        // user out — the refresh token is still valid and will work on the
+        // next attempt.
+        if (res.status === 401) clearSession();
         throw new Error('Sesión expirada');
       }
       const json = await res.json();
@@ -266,6 +270,17 @@ const API = (() => {
     return request(`/torneos/${id}/unirse`, { method: 'POST' });
   }
 
+  async function updateTorneoDeAmigos(id, updates) {
+    return request(`/torneos/${id}`, {
+      method: 'PATCH',
+      body: JSON.stringify(updates),
+    });
+  }
+
+  async function deleteTorneoDeAmigos(id) {
+    return request(`/torneos/${id}`, { method: 'DELETE' });
+  }
+
   async function getTablaTorneoDeAmigos(id) {
     return request(`/torneos/${id}/tabla`);
   }
@@ -342,6 +357,7 @@ const API = (() => {
     return tabla.slice(0, limit).map(entry => ({
       ...entry,
       nombre: entry.usuario?.nombre || entry.usuario?.username || 'Usuario',
+      fotoPerfil: entry.usuario?.fotoPerfil || null,
     }));
   }
 
@@ -462,6 +478,8 @@ const API = (() => {
     unirseATorneoDeAmigos,
     unirseConInviteToken,
     updatePrediction,
+    updateTorneoDeAmigos,
+    deleteTorneoDeAmigos,
     updateUsuario,
     deleteUsuario,
   };

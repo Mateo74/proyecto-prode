@@ -114,6 +114,16 @@ async function joinByInviteToken(req, res) {
   });
 }
 
+async function update(req, res) {
+  const torneo = await torneosService.update(req.params.id, req.usuario.id, { nombre: req.body.nombre });
+  res.json(torneoToJson(torneo));
+}
+
+async function remove(req, res) {
+  await torneosService.remove(req.params.id, req.usuario.id);
+  res.status(204).end();
+}
+
 module.exports = {
   create,
   getById,
@@ -126,7 +136,9 @@ module.exports = {
   joinByInviteToken,
   list,
   listarInvitacionesDelTorneo,
+  remove,
   revokeInviteLink,
   rotateInviteLink,
   unirse,
+  update,
 };

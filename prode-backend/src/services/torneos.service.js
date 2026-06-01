@@ -51,6 +51,22 @@ async function create({ nombre, competenciaId, creadorId }) {
   });
 }
 
+async function update(id, usuarioId, { nombre }) {
+  const torneo = await getById(id);
+  assertEsCreador(torneo, usuarioId);
+  return prisma.torneoDeAmigos.update({
+    where: { id },
+    data: { nombre },
+    include: torneoInclude,
+  });
+}
+
+async function remove(id, usuarioId) {
+  const torneo = await getById(id);
+  assertEsCreador(torneo, usuarioId);
+  await prisma.torneoDeAmigos.delete({ where: { id } });
+}
+
 async function joinUser(torneoId, usuarioId) {
   const torneo = await prisma.torneoDeAmigos.findUnique({
     where: { id: torneoId },
@@ -205,6 +221,8 @@ module.exports = {
   joinByInviteToken,
   joinUser,
   list,
+  remove,
   revokeInviteToken,
   rotateInviteToken,
+  update,
 };
