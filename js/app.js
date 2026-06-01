@@ -17,7 +17,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   const sessionPromise = API.restoreSession();
 
   // Pages that must know auth state before rendering anything
-  const authBlockingPages = ['home', 'auth'];
+  const authBlockingPages = ['home', 'auth', 'invitacion'];
 
   if (authBlockingPages.includes(page)) {
     await sessionPromise;
@@ -89,7 +89,9 @@ function updateAuthNav() {
 
 function initAccountMenu() {
   document.querySelectorAll('.navbar').forEach(navbar => {
-    if (navbar.querySelector('[data-menu-toggle]')) return;
+    // Always remove any existing menu so re-calling (e.g. after session restore)
+    // replaces guest link with avatar — and prevents duplicates.
+    navbar.querySelector('.account-menu')?.remove();
 
     const user = API.getCurrentUser();
     const menu = document.createElement('div');
@@ -116,8 +118,6 @@ function initAccountMenu() {
           <small>Sesión activa</small>
         </div>
         <a href="${authRelativePath('perfil.html')}">Mi cuenta</a>
-        <a href="${homeRelativePath()}">Competencias</a>
-        <a href="${authRelativePath('invitaciones.html')}">Invitaciones</a>
         <button data-menu-logout>Cerrar Sesión</button>
       </div>
     `;

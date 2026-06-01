@@ -145,14 +145,14 @@ const Predictions = (() => {
 
         <div class="score-input">
           <input class="score-box${hasSavedPrediction ? ' has-value' : ''}"
-                 type="text" inputmode="numeric"
+                 type="text" inputmode="numeric" enterkeyhint="next"
                  value="${hasSavedPrediction ? initialEquipo1 : ''}"
                  placeholder="-" data-side="equipo1"
                  ${editable ? '' : 'disabled'}
                  autocomplete="off" spellcheck="false">
           <div class="score-sep">:</div>
           <input class="score-box${hasSavedPrediction ? ' has-value' : ''}"
-                 type="text" inputmode="numeric"
+                 type="text" inputmode="numeric" enterkeyhint="done"
                  value="${hasSavedPrediction ? initialEquipo2 : ''}"
                  placeholder="-" data-side="equipo2"
                  ${editable ? '' : 'disabled'}
@@ -174,9 +174,8 @@ const Predictions = (() => {
       const side = input.dataset.side;
 
       input.addEventListener('focus', () => {
-        // Clear the box so the placeholder shows and the user types fresh
-        input.value = '';
-        input.classList.remove('has-value');
+        // Select all so the existing value is visible but will be overwritten on type
+        input.select();
       });
 
       input.addEventListener('blur', () => {
@@ -188,9 +187,14 @@ const Predictions = (() => {
         }
       });
 
-      // Block non-digit keys on desktop keyboards
+      // Block non-digit keys on desktop keyboards; Enter advances to next input
       input.addEventListener('keydown', e => {
-        if (['Backspace', 'Delete', 'Tab', 'ArrowLeft', 'ArrowRight', 'Enter'].includes(e.key)) return;
+        if (e.key === 'Enter') {
+          e.preventDefault();
+          advanceFocus(input);
+          return;
+        }
+        if (['Backspace', 'Delete', 'Tab', 'ArrowLeft', 'ArrowRight'].includes(e.key)) return;
         if (/^[0-9]$/.test(e.key)) return;
         e.preventDefault();
       });

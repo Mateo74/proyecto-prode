@@ -86,6 +86,10 @@ body.native-webview .header {
 }
 body.native-webview {
   padding-top: 60px;
+  /* RN SafeAreaView handles the native bottom inset, but the WebView's
+     env(safe-area-inset-bottom) returns 0 inside the RN bridge.
+     Add explicit extra clearance so the bottom-nav doesn't get cut. */
+  padding-bottom: calc(68px + 16px);
 }
 @media (max-width: 700px) {
   body.native-webview {
@@ -177,13 +181,13 @@ button { font-family: var(--font); cursor: pointer; }
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  height: 38px;
-  padding: 0 0.9rem;
+  height: 32px;
+  padding: 0 0.7rem;
   border: 1px solid var(--border);
   border-radius: var(--radius-sm);
   background: var(--bg-2);
   color: var(--text-2);
-  font-size: 0.875rem;
+  font-size: 0.8125rem;
   font-weight: 600;
   white-space: nowrap;
   -webkit-tap-highlight-color: transparent;
