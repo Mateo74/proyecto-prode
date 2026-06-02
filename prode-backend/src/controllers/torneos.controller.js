@@ -124,6 +124,11 @@ async function remove(req, res) {
   res.status(204).end();
 }
 
+async function leaveUser(req, res) {
+  await torneosService.leaveUser(req.params.id, req.usuario.id);
+  res.status(204).end();
+}
+
 module.exports = {
   create,
   getById,
@@ -134,6 +139,7 @@ module.exports = {
   getTabla,
   invitarUsuario,
   joinByInviteToken,
+  leaveUser,
   list,
   listarInvitacionesDelTorneo,
   remove,

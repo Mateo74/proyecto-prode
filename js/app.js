@@ -694,8 +694,7 @@ async function initClasificacion() {
   await loadSelectedTorneoHeader();
   initClasifTabs();
   loadLeaderboard();
-  initInviteButton();
-  initEditTorneoButton();
+  initTorneoActionMenu();
 }
 
 function initClasifTabs() {
@@ -745,80 +744,135 @@ async function loadMisPrediccionesEnTorneo() {
   }
 }
 
-function initInviteButton() {
-  const btn = document.getElementById('invite-btn');
-  if (!btn) return;
-  const selected = API.getSelectedTorneo();
-  const user = API.getCurrentUser();
-  if (!selected || !user) return;
-
-  let inviteUrl = null;
-
-  API.getTorneoDeAmigos(selected.id).then(async torneo => {
-    if (torneo.creadorId !== user.id) return;
-    btn.classList.remove('hidden');
-
-    // Pre-load invite link in background
-    try {
-      const result = await API.getInviteLink(torneo.id);
-      inviteUrl = result.url || null;
-    } catch {}
-    if (!inviteUrl) {
-      try {
-        const generated = await API.generarInviteLink(torneo.id);
-        inviteUrl = generated.url || null;
-      } catch {}
-    }
-
-    btn.addEventListener('click', async () => {
-      if (!inviteUrl) {
-        try {
-          const generated = await API.generarInviteLink(torneo.id);
-          inviteUrl = generated.url || null;
-        } catch {
-          alert('No se pudo generar el enlace. Intentá de nuevo.');
-          return;
-        }
-      }
-      if (!inviteUrl) return;
-
-      if (navigator.share) {
-        navigator.share({
-          title: `Sumate al torneo "${torneo.nombre}"`,
-          text: `Te invito a jugar al prode de ${torneo.competencia?.nombre || 'fútbol'}`,
-          url: inviteUrl,
-        }).catch(() => {});
-      } else {
-        try {
-          await navigator.clipboard.writeText(inviteUrl);
-        } catch {
-          prompt('Copiá este enlace para invitar:', inviteUrl);
-          return;
-        }
-        const original = btn.textContent;
-        btn.textContent = '¡Link copiado!';
-        setTimeout(() => { btn.textContent = original; }, 2000);
-      }
-    });
-  }).catch(() => {});
-}
+function initInviteButton() { /* kept for compat — logic moved to initTorneoActionMenu */ }
 
 async function initInvitePanel() {
   // Legacy: no-op, kept for safety
 }
 
-function initEditTorneoButton() {
-  const btn = document.getElementById('edit-torneo-btn');
-  if (!btn) return;
+function initEditTorneoButton() { /* kept for compat — logic moved to initTorneoActionMenu */ }
+
+async function initTorneoActionMenu() {
+  const toggleBtn  = document.getElementById('torneo-action-toggle');
+  const menuEl     = document.getElementById('torneo-action-menu');
+  const inviteBtn  = document.querySelector('[data-torneo-action="invite"]');
+  const editBtn    = document.querySelector('[data-torneo-action="edit"]');
+  const leaveBtn   = document.querySelector('[data-torneo-action="leave"]');
+  const deleteBtn  = document.querySelector('[data-torneo-action="delete"]');
+
+  // Also keep the legacy standalone invite button hidden — we replaced it
+  document.getElementById('invite-btn')?.classList.add('hidden');
+
   const selected = API.getSelectedTorneo();
   const user = API.getCurrentUser();
-  if (!selected || !user) return;
+  if (!selected) return;
 
-  API.getTorneoDeAmigos(selected.id).then(torneo => {
-    if (torneo.creadorId !== user.id) return;
-    btn.href = `torneo-edit.html?id=${encodeURIComponent(torneo.id)}`;
-    btn.classList.remove('hidden');
-  }).catch(() => {});
+  let torneo;
+  try {
+    torneo = await API.getTorneoDeAmigos(selected.id);
+  } catch { return; }
+
+  const isCreador = user && torneo.creadorId === user.id;
+  const isMember  = user && (isCreador || torneo.usuarios?.some(u => u.id === user.id));
+
+  // Show the toggle button if there's anything to show
+  if (isCreador || isMember) {
+    toggleBtn?.classList.remove('hidden');
+  }
+
+  // Show relevant actions
+  if (isCreador) {
+    editBtn?.classList.remove('hidden');
+    inviteBtn?.classList.remove('hidden');
+    deleteBtn?.classList.remove('hidden');
+  } else if (isMember) {
+    leaveBtn?.classList.remove('hidden');
+  }
+
+  // Toggle open/close
+  toggleBtn?.addEventListener('click', e => {
+    e.stopPropagation();
+    menuEl?.classList.toggle('open');
+  });
+  document.addEventListener('click', () => menuEl?.classList.remove('open'), { capture: false });
+
+  // Rename (navigate to edit page)
+  editBtn?.addEventListener('click', () => {
+    window.location.href = `torneo-edit.html?id=${encodeURIComponent(torneo.id)}`;
+  });
+
+  // Invite: share or copy link
+  let inviteUrl = null;
+  inviteBtn?.addEventListener('click', async () => {
+    menuEl?.classList.remove('open');
+    if (!inviteUrl) {
+      try {
+        const r = await API.getInviteLink(torneo.id);
+        inviteUrl = r.url || null;
+      } catch {}
+    }
+    if (!inviteUrl) {
+      try {
+        const r = await API.generarInviteLink(torneo.id);
+        inviteUrl = r.url || null;
+      } catch {
+        alert('No se pudo generar el enlace. Intentá de nuevo.');
+        return;
+      }
+    }
+    if (!inviteUrl) return;
+    if (navigator.share) {
+      navigator.share({
+        title: `Sumate al torneo "${torneo.nombre}"`,
+        text: `Te invito a jugar al prode de ${torneo.competencia?.nombre || 'fútbol'}`,
+        url: inviteUrl,
+      }).catch(() => {});
+    } else {
+      try {
+        await navigator.clipboard.writeText(inviteUrl);
+        const orig = inviteBtn.textContent;
+        inviteBtn.textContent = '¡Link copiado!';
+        setTimeout(() => { inviteBtn.textContent = orig; }, 2000);
+      } catch {
+        prompt('Copiá este enlace para invitar:', inviteUrl);
+      }
+    }
+  });
+
+  // Leave torneo
+  leaveBtn?.addEventListener('click', async () => {
+    menuEl?.classList.remove('open');
+    if (!confirm(`¿Salir del torneo "${torneo.nombre}"?`)) return;
+    leaveBtn.disabled = true;
+    try {
+      await API.leaveTorneoDeAmigos(torneo.id);
+      API.setSelectedTorneo(null);
+      window.location.href = 'torneos.html';
+    } catch (err) {
+      alert(err.message || 'No se pudo salir del torneo.');
+      leaveBtn.disabled = false;
+    }
+  });
+
+  // Delete torneo (creators only)
+  deleteBtn?.addEventListener('click', async () => {
+    menuEl?.classList.remove('open');
+    if (!confirm(`¿Eliminar el torneo "${torneo.nombre}"? Esta acción no se puede deshacer.`)) return;
+    deleteBtn.disabled = true;
+    try {
+      await API.deleteTorneoDeAmigos(torneo.id);
+      API.setSelectedTorneo(null);
+      window.location.href = '../index.html#torneos';
+    } catch (err) {
+      alert(err.message || 'No se pudo eliminar el torneo.');
+      deleteBtn.disabled = false;
+    }
+  });
+
+  // Pre-fetch invite link in background for faster sharing
+  if (isCreador) {
+    API.getInviteLink(torneo.id).then(r => { inviteUrl = r.url || null; }).catch(() => {});
+  }
 }
 
 /* --------------------------------------------------------
@@ -1588,6 +1642,12 @@ function escapeHtml(value) {
    PERFIL
    -------------------------------------------------------- */
 async function initPerfil() {
+  // Ensure we have a valid access token before calling getUsuario —
+  // without it the server returns usuarioPublico (no email).
+  if (!API.getToken()) {
+    try { await API.restoreSession(); } catch { /* ignore */ }
+  }
+
   const user = API.getCurrentUser();
   if (!user) {
     window.location.replace('auth.html');
@@ -1677,6 +1737,12 @@ async function initPerfil() {
       btn.disabled = false;
       btn.textContent = 'Guardar cambios';
     }
+  });
+
+  // Logout
+  document.getElementById('perfil-logout-btn')?.addEventListener('click', () => {
+    API.logout();
+    window.location.replace('auth.html');
   });
 
   // Delete account

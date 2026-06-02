@@ -88,6 +88,9 @@ body.native-webview {
   padding-top: 60px;
   padding-bottom: 0;
 }
+body.native-webview main {
+  padding-bottom: 2rem;
+}
 body.native-webview .bottom-nav {
   display: none !important;
 }
@@ -403,6 +406,53 @@ button { font-family: var(--font); cursor: pointer; }
 }
 
 .account-drawer .hidden {
+  display: none;
+}
+
+/* =============================================
+   TORNEO ACTION MENU (3-dot dropdown)
+   ============================================= */
+.torneo-action-menu {
+  position: relative;
+}
+.torneo-action-dropdown {
+  display: none;
+  position: absolute;
+  top: calc(100% + 0.5rem);
+  right: 0;
+  min-width: 190px;
+  background: var(--bg-2);
+  border: 1px solid var(--border-2);
+  border-radius: 8px;
+  box-shadow: 0 12px 36px rgba(0,0,0,0.35);
+  overflow: hidden;
+  z-index: 250;
+}
+.torneo-action-menu.open .torneo-action-dropdown {
+  display: block;
+}
+.torneo-action-dropdown button {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  min-height: 46px;
+  padding: 0 1rem;
+  border: 0;
+  border-bottom: 1px solid var(--border);
+  background: transparent;
+  color: var(--text-2);
+  font: inherit;
+  font-size: 0.9rem;
+  text-align: left;
+  cursor: pointer;
+}
+.torneo-action-dropdown button:last-child {
+  border-bottom: 0;
+}
+.torneo-action-dropdown button.danger {
+  color: var(--danger);
+}
+.torneo-action-dropdown button.hidden {
   display: none;
 }
 

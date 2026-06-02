@@ -83,6 +83,13 @@ router.delete(
   asyncRoute(controller.revokeInviteLink),
 );
 
+router.delete(
+  "/:id/salir",
+  requireAuth,
+  validate({ params: idParam }),
+  asyncRoute(controller.leaveUser),
+);
+
 router.patch(
   "/:id",
   requireAuth,

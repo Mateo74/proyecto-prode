@@ -281,6 +281,10 @@ const API = (() => {
     return request(`/torneos/${id}`, { method: 'DELETE' });
   }
 
+  async function leaveTorneoDeAmigos(id) {
+    return request(`/torneos/${id}/salir`, { method: 'DELETE' });
+  }
+
   async function getTablaTorneoDeAmigos(id) {
     return request(`/torneos/${id}/tabla`);
   }
@@ -480,6 +484,7 @@ const API = (() => {
     updatePrediction,
     updateTorneoDeAmigos,
     deleteTorneoDeAmigos,
+    leaveTorneoDeAmigos,
     updateUsuario,
     deleteUsuario,
   };

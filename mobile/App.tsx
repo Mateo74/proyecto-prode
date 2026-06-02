@@ -35,6 +35,20 @@ export default function App() {
   const webViewRef = useRef<WebView>(null);
   const loginResolverRef = useRef<LoginResolver | null>(null);
 
+  // Handle Android hardware back button — go back in WebView history instead of exiting
+  useEffect(() => {
+    if (Platform.OS !== "android") return;
+    const { BackHandler } = require("react-native");
+    const handler = BackHandler.addEventListener("hardwareBackPress", () => {
+      if (webViewRef.current) {
+        webViewRef.current.goBack();
+        return true; // prevent default (exit app)
+      }
+      return false;
+    });
+    return () => handler.remove();
+  }, []);
+
   // Resolve the initial URL from a cold-start deep link
   useEffect(() => {
     Linking.getInitialURL().then((url) => {

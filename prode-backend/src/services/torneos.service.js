@@ -67,6 +67,18 @@ async function remove(id, usuarioId) {
   await prisma.torneoDeAmigos.delete({ where: { id } });
 }
 
+async function leaveUser(torneoId, usuarioId) {
+  const torneo = await getById(torneoId);
+  if (torneo.creadorId === usuarioId) {
+    const { httpError } = require('../utils/httpError');
+    throw httpError(400, 'El creador no puede salir del torneo. Podés eliminarlo.');
+  }
+  await prisma.torneoDeAmigos.update({
+    where: { id: torneoId },
+    data: { usuarios: { disconnect: { id: usuarioId } } },
+  });
+}
+
 async function joinUser(torneoId, usuarioId) {
   const torneo = await prisma.torneoDeAmigos.findUnique({
     where: { id: torneoId },
@@ -220,6 +232,7 @@ module.exports = {
   getTabla,
   joinByInviteToken,
   joinUser,
+  leaveUser,
   list,
   remove,
   revokeInviteToken,
