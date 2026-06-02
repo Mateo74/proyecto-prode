@@ -102,6 +102,21 @@ function initAccountMenu() {
 
     if (isNative) {
       // ── Native WebView: hamburger + full-height right-side drawer ──
+      // The drawer and backdrop are appended to document.body, NOT inside the
+      // navbar, because the navbar's backdrop-filter creates a new stacking
+      // context in Android WebView that clips position:fixed children even
+      // when z-index is high.
+
+      // Remove any leftover drawer from a previous call
+      document.getElementById('native-side-drawer')?.remove();
+      document.getElementById('native-side-drawer-backdrop')?.remove();
+
+      // Hamburger button lives in the navbar
+      menu.innerHTML = `
+        <button class="account-menu__button" id="native-drawer-toggle" aria-label="Menú">☰</button>
+      `;
+      navbar.appendChild(menu);
+
       const avatarHtml = user
         ? (user.fotoPerfil
             ? `<img src="${escapeHtml(user.fotoPerfil)}" alt="" style="width:100%;height:100%;object-fit:cover;">`
@@ -118,29 +133,48 @@ function initAccountMenu() {
         </div>` : '';
 
       const footerHtml = user
-        ? `<button class="native-side-drawer__logout" data-menu-logout>Cerrar sesión</button>`
+        ? `<button class="native-side-drawer__logout" id="native-drawer-logout">Cerrar sesión</button>`
         : `<a class="btn btn-primary" style="width:100%;justify-content:center;" href="${authRelativePath('auth.html')}">Ingresar</a>`;
 
-      menu.innerHTML = `
-        <button class="account-menu__button" data-menu-toggle aria-label="Menú">☰</button>
-        <div class="native-side-drawer" data-menu-drawer>
-          <div class="native-side-drawer__header">
-            <span class="logo"><span class="logo-pulse"></span>Once Metros</span>
-            <button class="icon-btn" data-menu-toggle aria-label="Cerrar" style="font-size:1rem;flex-shrink:0;">✕</button>
-          </div>
-          ${profileSection}
-          <nav class="native-side-drawer__nav">
-            <a href="${homeRelativePath()}">Competencias</a>
-            <a href="${pagePath('torneos.html')}">Torneos de Amigos</a>
-            ${user ? `<a href="${pagePath('perfil.html')}">Mi cuenta</a>` : ''}
-          </nav>
-          <div class="native-side-drawer__footer">
-            ${footerHtml}
-          </div>
+      // Backdrop
+      const backdrop = document.createElement('div');
+      backdrop.id = 'native-side-drawer-backdrop';
+      backdrop.className = 'native-side-drawer__backdrop';
+
+      // Drawer panel
+      const drawer = document.createElement('div');
+      drawer.id = 'native-side-drawer';
+      drawer.className = 'native-side-drawer';
+      drawer.innerHTML = `
+        <div class="native-side-drawer__header">
+          <span class="logo"><span class="logo-pulse"></span>Once Metros</span>
+          <button class="icon-btn" id="native-drawer-close" aria-label="Cerrar" style="font-size:1rem;flex-shrink:0;">✕</button>
         </div>
-        <div class="native-side-drawer__backdrop"></div>
+        ${profileSection}
+        <nav class="native-side-drawer__nav">
+          <a href="${homeRelativePath()}">Competencias</a>
+          <a href="${pagePath('torneos.html')}">Torneos de Amigos</a>
+          ${user ? `<a href="${pagePath('perfil.html')}">Mi cuenta</a>` : ''}
+        </nav>
+        <div class="native-side-drawer__footer">
+          ${footerHtml}
+        </div>
       `;
-      navbar.appendChild(menu);
+
+      document.body.appendChild(backdrop);
+      document.body.appendChild(drawer);
+
+      function openDrawer()  { drawer.classList.add('open');    backdrop.classList.add('open'); }
+      function closeDrawer() { drawer.classList.remove('open'); backdrop.classList.remove('open'); }
+
+      document.getElementById('native-drawer-toggle').addEventListener('click', e => { e.stopPropagation(); openDrawer(); });
+      document.getElementById('native-drawer-close')?.addEventListener('click', closeDrawer);
+      backdrop.addEventListener('click', closeDrawer);
+      document.getElementById('native-drawer-logout')?.addEventListener('click', () => {
+        API.logout();
+        window.location.href = authRelativePath('auth.html');
+      });
+
       return;
     }
 
@@ -178,17 +212,9 @@ function initAccountMenu() {
     });
   });
 
-  // Prevent clicks inside the native drawer from bubbling to the document
-  // handler (which would close the menu while the user is navigating/tapping)
-  document.querySelectorAll('.native-side-drawer').forEach(drawer => {
+  // Prevent clicks inside the desktop account drawer from bubbling and closing it immediately
+  document.querySelectorAll('.account-drawer').forEach(drawer => {
     drawer.addEventListener('click', event => event.stopPropagation());
-  });
-
-  // Tapping the backdrop closes the drawer
-  document.querySelectorAll('.native-side-drawer__backdrop').forEach(backdrop => {
-    backdrop.addEventListener('click', () => {
-      backdrop.closest('.account-menu')?.classList.remove('open');
-    });
   });
 
   document.querySelectorAll('[data-menu-logout]').forEach(button => {

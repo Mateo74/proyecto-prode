@@ -86,10 +86,10 @@ body.native-webview .header {
 }
 body.native-webview {
   padding-top: 60px;
-  /* RN SafeAreaView handles the native bottom inset, but the WebView's
-     env(safe-area-inset-bottom) returns 0 inside the RN bridge.
-     Add explicit extra clearance so the bottom-nav doesn't get cut. */
-  padding-bottom: calc(68px + 16px);
+  padding-bottom: 0;
+}
+body.native-webview .bottom-nav {
+  display: none !important;
 }
 @media (max-width: 700px) {
   body.native-webview {
@@ -109,7 +109,7 @@ body.native-webview {
   background: rgba(0,0,0,0.55);
   z-index: 300;
 }
-.account-menu.open .native-side-drawer__backdrop {
+.native-side-drawer__backdrop.open {
   display: block;
 }
 
@@ -129,7 +129,7 @@ body.native-webview {
   transition: transform 0.25s var(--ease);
   overflow: hidden;
 }
-.account-menu.open .native-side-drawer {
+.native-side-drawer.open {
   transform: translateX(0);
 }
 
