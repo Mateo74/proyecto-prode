@@ -96,8 +96,53 @@ function initAccountMenu() {
     navbar.querySelector('.account-menu')?.remove();
 
     const user = API.getCurrentUser();
+    const isNative = document.body.classList.contains('native-webview');
     const menu = document.createElement('div');
     menu.className = 'account-menu';
+
+    if (isNative) {
+      // ── Native WebView: hamburger + full-height right-side drawer ──
+      const avatarHtml = user
+        ? (user.fotoPerfil
+            ? `<img src="${escapeHtml(user.fotoPerfil)}" alt="" style="width:100%;height:100%;object-fit:cover;">`
+            : `<span>${initial(user.nombre || user.username || 'U')}</span>`)
+        : '';
+
+      const profileSection = user ? `
+        <div class="native-side-drawer__profile">
+          <div class="native-side-drawer__avatar">${avatarHtml}</div>
+          <div>
+            <div class="native-side-drawer__name">${escapeHtml(user.nombre || user.username)}</div>
+            <div class="native-side-drawer__status">Sesión activa</div>
+          </div>
+        </div>` : '';
+
+      const footerHtml = user
+        ? `<button class="native-side-drawer__logout" data-menu-logout>Cerrar sesión</button>`
+        : `<a class="btn btn-primary" style="width:100%;justify-content:center;" href="${authRelativePath('auth.html')}">Ingresar</a>`;
+
+      menu.innerHTML = `
+        <button class="account-menu__button" data-menu-toggle aria-label="Menú">☰</button>
+        <div class="native-side-drawer" data-menu-drawer>
+          <div class="native-side-drawer__header">
+            <span class="logo"><span class="logo-pulse"></span>Once Metros</span>
+            <button class="icon-btn" data-menu-toggle aria-label="Cerrar" style="font-size:1rem;flex-shrink:0;">✕</button>
+          </div>
+          ${profileSection}
+          <nav class="native-side-drawer__nav">
+            <a href="${homeRelativePath()}">Competencias</a>
+            <a href="${pagePath('torneos.html')}">Torneos de Amigos</a>
+            ${user ? `<a href="${pagePath('perfil.html')}">Mi cuenta</a>` : ''}
+          </nav>
+          <div class="native-side-drawer__footer">
+            ${footerHtml}
+          </div>
+        </div>
+        <div class="native-side-drawer__backdrop"></div>
+      `;
+      navbar.appendChild(menu);
+      return;
+    }
 
     if (!user) {
       // Guest: show a plain text link instead of the avatar circle
@@ -130,6 +175,19 @@ function initAccountMenu() {
     button.addEventListener('click', event => {
       event.stopPropagation();
       button.closest('.account-menu')?.classList.toggle('open');
+    });
+  });
+
+  // Prevent clicks inside the native drawer from bubbling to the document
+  // handler (which would close the menu while the user is navigating/tapping)
+  document.querySelectorAll('.native-side-drawer').forEach(drawer => {
+    drawer.addEventListener('click', event => event.stopPropagation());
+  });
+
+  // Tapping the backdrop closes the drawer
+  document.querySelectorAll('.native-side-drawer__backdrop').forEach(backdrop => {
+    backdrop.addEventListener('click', () => {
+      backdrop.closest('.account-menu')?.classList.remove('open');
     });
   });
 
