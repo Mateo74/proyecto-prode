@@ -217,6 +217,26 @@ const I18n = (() => {
       'profile.saveChanges':        'Guardar cambios',
       'profile.changesSaved':       'Cambios guardados.',
       'profile.loadError':          'No se pudo cargar el perfil.',
+      'profile.username':           'Usuario',
+      'profile.nombre':             'Nombre',
+      'profile.apellido':           'Apellido',
+      'profile.email':              'Email',
+
+      // ── Scoring page ──────────────────────────────────────────────
+      'page.howPoints':             'Cómo se calculan los puntos',
+      'section.rules':              'Reglas',
+      'scoring.exact':              'Resultado exacto',
+      'scoring.sameDiff':           'Misma diferencia de goles',
+      'scoring.correctOutcome':     'Ganador o empate correcto',
+      'scoring.wrong':              'Resultado incorrecto',
+      'scoring.bonusNote':          '<strong>Bonus de goles:</strong> cuando el partido tiene más de 3 goles, los puntos por acierto exacto equivalen al total de goles. Por ejemplo, acertar un 4-2 vale 6 puntos.',
+      'scoring.pts3':               '3 pts <small>(o más)</small>',
+      'scoring.pts2':               '2 pts',
+      'scoring.pts1':               '1 pt',
+      'scoring.pts0':               '0 pts',
+
+      // ── Tournament name placeholder ────────────────────────────────
+      'torneo.namePlaceholder':     'Nombre del torneo',
 
       // ── Invite page ────────────────────────────────────────────────
       'invite.searchLabel':      'Por usuario o email',
@@ -435,6 +455,26 @@ const I18n = (() => {
       'profile.saveChanges':        'Save changes',
       'profile.changesSaved':       'Changes saved.',
       'profile.loadError':          'Could not load profile.',
+      'profile.username':           'Username',
+      'profile.nombre':             'First name',
+      'profile.apellido':           'Last name',
+      'profile.email':              'Email',
+
+      // ── Scoring page ──────────────────────────────────────────────
+      'page.howPoints':             'How points are calculated',
+      'section.rules':              'Rules',
+      'scoring.exact':              'Exact result',
+      'scoring.sameDiff':           'Same goal difference',
+      'scoring.correctOutcome':     'Correct winner or draw',
+      'scoring.wrong':              'Incorrect result',
+      'scoring.bonusNote':          '<strong>Goal bonus:</strong> when a match has more than 3 goals, the points for an exact prediction equal the total goals. For example, correctly predicting 4-2 is worth 6 points.',
+      'scoring.pts3':               '3 pts <small>(or more)</small>',
+      'scoring.pts2':               '2 pts',
+      'scoring.pts1':               '1 pt',
+      'scoring.pts0':               '0 pts',
+
+      // ── Tournament name placeholder ────────────────────────────────
+      'torneo.namePlaceholder':     'Tournament name',
 
       // ── Invite page ────────────────────────────────────────────────
       'invite.searchLabel':      'By username or email',

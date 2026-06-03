@@ -15,8 +15,8 @@
     <nav class="navbar">
       <a class="logo" href="../index.html"><span class="logo-pulse"></span>Once Metros</a>
       <div class="nav-links">
-        <a href="../index.html">Competencias</a>
-        <a href="torneos.html">Torneos de amigos</a>
+        <a href="../index.html" data-i18n="nav.competitions">Competencias</a>
+        <a href="torneos.html" data-i18n="nav.friendTournaments">Torneos de amigos</a>
       </div>
     </nav>
   </header>
@@ -24,10 +24,10 @@
   <main>
     <section class="page-header page-header--compact">
       <div class="page-header-inner">
-        <a class="icon-btn" onclick="history.back(); return false;" href="#" aria-label="Volver">‹</a>
+        <a class="icon-btn" onclick="history.back(); return false;" href="#" data-i18n-aria="nav.back" aria-label="Volver">‹</a>
         <div>
-          <span class="section-label"><span class="dot"></span>Reglas</span>
-          <h1 class="page-title">Cómo se calculan los puntos</h1>
+          <span class="section-label"><span class="dot"></span><span data-i18n="section.rules">Reglas</span></span>
+          <h1 class="page-title" data-i18n="page.howPoints">Cómo se calculan los puntos</h1>
         </div>
       </div>
     </section>
@@ -36,23 +36,23 @@
     <section class="section">
       <div class="scoring-table">
         <div class="scoring-row">
-          <div class="scoring-row__label">Resultado exacto</div>
-          <div class="scoring-row__pts">3 pts <small>(o más)</small></div>
+          <div class="scoring-row__label" data-i18n="scoring.exact">Resultado exacto</div>
+          <div class="scoring-row__pts" data-i18n-html="scoring.pts3">3 pts <small>(o más)</small></div>
         </div>
         <div class="scoring-row">
-          <div class="scoring-row__label">Misma diferencia de goles</div>
-          <div class="scoring-row__pts">2 pts</div>
+          <div class="scoring-row__label" data-i18n="scoring.sameDiff">Misma diferencia de goles</div>
+          <div class="scoring-row__pts" data-i18n="scoring.pts2">2 pts</div>
         </div>
         <div class="scoring-row">
-          <div class="scoring-row__label">Ganador o empate correcto</div>
-          <div class="scoring-row__pts">1 pt</div>
+          <div class="scoring-row__label" data-i18n="scoring.correctOutcome">Ganador o empate correcto</div>
+          <div class="scoring-row__pts" data-i18n="scoring.pts1">1 pt</div>
         </div>
         <div class="scoring-row scoring-row--miss">
-          <div class="scoring-row__label">Resultado incorrecto</div>
-          <div class="scoring-row__pts">0 pts</div>
+          <div class="scoring-row__label" data-i18n="scoring.wrong">Resultado incorrecto</div>
+          <div class="scoring-row__pts" data-i18n="scoring.pts0">0 pts</div>
         </div>
       </div>
-      <p class="scoring-note">
+      <p class="scoring-note" data-i18n-html="scoring.bonusNote">
         <strong>Bonus de goles:</strong> cuando el partido tiene más de 3 goles, los puntos que se dan por acierto exacto es igual al total de goles en el partido. Por ejemplo, acertar un 4-2 vale 6 puntos.
       </p>
     </section>
@@ -65,11 +65,12 @@
 
   <nav class="bottom-nav">
     <div class="bottom-nav__inner">
-      <a class="bottom-nav__item" href="../index.html">Competencias</a>
-      <a class="bottom-nav__item" href="torneos.html">Torneos de amigos</a>
+      <a class="bottom-nav__item" href="../index.html" data-i18n="nav.competitions">Competencias</a>
+      <a class="bottom-nav__item" href="torneos.html" data-i18n="nav.friendTournaments">Torneos de amigos</a>
     </div>
   </nav>
 
+  <script src="../js/i18n.js"></script>
   <script src="../js/config.js"></script>
   <script src="../js/api.js"></script>
   <script src="../js/predictions.js"></script>
