@@ -334,10 +334,18 @@ button { font-family: var(--font); cursor: pointer; }
   border-radius: 50%;
   background: var(--bg-2);
   color: var(--text-2);
-  font-size: 1.35rem;
-  font-weight: 800;
+  font-size: 1.125rem;
+  font-weight: 400;
   line-height: 1;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s, color 0.15s;
   -webkit-tap-highlight-color: transparent;
+  text-decoration: none;
+}
+.icon-btn:hover {
+  background: var(--bg-4);
+  border-color: var(--border-2);
+  color: var(--text);
 }
 
 .account-menu__button span {
@@ -445,6 +453,15 @@ button { font-family: var(--font); cursor: pointer; }
   font-size: 0.9rem;
   text-align: left;
   cursor: pointer;
+  transition: background 0.12s, color 0.12s;
+}
+.torneo-action-dropdown button:hover,
+.torneo-action-dropdown button:focus-visible {
+  background: var(--bg-4);
+  color: var(--text);
+}
+.torneo-action-dropdown button:active {
+  background: rgba(255,255,255,0.06);
 }
 .torneo-action-dropdown button:last-child {
   border-bottom: 0;
@@ -1862,18 +1879,26 @@ body {
   flex-shrink: 0;
 }
 
-/* centered prediction line: "Predicción: 2–0" */
+/* centered prediction block: label on top, score below */
 .match-feedback__pred {
-  color: var(--text-3);
-  font-size: 0.6875rem;
-  font-weight: 500;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.1rem;
   text-align: center;
 }
-.match-feedback__pred strong {
+.match-feedback__pred-label {
+  color: var(--text-3);
+  font-size: 0.6rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+.match-feedback__pred-score {
   font-weight: 700;
-  font-size: 0.875rem;
+  font-size: 1rem;
   color: var(--text-1);
-  margin-left: 0.25rem;
+  letter-spacing: 0.02em;
 }
 
 /* pts-badge inside feedback: pinned to the right without affecting center */
@@ -2364,5 +2389,84 @@ img.team__badge-img {
 .podium-item[data-user-id]:hover .podium-avatar,
 .podium-item[data-user-id]:focus .podium-avatar {
   border-color: var(--primary);
+}
+
+/* =============================================
+   APP DIALOG — in-app confirmation modal
+   ============================================= */
+.app-dialog-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 9000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1.5rem;
+  background: rgba(0,0,0,0);
+  backdrop-filter: blur(0px);
+  transition: background 0.2s, backdrop-filter 0.2s;
+}
+.app-dialog-overlay--visible {
+  background: rgba(0,0,0,0.6);
+  backdrop-filter: blur(4px);
+}
+.app-dialog {
+  width: 100%;
+  max-width: 340px;
+  background: var(--bg-3);
+  border: 1px solid var(--border-2);
+  border-radius: var(--radius-lg);
+  padding: 1.5rem 1.25rem 1.25rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+  box-shadow: 0 24px 60px rgba(0,0,0,0.55);
+  transform: translateY(8px) scale(0.97);
+  opacity: 0;
+  transition: transform 0.2s var(--ease), opacity 0.2s var(--ease);
+}
+.app-dialog-overlay--visible .app-dialog {
+  transform: translateY(0) scale(1);
+  opacity: 1;
+}
+.app-dialog__msg {
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--text);
+  line-height: 1.4;
+}
+.app-dialog__sub {
+  font-size: 0.85rem;
+  color: var(--text-3);
+  margin-top: 0.35rem;
+  line-height: 1.4;
+}
+.app-dialog__actions {
+  display: flex;
+  gap: 0.625rem;
+  justify-content: flex-end;
+}
+.app-dialog__actions .btn {
+  flex: 1;
+}
+.btn-ghost {
+  background: transparent;
+  border: 1px solid var(--border-2);
+  color: var(--text-2);
+}
+.btn-ghost:hover {
+  background: var(--bg-4);
+  color: var(--text);
+}
+.btn-danger {
+  background: rgba(255,68,68,0.15);
+  border: 1px solid rgba(255,68,68,0.3);
+  color: var(--danger);
+  font-weight: 700;
+}
+.btn-danger:hover {
+  background: rgba(255,68,68,0.25);
+  border-color: rgba(255,68,68,0.5);
+  color: #ff6666;
 }
 

@@ -4,6 +4,46 @@
  * la carga de datos reales desde el backend.
  */
 
+/* --------------------------------------------------------
+   APP CONFIRM — in-app confirmation dialog (replaces confirm())
+   -------------------------------------------------------- */
+function appConfirm(message, { confirmText = 'Confirmar', cancelText = 'Cancelar', danger = false } = {}) {
+  return new Promise(resolve => {
+    // Create overlay
+    const overlay = document.createElement('div');
+    overlay.className = 'app-dialog-overlay';
+
+    const lines = message.split('\n').filter(Boolean);
+    const body = lines.length > 1
+      ? `<p class="app-dialog__msg">${lines[0]}</p><p class="app-dialog__sub">${lines.slice(1).join(' ')}</p>`
+      : `<p class="app-dialog__msg">${message}</p>`;
+
+    overlay.innerHTML = `
+      <div class="app-dialog" role="dialog" aria-modal="true">
+        ${body}
+        <div class="app-dialog__actions">
+          <button class="btn btn-ghost app-dialog__cancel">${cancelText}</button>
+          <button class="btn ${danger ? 'btn-danger' : 'btn-primary'} app-dialog__confirm">${confirmText}</button>
+        </div>
+      </div>
+    `;
+
+    const close = (result) => {
+      overlay.classList.remove('app-dialog-overlay--visible');
+      overlay.addEventListener('transitionend', () => overlay.remove(), { once: true });
+      resolve(result);
+    };
+
+    overlay.querySelector('.app-dialog__confirm').addEventListener('click', () => close(true));
+    overlay.querySelector('.app-dialog__cancel').addEventListener('click', () => close(false));
+    overlay.addEventListener('click', e => { if (e.target === overlay) close(false); });
+
+    document.body.appendChild(overlay);
+    // trigger transition on next frame
+    requestAnimationFrame(() => overlay.classList.add('app-dialog-overlay--visible'));
+  });
+}
+
 document.addEventListener('DOMContentLoaded', async () => {
   // Detect React Native WebView early so CSS can adapt
   if (window.__ONCE_METROS_NATIVE_WEBVIEW__) {
@@ -850,7 +890,7 @@ async function initTorneoActionMenu() {
   // Leave torneo
   leaveBtn?.addEventListener('click', async () => {
     menuEl?.classList.remove('open');
-    if (!confirm(`¿Salir del torneo "${torneo.nombre}"?`)) return;
+    if (!await appConfirm(`¿Salir del torneo "${torneo.nombre}"?`, { confirmText: 'Salir', cancelText: 'Cancelar' })) return;
     leaveBtn.disabled = true;
     try {
       await API.leaveTorneoDeAmigos(torneo.id);
@@ -865,7 +905,7 @@ async function initTorneoActionMenu() {
   // Delete torneo (creators only)
   deleteBtn?.addEventListener('click', async () => {
     menuEl?.classList.remove('open');
-    if (!confirm(`¿Eliminar el torneo "${torneo.nombre}"? Esta acción no se puede deshacer.`)) return;
+    if (!await appConfirm(`¿Eliminar el torneo "${torneo.nombre}"?`, { confirmText: 'Eliminar', cancelText: 'Cancelar', danger: true })) return;
     deleteBtn.disabled = true;
     try {
       await API.deleteTorneoDeAmigos(torneo.id);
@@ -954,7 +994,7 @@ async function initInvitar() {
     } catch (err) { setInviteFeedback(err.message, 'error'); }
   });
   document.getElementById('invite-link-revoke')?.addEventListener('click', async () => {
-    if (!confirm('¿Revocar el enlace? Quien lo tenga no va a poder usarlo.')) return;
+    if (!await appConfirm('¿Revocar el enlace? Quien lo tenga no va a poder usarlo.', { confirmText: 'Revocar', cancelText: 'Cancelar', danger: true })) return;
     try {
       await API.revocarInviteLink(torneo.id);
       setInviteLinkUrl(null);
@@ -1021,7 +1061,7 @@ async function refreshInviteSentList(torneoId) {
     list.innerHTML = invitaciones.map(renderInviteSentRow).join('');
     list.querySelectorAll('[data-cancel-invitacion]').forEach(btn => {
       btn.addEventListener('click', async () => {
-        if (!confirm('¿Cancelar esta invitación?')) return;
+        if (!await appConfirm('¿Cancelar esta invitación?', { confirmText: 'Cancelar invitación', cancelText: 'Volver' })) return;
         try {
           await API.cancelarInvitacion(btn.dataset.cancelInvitacion);
           await refreshInviteSentList(torneoId);
@@ -1576,7 +1616,7 @@ async function initTorneoEdit() {
   });
 
   deleteBtn?.addEventListener('click', async () => {
-    if (!confirm(`¿Eliminar el torneo "${torneo?.nombre}"? Esta acción no se puede deshacer.`)) return;
+    if (!await appConfirm(`¿Eliminar el torneo "${torneo?.nombre}"?`, { confirmText: 'Eliminar', cancelText: 'Cancelar', danger: true })) return;
     deleteBtn.disabled = true;
     if (feedbackEl) { feedbackEl.textContent = ''; feedbackEl.classList.add('hidden'); }
     try {
@@ -1755,8 +1795,9 @@ async function initPerfil() {
 
   // Delete account
   document.getElementById('perfil-delete-btn')?.addEventListener('click', async () => {
-    const confirmed = window.confirm(
-      '¿Estás seguro de que querés eliminar tu cuenta?\n\nSe borrarán todas tus predicciones de forma permanente.'
+    const confirmed = await appConfirm(
+      '¿Estás seguro de que querés eliminar tu cuenta?\nSe borrarán todas tus predicciones de forma permanente.',
+      { confirmText: 'Eliminar cuenta', cancelText: 'Cancelar', danger: true }
     );
     if (!confirmed) return;
     const btn = document.getElementById('perfil-delete-btn');
