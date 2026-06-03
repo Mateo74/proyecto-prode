@@ -162,10 +162,17 @@ async function getTabla(torneoId) {
 async function getInviteToken(torneoId, usuarioId) {
   const torneo = await prisma.torneoDeAmigos.findUnique({
     where: { id: torneoId },
-    select: { id: true, creadorId: true, inviteToken: true },
+    select: {
+      id: true,
+      creadorId: true,
+      inviteToken: true,
+      usuarios: { where: { id: usuarioId }, select: { id: true } },
+    },
   });
   if (!torneo) throw httpError(404, "Torneo no encontrado");
-  assertEsCreador(torneo, usuarioId);
+  const isMember =
+    torneo.creadorId === usuarioId || torneo.usuarios.length > 0;
+  if (!isMember) throw httpError(403, "No sos miembro de este torneo");
   return torneo.inviteToken;
 }
 

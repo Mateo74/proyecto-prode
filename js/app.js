@@ -780,17 +780,15 @@ async function initTorneoActionMenu() {
   const isCreador = user && torneo.creadorId === user.id;
   const isMember  = user && (isCreador || torneo.usuarios?.some(u => u.id === user.id));
 
-  // Show the toggle button if there's anything to show
-  if (isCreador || isMember) {
-    toggleBtn?.classList.remove('hidden');
-  }
-
-  // Show relevant actions
+  // Show relevant actions based on role
   if (isCreador) {
     editBtn?.classList.remove('hidden');
-    inviteBtn?.classList.remove('hidden');
     deleteBtn?.classList.remove('hidden');
-  } else if (isMember) {
+  }
+  if (isMember) {
+    inviteBtn?.classList.remove('hidden');
+  }
+  if (isMember && !isCreador) {
     leaveBtn?.classList.remove('hidden');
   }
 
@@ -817,11 +815,16 @@ async function initTorneoActionMenu() {
       } catch {}
     }
     if (!inviteUrl) {
-      try {
-        const r = await API.generarInviteLink(torneo.id);
-        inviteUrl = r.url || null;
-      } catch {
-        alert('No se pudo generar el enlace. Intentá de nuevo.');
+      if (isCreador) {
+        try {
+          const r = await API.generarInviteLink(torneo.id);
+          inviteUrl = r.url || null;
+        } catch {
+          alert('No se pudo generar el enlace. Intentá de nuevo.');
+          return;
+        }
+      } else {
+        alert('El creador del torneo aún no generó un enlace de invitación.');
         return;
       }
     }
