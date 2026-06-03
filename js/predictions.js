@@ -99,10 +99,10 @@ const Predictions = (() => {
   function predScore2De(pred) { return pred.scoreEquipo2 ?? pred.scoreVisitante; }
   function scoreLabel(value) { return value == null ? '-' : value; }
   function minuteLabel(match) {
-    if (match.estado === 'finalizado') return 'FINAL';
-    if (match.estado === 'en-vivo') return match.minutoActual ? `${match.minutoActual}'` : 'EN VIVO';
-    if (match.estado === 'suspendido') return 'Suspendido';
-    if (match.estado === 'cancelado') return 'Cancelado';
+    if (match.estado === 'finalizado') return t('match.final');
+    if (match.estado === 'en-vivo') return match.minutoActual ? `${match.minutoActual}'` : t('match.live');
+    if (match.estado === 'suspendido') return t('badge.suspended');
+    if (match.estado === 'cancelado') return t('badge.cancelled');
     return '';
   }
 
@@ -125,7 +125,7 @@ const Predictions = (() => {
     if (hasSavedPrediction) card.classList.add('pred-saved');
     if (!editable) card.classList.add('is-locked');
 
-    const fecha = new Date(match.fecha).toLocaleString('es-ES', {
+    const fecha = new Date(match.fecha).toLocaleString(t('locale'), {
       weekday: 'short', day: 'numeric', month: 'short',
       hour: '2-digit', minute: '2-digit',
     });
@@ -133,7 +133,7 @@ const Predictions = (() => {
     card.innerHTML = `
       <div class="match-card__meta">
         <span class="badge badge-league">${match.liga}</span>
-        <span class="badge badge-soon">Próximo</span>
+        <span class="badge badge-soon">${t('badge.upcoming')}</span>
         <span class="match-card__time">${fecha}</span>
       </div>
 
@@ -245,7 +245,7 @@ const Predictions = (() => {
     card.innerHTML = `
       <div class="match-card__meta">
         <span class="badge badge-league">${match.liga}</span>
-        <span class="badge badge-live">En Vivo</span>
+        <span class="badge badge-live">${t('badge.live')}</span>
       </div>
 
       <div class="match-card__body">
@@ -281,7 +281,7 @@ const Predictions = (() => {
     card.classList.add('match-card', 'is-done');
     card.dataset.matchId = match.id;
 
-    const fecha = new Date(match.fecha).toLocaleString('es-ES', {
+    const fecha = new Date(match.fecha).toLocaleString(t('locale'), {
       weekday: 'short', day: 'numeric', month: 'short',
     });
 
@@ -299,9 +299,9 @@ const Predictions = (() => {
                    : pred.puntos === 2  ? '2'
                    : pred.puntos === 3  ? '3'
                    :                     '4plus';
-      const ptsLabel = pending           ? 'Pendiente'
-                     : pred.puntos === 0 ? '+0 pts'
-                     :                    `+${pred.puntos} pts`;
+      const ptsLabel = pending           ? t('pred.pending')
+                     : pred.puntos === 0 ? `+0 ${t('stat.pts')}`
+                     :                    `+${pred.puntos} ${t('stat.pts')}`;
 
       feedbackHtml = `
         <div class="match-feedback">
@@ -321,7 +321,7 @@ const Predictions = (() => {
     card.innerHTML = `
       <div class="match-card__meta">
         <span class="badge badge-league">${match.liga}</span>
-        <span class="badge badge-done">Finalizado</span>
+        <span class="badge badge-done">${t('badge.finished')}</span>
         <span class="match-card__time">${fecha}</span>
       </div>
 
@@ -356,7 +356,7 @@ const Predictions = (() => {
     const card = document.createElement('div');
     card.classList.add('match-card', match.estado === 'cancelado' ? 'is-cancelled' : 'is-suspended');
     card.dataset.matchId = match.id;
-    const label = match.estado === 'cancelado' ? 'Cancelado' : 'Suspendido';
+    const label = match.estado === 'cancelado' ? t('badge.cancelled') : t('badge.suspended');
 
     card.innerHTML = `
       <div class="match-card__meta">

@@ -15,8 +15,8 @@
     <nav class="navbar">
       <a class="logo" href="../index.html"><span class="logo-pulse"></span>Once Metros</a>
       <div class="nav-links">
-        <a href="../index.html">Competencias</a>
-        <a href="torneos.html">Torneos de amigos</a>
+        <a href="../index.html" data-i18n="nav.competitions">Competencias</a>
+        <a href="torneos.html" data-i18n="nav.friendTournaments">Torneos de amigos</a>
         <a href="auth.html" data-auth-link data-auth-href="auth.html">Ingresar</a>
       </div>
     </nav>
@@ -27,8 +27,8 @@
       <div class="page-header-inner">
         <a class="icon-btn" href="../index.html" aria-label="Volver">‹</a>
         <div>
-          <span class="section-label"><span class="dot"></span>Cuenta</span>
-          <h1 class="page-title">Invitaciones</h1>
+          <span class="section-label"><span class="dot"></span><span data-i18n="section.account">Cuenta</span></span>
+          <h1 class="page-title" data-i18n="page.invitations">Invitaciones</h1>
         </div>
       </div>
     </section>
@@ -41,11 +41,12 @@
 
   <nav class="bottom-nav">
     <div class="bottom-nav__inner">
-      <a class="bottom-nav__item" href="../index.html">Competencias</a>
-      <a class="bottom-nav__item" href="torneos.html">Torneos de amigos</a>
+      <a class="bottom-nav__item" href="../index.html" data-i18n="nav.competitions">Competencias</a>
+      <a class="bottom-nav__item" href="torneos.html" data-i18n="nav.friendTournaments">Torneos de amigos</a>
     </div>
   </nav>
 
+  <script src="../js/i18n.js"></script>
   <script src="../js/config.js"></script>
   <script src="../js/api.js"></script>
   <script src="../js/predictions.js"></script>

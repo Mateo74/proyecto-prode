@@ -15,8 +15,8 @@
     <nav class="navbar">
       <a class="logo" href="index.html"><span class="logo-pulse"></span>Once Metros</a>
       <div class="nav-links">
-        <a href="index.html" class="active">Competencias</a>
-        <a href="pages/torneos.html">Torneos de amigos</a>
+        <a href="index.html" class="active" data-i18n="nav.competitions">Competencias</a>
+        <a href="pages/torneos.html" data-i18n="nav.friendTournaments">Torneos de amigos</a>
       </div>
     </nav>
   </header>
@@ -28,8 +28,8 @@
       <section id="competition-picker" class="workspace-pane">
         <div class="section-header">
           <div>
-            <span class="section-label"><span class="dot"></span>Disponibles</span>
-            <h1 class="page-title">Competencias</h1>
+            <span class="section-label"><span class="dot"></span><span data-i18n="section.available">Disponibles</span></span>
+            <h1 class="page-title" data-i18n="page.competitions">Competencias</h1>
           </div>
         </div>
         <div id="competencias-list" class="competition-list"></div>
@@ -45,16 +45,16 @@
         </div>
 
         <div class="tabs workspace-tabs">
-          <button class="tab-btn active" data-home-tab="predicciones">Predicciones</button>
-          <button class="tab-btn" data-home-tab="torneos">Torneos de Amigos</button>
+          <button class="tab-btn active" data-home-tab="predicciones" data-i18n="tab.predictions">Predicciones</button>
+          <button class="tab-btn" data-home-tab="torneos" data-i18n="tab.friendTournaments">Torneos de Amigos</button>
         </div>
 
         <div id="home-tab-predicciones" class="tab-content">
           <div class="filters-bar">
-            <button class="filter-chip active" data-group="estado" data-value="">Todos</button>
-            <button class="filter-chip" data-group="estado" data-value="proximo">Próximos</button>
-            <button class="filter-chip" data-group="estado" data-value="en-vivo">En vivo</button>
-            <button class="filter-chip" data-group="estado" data-value="finalizado">Finalizados</button>
+            <button class="filter-chip active" data-group="estado" data-value="" data-i18n="filter.all">Todos</button>
+            <button class="filter-chip" data-group="estado" data-value="proximo" data-i18n="filter.upcoming">Próximos</button>
+            <button class="filter-chip" data-group="estado" data-value="en-vivo" data-i18n="filter.live">En vivo</button>
+            <button class="filter-chip" data-group="estado" data-value="finalizado" data-i18n="filter.finished">Finalizados</button>
           </div>
           <div id="matches-list" class="matches-grid"></div>
         </div>
@@ -69,11 +69,12 @@
 
   <nav class="bottom-nav">
     <div class="bottom-nav__inner">
-      <a class="bottom-nav__item active" href="index.html">Competencias</a>
-      <a class="bottom-nav__item" href="pages/torneos.html">Torneos de amigos</a>
+      <a class="bottom-nav__item active" href="index.html" data-i18n="nav.competitions">Competencias</a>
+      <a class="bottom-nav__item" href="pages/torneos.html" data-i18n="nav.friendTournaments">Torneos de amigos</a>
     </div>
   </nav>
 
+  <script src="js/i18n.js"></script>
   <script src="js/config.js"></script>
   <script src="js/api.js"></script>
   <script src="js/predictions.js"></script>

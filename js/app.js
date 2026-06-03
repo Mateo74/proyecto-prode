@@ -116,7 +116,7 @@ function detectPage() {
 function updateAuthNav() {
   const user = API.getCurrentUser();
   document.querySelectorAll('[data-auth-link]').forEach(link => {
-    link.textContent = user ? user.nombre || user.username : 'Ingresar';
+    link.textContent = user ? user.nombre || user.username : t('nav.signIn');
     link.href = link.dataset.authHref || 'auth.html';
   });
 
@@ -153,7 +153,7 @@ function initAccountMenu() {
 
       // Hamburger button lives in the navbar
       menu.innerHTML = `
-        <button class="account-menu__button" id="native-drawer-toggle" aria-label="Menú">☰</button>
+        <button class="account-menu__button" id="native-drawer-toggle" aria-label="${t('nav.menu')}">☰</button>
       `;
       navbar.appendChild(menu);
 
@@ -168,13 +168,13 @@ function initAccountMenu() {
           <div class="native-side-drawer__avatar">${avatarHtml}</div>
           <div>
             <div class="native-side-drawer__name">${escapeHtml(user.nombre || user.username)}</div>
-            <div class="native-side-drawer__status">Sesión activa</div>
+            <div class="native-side-drawer__status">${t('nav.activeSession')}</div>
           </div>
         </div>` : '';
 
       const footerHtml = user
-        ? `<button class="native-side-drawer__logout" id="native-drawer-logout">Cerrar sesión</button>`
-        : `<a class="btn btn-primary" style="width:100%;justify-content:center;" href="${authRelativePath('auth.html')}">Ingresar</a>`;
+        ? `<button class="native-side-drawer__logout" id="native-drawer-logout">${t('nav.signOut')}</button>`
+        : `<a class="btn btn-primary" style="width:100%;justify-content:center;" href="${authRelativePath('auth.html')}">${t('nav.signIn')}</a>`;
 
       // Backdrop
       const backdrop = document.createElement('div');
@@ -188,13 +188,13 @@ function initAccountMenu() {
       drawer.innerHTML = `
         <div class="native-side-drawer__header">
           <span class="logo"><span class="logo-pulse"></span>Once Metros</span>
-          <button class="icon-btn" id="native-drawer-close" aria-label="Cerrar" style="font-size:1rem;flex-shrink:0;">✕</button>
+          <button class="icon-btn" id="native-drawer-close" aria-label="${t('nav.close')}" style="font-size:1rem;flex-shrink:0;">✕</button>
         </div>
         ${profileSection}
         <nav class="native-side-drawer__nav">
-          <a href="${homeRelativePath()}">Competencias</a>
-          <a href="${pagePath('torneos.html')}">Torneos de Amigos</a>
-          ${user ? `<a href="${pagePath('perfil.html')}">Mi cuenta</a>` : ''}
+          <a href="${homeRelativePath()}">${t('nav.competitions')}</a>
+          <a href="${pagePath('torneos.html')}">${t('nav.friendTournaments')}</a>
+          ${user ? `<a href="${pagePath('perfil.html')}">${t('nav.myAccount')}</a>` : ''}
         </nav>
         <div class="native-side-drawer__footer">
           ${footerHtml}
@@ -221,14 +221,14 @@ function initAccountMenu() {
     if (!user) {
       // Guest: show a plain text link instead of the avatar circle
       menu.innerHTML = `
-        <a class="account-menu__button account-menu__button--guest" href="${authRelativePath('auth.html')}">Ingresar</a>
+        <a class="account-menu__button account-menu__button--guest" href="${authRelativePath('auth.html')}">${t('nav.signIn')}</a>
       `;
       navbar.appendChild(menu);
       return;
     }
 
     menu.innerHTML = `
-      <button class="account-menu__button" data-menu-toggle aria-label="Abrir menú">
+      <button class="account-menu__button" data-menu-toggle aria-label="${t('nav.menu')}">
         ${user.fotoPerfil
           ? `<img src="${escapeHtml(user.fotoPerfil)}" alt="foto de perfil" style="width:100%;height:100%;border-radius:50%;object-fit:cover;">`
           : `<span>${initial(user.nombre || user.username || 'U')}</span>`}
@@ -236,10 +236,10 @@ function initAccountMenu() {
       <div class="account-drawer" data-menu-drawer>
         <div class="account-drawer__head">
           <strong>${escapeHtml(user.nombre || user.username)}</strong>
-          <small>Sesión activa</small>
+          <small>${t('nav.activeSession')}</small>
         </div>
-        <a href="${authRelativePath('perfil.html')}">Mi cuenta</a>
-        <button data-menu-logout>Cerrar Sesión</button>
+        <a href="${authRelativePath('perfil.html')}">${t('nav.myAccount')}</a>
+        <button data-menu-logout>${t('nav.signOut')}</button>
       </div>
     `;
     navbar.appendChild(menu);
@@ -443,7 +443,7 @@ async function loadCompetencias() {
   try {
     const competencias = await API.getCompetencias();
     if (!competencias.length) {
-      listEl.innerHTML = emptyState('No hay competencias disponibles.');
+      listEl.innerHTML = emptyState(t('empty.noCompetitions'));
       return;
     }
 
@@ -548,7 +548,7 @@ function switchHomeTab(tab) {
 }
 
 function renderTorneoCard(torneo, active) {
-  const miembros = torneo.miembrosCount === 1 ? '1 miembro' : `${torneo.miembrosCount ?? 0} miembros`;
+  const miembros = torneo.miembrosCount === 1 ? t('members.one') : t('members.many', { n: torneo.miembrosCount ?? 0 });
   return `
     <button class="tournament-card ${active ? 'active' : ''}" data-torneo-id="${torneo.id}">
       <span>
@@ -612,7 +612,7 @@ async function loadPartidos({ quiet = false } = {}) {
 
   const competencia = API.getSelectedCompetencia();
   if (!competencia) {
-    el.innerHTML = emptyState('Elegí una competencia para ver partidos.');
+    el.innerHTML = emptyState(t('empty.chooseCompetition'));
     return;
   }
 
@@ -625,7 +625,7 @@ async function loadPartidos({ quiet = false } = {}) {
     const matches = await API.getMatches({ competenciaId: competencia.id, estado });
     el.innerHTML = '';
     if (!matches.length) {
-      el.innerHTML = emptyState('No hay partidos para este filtro.');
+      el.innerHTML = emptyState(t('empty.noMatches'));
       return;
     }
     matches.forEach(m => el.appendChild(Predictions.createMatchCard(m)));
@@ -681,7 +681,7 @@ async function loadPendingPredictions() {
     el.className = preds.length ? 'pred-list' : '';
     el.innerHTML = preds.length
       ? preds.map(renderPredRow).join('')
-      : emptyState('No tenés predicciones pendientes.');
+      : emptyState(t('empty.noPendingPreds'));
   } catch (error) { el.innerHTML = errorState(error.message); }
 }
 
@@ -693,7 +693,7 @@ async function loadHistoryPredictions() {
     el.className = preds.length ? 'pred-list' : '';
     el.innerHTML = preds.length
       ? preds.map(renderPredRow).join('')
-      : emptyState('Todavía no tenés historial.');
+      : emptyState(t('empty.noHistory'));
   } catch (error) { el.innerHTML = errorState(error.message); }
 }
 
@@ -706,16 +706,16 @@ function setPrediccionesError(message) {
 
 function renderPredRow(pred) {
   const cls   = pred.estado === 'acierto' ? 'hit' : pred.estado === 'fallo' ? 'miss' : 'pending';
-  const label = pred.estado === 'acierto' ? 'Acierto' : pred.estado === 'fallo' ? 'Fallo' : 'Pendiente';
+  const label = pred.estado === 'acierto' ? t('pred.hit') : pred.estado === 'fallo' ? t('pred.miss') : t('pred.pending');
   const pts   = pred.puntos > 0 ? `+${pred.puntos}` : '-';
   const score = `${pred.scoreEquipo1Pred ?? '?'}-${pred.scoreEquipo2Pred ?? '?'}`;
-
+  const metaNote = `${escapeHtml(pred.liga || '')} · ${t('pred.myPred', { score })}`;
   const rowCls = pred.estado === 'acierto' ? 'is-hit' : pred.estado === 'fallo' ? 'is-miss' : '';
   return `
     <div class="pred-row ${rowCls}">
       <div class="pred-match">
         <div class="pred-match-name">${escapeHtml(pred.equipo1)} vs ${escapeHtml(pred.equipo2)}</div>
-        <div class="pred-match-meta">${escapeHtml(pred.liga || '')} · Mi pred: ${score}</div>
+        <div class="pred-match-meta">${metaNote}</div>
       </div>
       <span class="pred-tag ${cls}">${label}</span>
       <span class="pred-pts ${pred.puntos > 0 ? 'positive' : ''}">${pts}</span>
@@ -764,11 +764,11 @@ async function loadMisPrediccionesEnTorneo() {
   if (!el) return;
   const torneo = API.getSelectedTorneo();
   if (!torneo) {
-    el.innerHTML = emptyState('Elegí un Torneo de Amigos.');
+    el.innerHTML = emptyState(t('empty.chooseTorneo'));
     return;
   }
   if (!API.getToken()) {
-    el.innerHTML = emptyState('Iniciá sesión para ver tus predicciones.');
+    el.innerHTML = emptyState(t('empty.signInForPreds'));
     return;
   }
   showSkeleton(el, 4);
@@ -778,7 +778,7 @@ async function loadMisPrediccionesEnTorneo() {
     const matches = await API.getMatches({ competenciaId, estado: 'proximo' });
     el.innerHTML = '';
     if (!matches.length) {
-      el.innerHTML = emptyState('No hay partidos próximos en esta competencia.');
+      el.innerHTML = emptyState(t('empty.noUpcoming'));
       return;
     }
     matches.forEach(m => el.appendChild(Predictions.createMatchCard(m)));
@@ -847,7 +847,7 @@ async function initTorneoActionMenu() {
           const r = await API.generarInviteLink(torneo.id);
           inviteUrl = r.url || null;
         } catch {
-          alert('No se pudo generar el enlace. Intentá de nuevo.');
+          alert(t('alert.inviteLinkError'));
           return;
         }
       } else {
@@ -856,18 +856,18 @@ async function initTorneoActionMenu() {
       }
     }
     if (!inviteUrl) return;
-    const shareTitle = `Te invitaron al torneo ${torneo.nombre} | Once Metros`;
-    const shareText  = `${torneo.competencia?.nombre || 'Fútbol'}: Predecí los resultados y competí con tus amigos.`;
+    const shareTitle = t('share.title', { name: torneo.nombre });
+    const shareText  = t('share.text', { competition: torneo.competencia?.nombre || 'Fútbol' });
     if (navigator.share) {
       navigator.share({ title: shareTitle, text: shareText, url: inviteUrl }).catch(() => {});
     } else {
       try {
         await navigator.clipboard.writeText(inviteUrl);
         const orig = buttonEl.textContent;
-        buttonEl.textContent = '¡Enlace copiado!';
+        buttonEl.textContent = t('action.linkCopied');
         setTimeout(() => { buttonEl.textContent = orig; }, 2000);
       } catch {
-        prompt('Copí este enlace para invitar:', inviteUrl);
+        prompt(t('share.promptCopy'), inviteUrl);
       }
     }
   }
@@ -890,14 +890,14 @@ async function initTorneoActionMenu() {
   // Leave torneo
   leaveBtn?.addEventListener('click', async () => {
     menuEl?.classList.remove('open');
-    if (!await appConfirm(`¿Salir del torneo "${torneo.nombre}"?`, { confirmText: 'Salir', cancelText: 'Cancelar' })) return;
+    if (!await appConfirm(t('confirm.leaveTorneo', { name: torneo.nombre }), { confirmText: t('action.leave'), cancelText: t('action.cancel') })) return;
     leaveBtn.disabled = true;
     try {
       await API.leaveTorneoDeAmigos(torneo.id);
       API.setSelectedTorneo(null);
       window.location.href = 'torneos.html';
     } catch (err) {
-      alert(err.message || 'No se pudo salir del torneo.');
+      alert(err.message || t('alert.leaveTorneoError'));
       leaveBtn.disabled = false;
     }
   });
@@ -905,14 +905,14 @@ async function initTorneoActionMenu() {
   // Delete torneo (creators only)
   deleteBtn?.addEventListener('click', async () => {
     menuEl?.classList.remove('open');
-    if (!await appConfirm(`¿Eliminar el torneo "${torneo.nombre}"?`, { confirmText: 'Eliminar', cancelText: 'Cancelar', danger: true })) return;
+    if (!await appConfirm(t('confirm.deleteTorneo', { name: torneo.nombre }), { confirmText: t('action.delete'), cancelText: t('action.cancel'), danger: true })) return;
     deleteBtn.disabled = true;
     try {
       await API.deleteTorneoDeAmigos(torneo.id);
       API.setSelectedTorneo(null);
       window.location.href = '../index.html#torneos';
     } catch (err) {
-      alert(err.message || 'No se pudo eliminar el torneo.');
+      alert(err.message || t('alert.deleteTorneoError'));
       deleteBtn.disabled = false;
     }
   });
@@ -972,7 +972,7 @@ async function initInvitar() {
     setInviteFeedback('');
     try {
       await API.invitarAlTorneo(torneo.id, value);
-      setInviteFeedback(`Invitación enviada a ${value}.`, 'success');
+      setInviteFeedback(t('feedback.invitationSent', { value }), 'success');
       input.value = '';
       await refreshInviteSentList(torneo.id);
     } catch (err) {
@@ -990,15 +990,15 @@ async function initInvitar() {
     try {
       const { url } = await API.generarInviteLink(torneo.id);
       setInviteLinkUrl(url);
-      setInviteFeedback('Enlace regenerado.', 'success');
+      setInviteFeedback(t('feedback.linkRegenerated'), 'success');
     } catch (err) { setInviteFeedback(err.message, 'error'); }
   });
   document.getElementById('invite-link-revoke')?.addEventListener('click', async () => {
-    if (!await appConfirm('¿Revocar el enlace? Quien lo tenga no va a poder usarlo.', { confirmText: 'Revocar', cancelText: 'Cancelar', danger: true })) return;
+    if (!await appConfirm(t('confirm.revokeLink'), { confirmText: t('action.revoke'), cancelText: t('action.cancel'), danger: true })) return;
     try {
       await API.revocarInviteLink(torneo.id);
       setInviteLinkUrl(null);
-      setInviteFeedback('Enlace revocado.', 'success');
+      setInviteFeedback(t('feedback.linkRevoked'), 'success');
     } catch (err) { setInviteFeedback(err.message, 'error'); }
   });
   document.getElementById('invite-link-copy')?.addEventListener('click', async () => {
@@ -1006,11 +1006,11 @@ async function initInvitar() {
     if (!urlInput?.value) return;
     try {
       await navigator.clipboard.writeText(urlInput.value);
-      setInviteFeedback('Enlace copiado.', 'success');
+      setInviteFeedback(t('feedback.linkCopied'), 'success');
     } catch {
       urlInput.select();
       document.execCommand('copy');
-      setInviteFeedback('Enlace copiado.', 'success');
+      setInviteFeedback(t('feedback.linkCopied'), 'success');
     }
   });
 
@@ -1055,13 +1055,13 @@ async function refreshInviteSentList(torneoId) {
   try {
     const invitaciones = await API.getInvitacionesDelTorneo(torneoId);
     if (!invitaciones.length) {
-      list.innerHTML = emptyState('Todavía no enviaste invitaciones.');
+      list.innerHTML = emptyState(t('empty.noSentInvitations'));
       return;
     }
     list.innerHTML = invitaciones.map(renderInviteSentRow).join('');
     list.querySelectorAll('[data-cancel-invitacion]').forEach(btn => {
       btn.addEventListener('click', async () => {
-        if (!await appConfirm('¿Cancelar esta invitación?', { confirmText: 'Cancelar invitación', cancelText: 'Volver' })) return;
+        if (!await appConfirm(t('confirm.cancelInvite'), { confirmText: t('action.cancelInvitation'), cancelText: t('action.back') })) return;
         try {
           await API.cancelarInvitacion(btn.dataset.cancelInvitacion);
           await refreshInviteSentList(torneoId);
@@ -1079,7 +1079,7 @@ function renderInviteSentRow(inv) {
   const u = inv.invitado || {};
   const name = u.nombre || u.username || 'Usuario';
   const action = inv.estado === 'PENDIENTE'
-    ? `<button class="btn btn-outline btn-sm" data-cancel-invitacion="${inv.id}">Cancelar</button>`
+    ? `<button class="btn btn-outline btn-sm" data-cancel-invitacion="${inv.id}">${t('action.cancel')}</button>`
     : '';
   return `
     <div class="invite-row">
@@ -1095,10 +1095,10 @@ function renderInviteSentRow(inv) {
 
 function labelEstadoInvitacion(estado) {
   return ({
-    PENDIENTE: 'Pendiente',
-    ACEPTADA: 'Aceptada',
-    RECHAZADA: 'Rechazada',
-    CANCELADA: 'Cancelada',
+    PENDIENTE: t('inviteStatus.pending'),
+    ACEPTADA: t('inviteStatus.accepted'),
+    RECHAZADA: t('inviteStatus.rejected'),
+    CANCELADA: t('inviteStatus.cancelled'),
   })[estado] || estado;
 }
 
@@ -1121,7 +1121,7 @@ async function loadInvitacionesPendientes() {
   try {
     const invitaciones = await API.getMisInvitacionesPendientes();
     if (!invitaciones.length) {
-      list.innerHTML = emptyState('No tenés invitaciones pendientes.');
+      list.innerHTML = emptyState(t('empty.noInvitations'));
       return;
     }
     list.innerHTML = invitaciones.map(renderInviteInboxCard).join('');
@@ -1129,7 +1129,7 @@ async function loadInvitacionesPendientes() {
       btn.addEventListener('click', async () => {
         try {
           await API.aceptarInvitacion(btn.dataset.accept);
-          setInvitacionesFeedback('Te uniste al torneo.', 'success');
+          setInvitacionesFeedback(t('feedback.joined'), 'success');
           await loadInvitacionesPendientes();
         } catch (err) { setInvitacionesFeedback(err.message, 'error'); }
       });
@@ -1158,8 +1158,8 @@ function renderInviteInboxCard(inv) {
         <small>${escapeHtml(competencia.nombre || '')} · te invitó @${escapeHtml(sender.username || '?')}</small>
       </div>
       <div class="invite-inbox-card__actions">
-        <button class="btn btn-primary" data-accept="${inv.id}">Aceptar</button>
-        <button class="btn btn-outline" data-reject="${inv.id}">Rechazar</button>
+        <button class="btn btn-primary" data-accept="${inv.id}">${t('action.accept')}</button>
+        <button class="btn btn-outline" data-reject="${inv.id}">${t('action.reject')}</button>
       </div>
     </div>
   `;
@@ -1185,9 +1185,9 @@ async function initInviteLanding() {
   const actions = document.getElementById('invite-landing-actions');
 
   if (!token) {
-    title.textContent = 'Invitación inválida';
-    meta.textContent = 'Falta el token de la invitación.';
-    actions.innerHTML = `<a class="btn btn-primary" href="../index.html">Ir al inicio</a>`;
+    title.textContent = t('torneo.invalidInvite');
+    meta.textContent = t('torneo.missingToken');
+    actions.innerHTML = `<a class="btn btn-primary" href="../index.html">${t('action.goHome')}</a>`;
     return;
   }
 
@@ -1195,25 +1195,25 @@ async function initInviteLanding() {
   try {
     torneo = await API.getTorneoPorInviteToken(token);
   } catch (err) {
-    title.textContent = 'Invitación inválida o revocada';
+    title.textContent = t('torneo.invalidInviteRevoked');
     meta.textContent = err.message;
-    actions.innerHTML = `<a class="btn btn-primary" href="../index.html">Ir al inicio</a>`;
+    actions.innerHTML = `<a class="btn btn-primary" href="../index.html">${t('action.goHome')}</a>`;
     return;
   }
 
-  title.textContent = `Sumate a "${torneo.nombre}"`;
+  title.textContent = t('torneo.joinTitle', { name: torneo.nombre });
   meta.textContent = torneo.competencia?.nombre || '';
 
   if (!API.getToken()) {
     const next = encodeURIComponent(`invitacion.html?token=${token}`);
     actions.innerHTML = `
-      <a class="btn btn-primary" href="auth.html?next=${next}">Ingresar para unirme</a>
-      <a class="btn btn-outline" href="../index.html">Ver competencias</a>
+      <a class="btn btn-primary" href="auth.html?next=${next}">${t('action.signInToJoin')}</a>
+      <a class="btn btn-outline" href="../index.html">${t('action.seeCompetitions')}</a>
     `;
     return;
   }
 
-  actions.innerHTML = `<button class="btn btn-primary" id="invite-landing-join">Unirme al torneo</button>`;
+  actions.innerHTML = `<button class="btn btn-primary" id="invite-landing-join">${t('action.joinTournament')}</button>`;
   document.getElementById('invite-landing-join')?.addEventListener('click', async () => {
     try {
       const result = await API.unirseConInviteToken(token);
@@ -1243,9 +1243,9 @@ async function loadSelectedTorneoHeader() {
     const torneo = await API.getTorneoDeAmigos(selected.id);
     API.setSelectedTorneo(torneo);
     if (title) title.textContent = torneo.nombre;
-    if (subtitle) subtitle.textContent = torneo.competencia?.nombre || 'Torneo de Amigos';
+    if (subtitle) subtitle.textContent = torneo.competencia?.nombre || t('section.friendTournamentCap');
   } catch {
-    if (title) title.textContent = selected.nombre || 'Torneo de Amigos';
+    if (title) title.textContent = selected.nombre || t('section.friendTournamentCap');
   }
 }
 
@@ -1273,7 +1273,7 @@ async function loadLeaderboard() {
 
   if (!API.getSelectedTorneo()) {
     if (podiumEl) podiumEl.innerHTML = '';
-    rankingEl.innerHTML = emptyState('Elegí un Torneo de Amigos para ver el ranking.');
+    rankingEl.innerHTML = emptyState(t('empty.chooseTorneoRank'));
     return;
   }
 
@@ -1283,7 +1283,7 @@ async function loadLeaderboard() {
 
     if (!ranking.length) {
       if (podiumEl) podiumEl.innerHTML = '';
-      rankingEl.innerHTML = emptyState('Todavía no hay puntajes en este torneo.');
+      rankingEl.innerHTML = emptyState(t('empty.noScoresYet'));
       return;
     }
 
@@ -1299,7 +1299,7 @@ async function loadLeaderboard() {
           <span class="${mClasses[i]}">${topPos[i] ?? i + 1}</span>
           <div class="podium-avatar">${r.fotoPerfil ? `<img src="${escapeHtml(r.fotoPerfil)}" alt="" style="width:100%;height:100%;object-fit:cover;border-radius:50%;">` : initial(r.nombre)}</div>
           <div class="podium-name">${escapeHtml(r.nombre)}</div>
-          <div class="podium-pts">${r.puntos} pts</div>
+          <div class="podium-pts">${r.puntos} ${t('stat.pts')}</div>
           <div class="podium-bar"></div>
         </div>
       ` : '').join('');
@@ -1333,7 +1333,7 @@ async function loadTournamentUpcomingMatches() {
   const competenciaId = torneo?.competenciaId || torneo?.competencia?.id || API.getSelectedCompetencia()?.id;
 
   if (!torneo || !competenciaId) {
-    el.innerHTML = emptyState('Elegí un Torneo de Amigos para ver los próximos partidos.');
+    el.innerHTML = emptyState(t('empty.chooseTorneoMatch'));
     return;
   }
 
@@ -1348,7 +1348,7 @@ async function loadTournamentUpcomingMatches() {
 
     el.innerHTML = '';
     if (!upcoming.length) {
-      el.innerHTML = emptyState('No hay partidos próximos para esta competencia.');
+      el.innerHTML = emptyState(t('empty.noUpcomingTorneo'));
       return;
     }
 
@@ -1372,11 +1372,11 @@ function renderRankRow(r, pos) {
       <div class="rank-avatar">${avatarInner}</div>
       <div class="rank-info">
         <div class="rank-name">${escapeHtml(r.nombre)}</div>
-        <div class="rank-sub">${r.aciertos ?? 0} aciertos · ${r.exactos ?? 0} exactos</div>
+        <div class="rank-sub">${r.aciertos ?? 0} ${t('stat.hitsLc')} · ${r.exactos ?? 0} ${t('stat.exactLc')}</div>
       </div>
       <div class="rank-right">
         <div class="rank-pts">${r.puntos}</div>
-        <span class="rank-pts-label">pts</span>
+        <span class="rank-pts-label">${t('stat.pts')}</span>
       </div>
     </div>
   `;
@@ -1390,14 +1390,14 @@ function renderSelectedContext() {
   const isPredictionsView = window.location.pathname.includes('partidos');
 
   if (isPredictionsView) {
-    el.innerHTML = `<span>${escapeHtml(competencia?.nombre || 'Sin competencia')}</span>`;
+    el.innerHTML = `<span>${escapeHtml(competencia?.nombre || t('empty.noCompetencia'))}</span>`;
     return;
   }
 
   el.innerHTML = `
-    <span>${escapeHtml(competencia?.nombre || 'Sin competencia')}</span>
-    <strong>${escapeHtml(torneo?.nombre || 'Sin torneo')}</strong>
-    <a class="btn btn-outline btn-sm" href="${homeRelativePath('#torneos')}">Cambiar</a>
+    <span>${escapeHtml(competencia?.nombre || t('empty.noCompetencia'))}</span>
+    <strong>${escapeHtml(torneo?.nombre || t('empty.noTorneo'))}</strong>
+    <a class="btn btn-outline btn-sm" href="${homeRelativePath('#torneos')}">${t('action.change')}</a>
   `;
 }
 
@@ -1422,14 +1422,14 @@ function openUserPredsDrawer(userId, userName) {
 
   const torneo = API.getSelectedTorneo();
   if (!torneo?.id) {
-    listEl.innerHTML = emptyState('No se encontró el torneo.');
+    listEl.innerHTML = emptyState(t('empty.tournamentNotFound'));
     return;
   }
 
   API.getPrediccionesUsuarioEnTorneo(torneo.id, userId)
     .then(partidos => {
       if (!partidos.length) {
-        listEl.innerHTML = emptyState('No hay partidos cerrados en esta competencia.');
+        listEl.innerHTML = emptyState(t('empty.noClosedMatches'));
         return;
       }
       listEl.innerHTML = '';
@@ -1455,15 +1455,15 @@ function closeUserPredsDrawer() {
 
 function renderUserPredRow(partido) {
   const pred = partido.userPred;
-  const fecha = partido.fecha ? new Date(partido.fecha).toLocaleDateString('es-AR', { day: '2-digit', month: 'short' }) : '';
+  const fecha = partido.fecha ? new Date(partido.fecha).toLocaleDateString(t('localeDate'), { day: '2-digit', month: 'short' }) : '';
   const resultadoReal = partido.scoreEquipo1 != null ? `${partido.scoreEquipo1}-${partido.scoreEquipo2}` : '-';
   const predScore = pred ? `${pred.scoreEquipo1}-${pred.scoreEquipo2}` : '?-?';
   const cls = !pred ? 'no-pred' : pred.estado === 'acierto' ? 'is-hit' : 'is-miss';
   const tag = !pred
-    ? `<span class="pred-tag no-pred">Sin pred.</span>`
+    ? `<span class="pred-tag no-pred">${t('pred.noPred')}</span>`
     : pred.estado === 'acierto'
-      ? `<span class="pred-tag hit">Acierto</span>`
-      : `<span class="pred-tag miss">Fallo</span>`;
+      ? `<span class="pred-tag hit">${t('pred.hit')}</span>`
+      : `<span class="pred-tag miss">${t('pred.miss')}</span>`;
 
   return `
     <div class="user-pred-row ${cls}">
@@ -1499,8 +1499,8 @@ async function initTorneos() {
     listEl.innerHTML = `
       <div class="empty-state">
         <div class="empty-state-icon">!</div>
-        <p>Iniciá sesión para ver tus Torneos de Amigos</p>
-        <a href="auth.html?next=torneos.html" class="btn btn-primary" style="margin-top:.75rem">Ingresar</a>
+        <p>${escapeHtml(t('empty.signInForTorneoPage'))}</p>
+        <a href="auth.html?next=torneos.html" class="btn btn-primary" style="margin-top:.75rem">${t('nav.signIn')}</a>
       </div>
     `;
     return;
@@ -1511,7 +1511,7 @@ async function initTorneos() {
   try {
     const torneos = await API.getTorneosDeAmigos({ mias: 'true' });
     if (!torneos.length) {
-      listEl.innerHTML = emptyState('Todavía no sos parte de ningún Torneo de Amigos. ¡Creá uno o pedí una invitación!');
+      listEl.innerHTML = emptyState(t('empty.noTorneos'));
       return;
     }
     listEl.innerHTML = torneos.map(t => renderTorneoCard(t, false)).join('');
@@ -1569,8 +1569,8 @@ async function initTorneoEdit() {
       window.location.href = 'clasificacion.html';
       return;
     }
-    if (titleEl)    titleEl.textContent = 'Editar torneo';
-    if (subtitleEl) subtitleEl.textContent = torneo.competencia?.nombre || 'Torneo de Amigos';
+    if (titleEl)    titleEl.textContent = t('action.editTournament');
+    if (subtitleEl) subtitleEl.textContent = torneo.competencia?.nombre || t('section.friendTournamentCap');
     if (nameInput)  nameInput.value = torneo.nombre;
     if (deleteBtn)  deleteBtn.classList.remove('hidden');
     if (backBtn)    backBtn.href = 'clasificacion.html';
@@ -1581,7 +1581,7 @@ async function initTorneoEdit() {
       return;
     }
     const stored = API.getSelectedCompetencia();
-    if (titleEl)    titleEl.textContent = 'Nuevo torneo';
+    if (titleEl)    titleEl.textContent = t('action.createTournament');
     if (subtitleEl) subtitleEl.textContent = stored?.nombre || '';
     if (deleteBtn)  deleteBtn.classList.add('hidden');
     if (backBtn)    backBtn.href = '../index.html#torneos';
@@ -1592,7 +1592,7 @@ async function initTorneoEdit() {
     const nombre = nameInput?.value.trim();
     if (!nombre) return;
     saveBtn.disabled = true;
-    saveBtn.textContent = isEdit ? 'Guardando...' : 'Creando...';
+    saveBtn.textContent = isEdit ? t('action.saving') : t('action.creating');
     if (feedbackEl) { feedbackEl.textContent = ''; feedbackEl.classList.add('hidden'); }
 
     try {
@@ -1611,12 +1611,12 @@ async function initTorneoEdit() {
         feedbackEl.classList.add('error');
       }
       saveBtn.disabled = false;
-      saveBtn.textContent = isEdit ? 'Guardar' : 'Crear torneo';
+      saveBtn.textContent = isEdit ? t('action.save') : t('action.createTournament');
     }
   });
 
   deleteBtn?.addEventListener('click', async () => {
-    if (!await appConfirm(`¿Eliminar el torneo "${torneo?.nombre}"?`, { confirmText: 'Eliminar', cancelText: 'Cancelar', danger: true })) return;
+    if (!await appConfirm(t('confirm.deleteTorneo', { name: torneo?.nombre }), { confirmText: t('action.delete'), cancelText: t('action.cancel'), danger: true })) return;
     deleteBtn.disabled = true;
     if (feedbackEl) { feedbackEl.textContent = ''; feedbackEl.classList.add('hidden'); }
     try {
@@ -1728,7 +1728,7 @@ async function initPerfil() {
   try {
     profile = await API.getUsuario(user.id);
   } catch {
-    showMsg('No se pudo cargar el perfil.', 'error');
+    showMsg(t('profile.loadError'), 'error');
     return;
   }
 
@@ -1751,17 +1751,17 @@ async function initPerfil() {
     if (!file) return;
     if (!file.type.startsWith('image/')) { showMsg('El archivo debe ser una imagen.', 'error'); return; }
     changePhotoBtn.disabled = true;
-    changePhotoBtn.textContent = 'Procesando...';
+    changePhotoBtn.textContent = t('action.processing');
     try {
       const dataUrl = await resizeImageToDataUrl(file, 256);
       const updated = await API.updateUsuario(user.id, { fotoPerfil: dataUrl });
       setPerfilHead(updated);
-      showMsg('Foto actualizada.', 'success');
+      showMsg(t('feedback.photoUpdated'), 'success');
     } catch (err) {
       showMsg(err.message || 'Error al actualizar la foto.', 'error');
     } finally {
       changePhotoBtn.disabled = false;
-      changePhotoBtn.textContent = 'Cambiar foto';
+      changePhotoBtn.textContent = t('action.changePhoto');
       photoInput.value = '';
     }
   });
@@ -1771,19 +1771,19 @@ async function initPerfil() {
     e.preventDefault();
     const btn = document.getElementById('perfil-save-btn');
     btn.disabled = true;
-    btn.textContent = 'Guardando...';
+    btn.textContent = t('action.savingChanges');
     try {
       const updated = await API.updateUsuario(user.id, {
         nombre:   fieldNombre?.value.trim()   || undefined,
         apellido: fieldApellido?.value.trim() || undefined,
       });
       setPerfilHead(updated);
-      showMsg('Cambios guardados.', 'success');
+      showMsg(t('feedback.changesSaved'), 'success');
     } catch (err) {
       showMsg(err.message || 'Error al guardar.', 'error');
     } finally {
       btn.disabled = false;
-      btn.textContent = 'Guardar cambios';
+      btn.textContent = t('action.saveChanges');
     }
   });
 
@@ -1796,13 +1796,13 @@ async function initPerfil() {
   // Delete account
   document.getElementById('perfil-delete-btn')?.addEventListener('click', async () => {
     const confirmed = await appConfirm(
-      '¿Estás seguro de que querés eliminar tu cuenta?\nSe borrarán todas tus predicciones de forma permanente.',
-      { confirmText: 'Eliminar cuenta', cancelText: 'Cancelar', danger: true }
+      t('confirm.deleteAccount'),
+      { confirmText: t('action.deleteAccount2'), cancelText: t('action.cancel'), danger: true }
     );
     if (!confirmed) return;
     const btn = document.getElementById('perfil-delete-btn');
     btn.disabled = true;
-    btn.textContent = 'Eliminando...';
+    btn.textContent = t('action.deleting');
     try {
       await API.deleteUsuario(user.id);
       API.logout();
@@ -1810,7 +1810,7 @@ async function initPerfil() {
     } catch (err) {
       showMsg(err.message || 'Error al eliminar la cuenta.', 'error');
       btn.disabled = false;
-      btn.textContent = 'Eliminar mi cuenta';
+      btn.textContent = t('action.deleteAccount');
     }
   });
 }

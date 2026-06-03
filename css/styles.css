@@ -296,6 +296,27 @@ button { font-family: var(--font); cursor: pointer; }
 
 .nav-auth { display: flex; gap: 0.5rem; margin-left: auto; }
 
+/* Language toggle button */
+.lang-toggle {
+  background: transparent;
+  border: 1px solid var(--border-2);
+  border-radius: var(--radius-sm);
+  color: var(--text-3);
+  font: inherit;
+  font-size: 0.7rem;
+  font-weight: 700;
+  padding: 0.2rem 0.45rem;
+  cursor: pointer;
+  letter-spacing: 0.06em;
+  transition: color var(--t), border-color var(--t);
+  flex-shrink: 0;
+  margin-left: 0.25rem;
+}
+.lang-toggle:hover {
+  color: var(--text);
+  border-color: var(--text-3);
+}
+
 .account-menu {
   position: relative;
 }

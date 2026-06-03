@@ -29,7 +29,7 @@
     <nav class="navbar">
       <a class="logo" href="../index.html"><span class="logo-pulse"></span>Once Metros</a>
       <div class="nav-links">
-        <a href="../index.html">Competencias</a>
+        <a href="../index.html" data-i18n="nav.competitions">Competencias</a>
         <a href="auth.html" data-auth-link data-auth-href="auth.html">Ingresar</a>
       </div>
     </nav>
@@ -37,14 +37,15 @@
 
   <main>
     <section class="invite-landing" id="invite-landing">
-      <span class="section-label"><span class="dot"></span>Invitación</span>
-      <h1 id="invite-landing-title">Cargando invitación...</h1>
+      <span class="section-label"><span class="dot"></span><span data-i18n="section.invitation">Invitación</span></span>
+      <h1 id="invite-landing-title" data-i18n="page.loadingInvite">Cargando invitación...</h1>
       <p class="invite-landing__meta" id="invite-landing-meta"></p>
       <div id="invite-landing-feedback" class="invite-feedback hidden"></div>
       <div class="invite-landing__actions" id="invite-landing-actions"></div>
     </section>
   </main>
 
+  <script src="../js/i18n.js"></script>
   <script src="../js/config.js"></script>
   <script src="../js/api.js"></script>
   <script src="../js/predictions.js"></script>

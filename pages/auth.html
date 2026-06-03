@@ -16,8 +16,8 @@
     <nav class="navbar">
       <a class="logo" href="../index.html"><span class="logo-pulse"></span>Once Metros</a>
       <div class="nav-links">
-        <a href="../index.html">Competencias</a>
-        <a href="../index.html#torneos">Torneos</a>
+        <a href="../index.html" data-i18n="nav.competitions">Competencias</a>
+        <a href="../index.html#torneos" data-i18n="nav.friendTournaments">Torneos</a>
         <a href="auth.html" class="active" data-auth-link data-auth-href="auth.html">Ingresar</a>
       </div>
     </nav>
@@ -27,16 +27,16 @@
     <section class="page-header">
       <div class="page-header-inner">
         <div>
-          <span class="section-label"><span class="dot"></span>Cuenta</span>
-          <h1 class="page-title">Ingresar</h1>
+          <span class="section-label"><span class="dot"></span><span data-i18n="section.account">Cuenta</span></span>
+          <h1 class="page-title" data-i18n="page.signIn">Ingresar</h1>
         </div>
       </div>
     </section>
 
     <section class="section auth-section">
       <div class="tabs">
-        <button class="tab-btn active" data-tab="login">Ingresar</button>
-        <button class="tab-btn" data-tab="register">Crear cuenta</button>
+        <button class="tab-btn active" data-tab="login" data-i18n="tab.signIn">Ingresar</button>
+        <button class="tab-btn" data-tab="register" data-i18n="tab.register">Crear cuenta</button>
       </div>
 
       <div id="auth-error" class="auth-error hidden"></div>
@@ -49,40 +49,40 @@
       <div id="tab-login" class="tab-content">
         <form id="login-form" class="auth-form">
           <label>
-            Usuario o email
+            <span data-i18n="auth.userOrEmail">Usuario o email</span>
             <input name="identificador" autocomplete="username" required>
           </label>
           <label>
-            Clave
+            <span data-i18n="auth.password">Clave</span>
             <input name="password" type="password" autocomplete="current-password" required>
           </label>
-          <button class="btn btn-primary btn-lg" type="submit">Ingresar</button>
+          <button class="btn btn-primary btn-lg" type="submit" data-i18n="tab.signIn">Ingresar</button>
         </form>
       </div>
 
       <div id="tab-register" class="tab-content hidden">
         <form id="register-form" class="auth-form">
           <label>
-            Usuario
+            <span data-i18n="auth.username">Usuario</span>
             <input name="username" autocomplete="username" minlength="3" maxlength="24" required>
           </label>
           <label>
-            Nombre
+            <span data-i18n="auth.name">Nombre</span>
             <input name="nombre" autocomplete="given-name">
           </label>
           <label>
-            Apellido
+            <span data-i18n="auth.lastName">Apellido</span>
             <input name="apellido" autocomplete="family-name">
           </label>
           <label>
-            Email
+            <span data-i18n="auth.email">Email</span>
             <input name="email" type="email" autocomplete="email">
           </label>
           <label>
-            Clave
+            <span data-i18n="auth.password">Clave</span>
             <input name="password" type="password" autocomplete="new-password" minlength="8" required>
           </label>
-          <button class="btn btn-primary btn-lg" type="submit">Crear cuenta</button>
+          <button class="btn btn-primary btn-lg" type="submit" data-i18n="tab.register">Crear cuenta</button>
         </form>
       </div>
     </section>
@@ -90,11 +90,12 @@
 
   <nav class="bottom-nav">
     <div class="bottom-nav__inner">
-      <a class="bottom-nav__item" href="../index.html">Competencias</a>
-      <a class="bottom-nav__item" href="../index.html#torneos">Torneos</a>
+      <a class="bottom-nav__item" href="../index.html" data-i18n="nav.competitions">Competencias</a>
+      <a class="bottom-nav__item" href="../index.html#torneos" data-i18n="nav.friendTournaments">Torneos</a>
     </div>
   </nav>
 
+  <script src="../js/i18n.js"></script>
   <script src="../js/config.js"></script>
   <script src="../js/api.js"></script>
   <script src="../js/predictions.js"></script>

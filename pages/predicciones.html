@@ -15,9 +15,9 @@
     <nav class="navbar">
       <a class="logo" href="../index.html"><span class="logo-pulse"></span>Once Metros</a>
       <div class="nav-links">
-        <a href="../index.html">Competencias</a>
-        <a href="predicciones.html" class="active">Predicciones</a>
-        <a href="torneos.html">Torneos de amigos</a>
+        <a href="../index.html" data-i18n="nav.competitions">Competencias</a>
+        <a href="predicciones.html" class="active" data-i18n="nav.predictions">Predicciones</a>
+        <a href="torneos.html" data-i18n="nav.friendTournaments">Torneos de amigos</a>
       </div>
     </nav>
   </header>
@@ -26,8 +26,8 @@
     <section class="page-header">
       <div class="page-header-inner">
         <div>
-          <span class="section-label"><span class="dot"></span>Mis jugadas</span>
-          <h1 class="page-title">Predicciones</h1>
+          <span class="section-label"><span class="dot"></span><span data-i18n="section.myPlays">Mis jugadas</span></span>
+          <h1 class="page-title" data-i18n="page.predictions">Predicciones</h1>
         </div>
         <div id="selected-context" class="selected-context"></div>
       </div>
@@ -35,15 +35,15 @@
 
     <section class="section">
       <div class="stats-bar">
-        <div class="stat-item"><strong class="stat-val" id="stat-puntos">0</strong><span class="stat-label">Puntos</span></div>
-        <div class="stat-item"><strong class="stat-val" id="stat-aciertos">0</strong><span class="stat-label">Aciertos</span></div>
-        <div class="stat-item"><strong class="stat-val" id="stat-pct">0%</strong><span class="stat-label">Efectividad</span></div>
-        <div class="stat-item"><strong class="stat-val" id="stat-racha">0</strong><span class="stat-label">Racha</span></div>
+        <div class="stat-item"><strong class="stat-val" id="stat-puntos">0</strong><span class="stat-label" data-i18n="stat.points">Puntos</span></div>
+        <div class="stat-item"><strong class="stat-val" id="stat-aciertos">0</strong><span class="stat-label" data-i18n="stat.hits">Aciertos</span></div>
+        <div class="stat-item"><strong class="stat-val" id="stat-pct">0%</strong><span class="stat-label" data-i18n="stat.accuracy">Efectividad</span></div>
+        <div class="stat-item"><strong class="stat-val" id="stat-racha">0</strong><span class="stat-label" data-i18n="stat.streak">Racha</span></div>
       </div>
 
       <div class="tabs">
-        <button class="tab-btn active" data-tab="pendientes">Pendientes</button>
-        <button class="tab-btn" data-tab="historial">Historial</button>
+        <button class="tab-btn active" data-tab="pendientes" data-i18n="tab.pending">Pendientes</button>
+        <button class="tab-btn" data-tab="historial" data-i18n="tab.history">Historial</button>
       </div>
 
       <div id="tab-pendientes" class="tab-content">
@@ -57,11 +57,12 @@
 
   <nav class="bottom-nav">
     <div class="bottom-nav__inner">
-      <a class="bottom-nav__item" href="../index.html">Competencias</a>
-      <a class="bottom-nav__item" href="torneos.html">Torneos de amigos</a>
+      <a class="bottom-nav__item" href="../index.html" data-i18n="nav.competitions">Competencias</a>
+      <a class="bottom-nav__item" href="torneos.html" data-i18n="nav.friendTournaments">Torneos de amigos</a>
     </div>
   </nav>
 
+  <script src="../js/i18n.js"></script>
   <script src="../js/config.js"></script>
   <script src="../js/api.js"></script>
   <script src="../js/predictions.js"></script>

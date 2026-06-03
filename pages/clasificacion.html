@@ -15,8 +15,8 @@
     <nav class="navbar">
       <a class="logo" href="../index.html"><span class="logo-pulse"></span>Once Metros</a>
       <div class="nav-links">
-        <a href="../index.html">Competencias</a>
-        <a href="torneos.html" class="active">Torneos de amigos</a>
+        <a href="../index.html" data-i18n="nav.competitions">Competencias</a>
+        <a href="torneos.html" class="active" data-i18n="nav.friendTournaments">Torneos de amigos</a>
       </div>
     </nav>
   </header>
@@ -30,14 +30,14 @@
           <h1 id="torneo-title" class="page-title">Ranking</h1>
         </div>
         <div class="page-header-actions">
-          <a class="icon-btn" href="puntos.html" aria-label="Cómo se calculan los puntos" title="Cómo se calculan los puntos">ⓘ</a>
-          <button id="invite-btn" class="btn btn-primary btn-sm hidden" type="button">Invitar</button>
+          <a class="icon-btn" href="puntos.html" data-i18n-aria="nav.howPoints" data-i18n-title="nav.howPoints" aria-label="Cómo se calculan los puntos" title="Cómo se calculan los puntos">ⓘ</a>
+          <button id="invite-btn" class="btn btn-primary btn-sm hidden" type="button" data-i18n="action.invite">Invitar</button>
           <div class="torneo-action-menu" id="torneo-action-menu">
             <button class="icon-btn" id="torneo-action-toggle" aria-label="Más opciones" title="Más opciones">⋮</button>
             <div class="torneo-action-dropdown" id="torneo-action-dropdown">
-              <button data-torneo-action="edit"   class="hidden">Cambiar nombre</button>
-              <button data-torneo-action="leave"  class="hidden">Salir del torneo</button>
-              <button data-torneo-action="delete" class="hidden danger">Eliminar torneo</button>
+              <button data-torneo-action="edit"   class="hidden" data-i18n="action.rename">Cambiar nombre</button>
+              <button data-torneo-action="leave"  class="hidden" data-i18n="action.leaveMenu">Salir del torneo</button>
+              <button data-torneo-action="delete" class="hidden danger" data-i18n="action.deleteMenu">Eliminar torneo</button>
             </div>
           </div>
         </div>
@@ -45,8 +45,8 @@
     </section>
 
     <div class="tabs workspace-tabs">
-      <button class="tab-btn active" data-clasif-tab="posiciones">Posiciones</button>
-      <button class="tab-btn" data-clasif-tab="predicciones">Mis predicciones</button>
+      <button class="tab-btn active" data-clasif-tab="posiciones" data-i18n="tab.standings">Posiciones</button>
+      <button class="tab-btn" data-clasif-tab="predicciones" data-i18n="tab.myPredictions">Mis predicciones</button>
     </div>
 
     <div id="clasif-tab-posiciones" class="tab-content">
@@ -80,11 +80,12 @@
 
   <nav class="bottom-nav">
     <div class="bottom-nav__inner">
-      <a class="bottom-nav__item" href="../index.html">Competencias</a>
-      <a class="bottom-nav__item active" href="torneos.html">Torneos de amigos</a>
+      <a class="bottom-nav__item" href="../index.html" data-i18n="nav.competitions">Competencias</a>
+      <a class="bottom-nav__item active" href="torneos.html" data-i18n="nav.friendTournaments">Torneos de amigos</a>
     </div>
   </nav>
 
+  <script src="../js/i18n.js"></script>
   <script src="../js/config.js"></script>
   <script src="../js/api.js"></script>
   <script src="../js/predictions.js"></script>
