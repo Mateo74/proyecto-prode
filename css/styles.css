@@ -457,6 +457,32 @@ button { font-family: var(--font); cursor: pointer; }
 }
 
 /* =============================================
+   TORNEO NAME INPUT — clean modern field
+   ============================================= */
+.torneo-name-input {
+  width: 100%;
+  background: var(--bg);
+  border: 1.5px solid var(--border-2);
+  border-radius: var(--radius-md);
+  color: var(--text);
+  font: inherit;
+  font-size: 1.125rem;
+  font-weight: 600;
+  padding: 0.875rem 1rem;
+  transition: border-color 0.15s, box-shadow 0.15s;
+  box-sizing: border-box;
+}
+.torneo-name-input::placeholder {
+  color: var(--text-3);
+  font-weight: 400;
+}
+.torneo-name-input:focus {
+  outline: none;
+  border-color: rgba(0,200,83,0.6);
+  box-shadow: 0 0 0 3px var(--primary-dim);
+}
+
+/* =============================================
    BOTTOM NAV — mobile only
    ============================================= */
 .bottom-nav {
@@ -713,6 +739,8 @@ button { font-family: var(--font); cursor: pointer; }
   background: var(--bg-2);
   border-bottom: 1px solid var(--border);
   padding: 1.75rem 1.25rem 1.5rem;
+  position: relative;
+  z-index: 10;
 }
 
 .page-header--compact {
@@ -1813,12 +1841,12 @@ body {
   border-radius: var(--radius-sm);
   background: var(--bg-4);
   border: 1px solid var(--border);
+  position: relative;
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 0.5rem;
   font-size: 0.75rem;
-  flex-wrap: wrap;
+  min-height: 2.25rem;
 }
 
 .match-feedback__label {
@@ -1833,6 +1861,27 @@ body {
   font-size: 0.875rem;
   color: var(--text-1);
   flex-shrink: 0;
+}
+
+/* centered prediction line: "Predicción: 2–0" */
+.match-feedback__pred {
+  color: var(--text-3);
+  font-size: 0.6875rem;
+  font-weight: 500;
+  text-align: center;
+}
+.match-feedback__pred strong {
+  font-weight: 700;
+  font-size: 0.875rem;
+  color: var(--text-1);
+  margin-left: 0.25rem;
+}
+
+/* pts-badge inside feedback: pinned to the right without affecting center */
+.match-feedback .pts-badge {
+  position: absolute;
+  right: 0.625rem;
+  margin-left: 0;
 }
 
 .match-feedback__badge {
@@ -1879,6 +1928,7 @@ body {
   padding: 0.2rem 0.5rem;
   border-radius: 4px;
   flex-shrink: 0;
+  white-space: nowrap;
 }
 
 .pts-badge--pending {

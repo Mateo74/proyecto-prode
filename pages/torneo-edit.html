@@ -34,12 +34,9 @@
 
     <section class="section">
       <div id="torneo-edit-feedback" class="invite-feedback hidden"></div>
-      <form id="torneo-edit-form" class="form-card" style="display:flex;flex-direction:column;gap:1rem;">
-        <div class="form-group">
-          <label class="form-label" for="torneo-nombre">Nombre del torneo</label>
-          <input id="torneo-nombre" class="form-input" type="text" name="nombre"
-            placeholder="Ej: Los del trabajo" required maxlength="80" autocomplete="off">
-        </div>
+      <form id="torneo-edit-form" style="display:flex;flex-direction:column;gap:1rem;">
+        <input id="torneo-nombre" class="torneo-name-input" type="text" name="nombre"
+          placeholder="Nombre del torneo" required maxlength="80" autocomplete="off">
         <button id="torneo-edit-save" class="btn btn-primary" type="submit">Crear torneo</button>
       </form>
 

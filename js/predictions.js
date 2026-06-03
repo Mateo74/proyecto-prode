@@ -305,8 +305,7 @@ const Predictions = (() => {
 
       feedbackHtml = `
         <div class="match-feedback">
-          <span class="match-feedback__label">Tu pred:</span>
-          <span class="match-feedback__score">${predScore1De(pred)}–${predScore2De(pred)}</span>
+          <span class="match-feedback__pred">Predicción:<strong>${predScore1De(pred)}–${predScore2De(pred)}</strong></span>
           <span class="pts-badge pts-badge--${ptsCls}">${ptsLabel}</span>
         </div>
       `;

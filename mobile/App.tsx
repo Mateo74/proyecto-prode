@@ -34,13 +34,14 @@ export default function App() {
   const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const webViewRef = useRef<WebView>(null);
   const loginResolverRef = useRef<LoginResolver | null>(null);
+  const canGoBackRef = useRef(false);
 
   // Handle Android hardware back button — go back in WebView history instead of exiting
   useEffect(() => {
     if (Platform.OS !== "android") return;
     const { BackHandler } = require("react-native");
     const handler = BackHandler.addEventListener("hardwareBackPress", () => {
-      if (webViewRef.current) {
+      if (webViewRef.current && canGoBackRef.current) {
         webViewRef.current.goBack();
         return true; // prevent default (exit app)
       }
@@ -96,6 +97,7 @@ export default function App() {
 
   // Show native login when WebView navigates to auth.html
   const onNavigationStateChange = useCallback((state: WebViewNavigation) => {
+    canGoBackRef.current = state.canGoBack;
     const isAuthPage = state.url.includes("auth.html");
     setShowLogin(isAuthPage);
     if (!isAuthPage) {
