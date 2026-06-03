@@ -107,7 +107,9 @@ const API = (() => {
 
   async function restoreSession() {
     if (accessToken) return getCurrentUser();
-    if (!getCurrentUser()) return null;
+    // Always attempt the refresh — the httpOnly cookie may still be valid
+    // even if localStorage was cleared (e.g. Android "Clear all" kills the process).
+    // doRefresh returns the usuario in the response, so we can re-hydrate fully.
     try {
       await doRefresh();
       return getCurrentUser();

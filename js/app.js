@@ -607,6 +607,9 @@ async function loadPartidos({ quiet = false } = {}) {
   const el = document.getElementById('matches-list');
   if (!el) return;
 
+  // Don't re-render while the user is actively filling in a prediction
+  if (quiet && el.querySelector('.score-box:focus')) return;
+
   const competencia = API.getSelectedCompetencia();
   if (!competencia) {
     el.innerHTML = emptyState('Elegí una competencia para ver partidos.');
@@ -795,13 +798,10 @@ function initEditTorneoButton() { /* kept for compat — logic moved to initTorn
 async function initTorneoActionMenu() {
   const toggleBtn  = document.getElementById('torneo-action-toggle');
   const menuEl     = document.getElementById('torneo-action-menu');
-  const inviteBtn  = document.querySelector('[data-torneo-action="invite"]');
+  const inviteBtn  = document.getElementById('invite-btn');
   const editBtn    = document.querySelector('[data-torneo-action="edit"]');
   const leaveBtn   = document.querySelector('[data-torneo-action="leave"]');
   const deleteBtn  = document.querySelector('[data-torneo-action="delete"]');
-
-  // Also keep the legacy standalone invite button hidden — we replaced it
-  document.getElementById('invite-btn')?.classList.add('hidden');
 
   const selected = API.getSelectedTorneo();
   if (!selected) return;
@@ -832,22 +832,9 @@ async function initTorneoActionMenu() {
     leaveBtn?.classList.remove('hidden');
   }
 
-  // Toggle open/close
-  toggleBtn?.addEventListener('click', e => {
-    e.stopPropagation();
-    menuEl?.classList.toggle('open');
-  });
-  document.addEventListener('click', () => menuEl?.classList.remove('open'), { capture: false });
-
-  // Rename (navigate to edit page)
-  editBtn?.addEventListener('click', () => {
-    window.location.href = `torneo-edit.html?id=${encodeURIComponent(torneo.id)}`;
-  });
-
-  // Invite: share or copy link
+  // Share/copy invite link helper
   let inviteUrl = null;
-  inviteBtn?.addEventListener('click', async () => {
-    menuEl?.classList.remove('open');
+  async function doInviteShare(buttonEl) {
     if (!inviteUrl) {
       try {
         const r = await API.getInviteLink(torneo.id);
@@ -869,23 +856,36 @@ async function initTorneoActionMenu() {
       }
     }
     if (!inviteUrl) return;
+    const shareTitle = `Te invitaron al torneo ${torneo.nombre} | Once Metros`;
+    const shareText  = `${torneo.competencia?.nombre || 'Fútbol'}: Predecí los resultados y competí con tus amigos.`;
     if (navigator.share) {
-      navigator.share({
-        title: `Sumate al torneo "${torneo.nombre}"`,
-        text: `Te invito a jugar al prode de ${torneo.competencia?.nombre || 'fútbol'}`,
-        url: inviteUrl,
-      }).catch(() => {});
+      navigator.share({ title: shareTitle, text: shareText, url: inviteUrl }).catch(() => {});
     } else {
       try {
         await navigator.clipboard.writeText(inviteUrl);
-        const orig = inviteBtn.textContent;
-        inviteBtn.textContent = '¡Link copiado!';
-        setTimeout(() => { inviteBtn.textContent = orig; }, 2000);
+        const orig = buttonEl.textContent;
+        buttonEl.textContent = '¡Enlace copiado!';
+        setTimeout(() => { buttonEl.textContent = orig; }, 2000);
       } catch {
-        prompt('Copiá este enlace para invitar:', inviteUrl);
+        prompt('Copí este enlace para invitar:', inviteUrl);
       }
     }
+  }
+
+  // Toggle open/close
+  toggleBtn?.addEventListener('click', e => {
+    e.stopPropagation();
+    menuEl?.classList.toggle('open');
   });
+  document.addEventListener('click', () => menuEl?.classList.remove('open'), { capture: false });
+
+  // Rename (navigate to edit page)
+  editBtn?.addEventListener('click', () => {
+    window.location.href = `torneo-edit.html?id=${encodeURIComponent(torneo.id)}`;
+  });
+
+  // Invite button (standalone)
+  inviteBtn?.addEventListener('click', () => doInviteShare(inviteBtn));
 
   // Leave torneo
   leaveBtn?.addEventListener('click', async () => {
@@ -918,7 +918,7 @@ async function initTorneoActionMenu() {
   });
 
   // Pre-fetch invite link in background for faster sharing
-  if (isCreador) {
+  if (isMember) {
     API.getInviteLink(torneo.id).then(r => { inviteUrl = r.url || null; }).catch(() => {});
   }
 }

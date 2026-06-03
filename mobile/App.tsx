@@ -59,6 +59,18 @@ export default function App() {
     });
   }, []);
 
+  // Handle deep links while the app is already running (foreground or background resume)
+  useEffect(() => {
+    const sub = Linking.addEventListener("url", ({ url }) => {
+      if (url && url.startsWith("https://") && webViewRef.current) {
+        webViewRef.current.injectJavaScript(
+          `window.location.href = ${JSON.stringify(url)}; true;`
+        );
+      }
+    });
+    return () => sub.remove();
+  }, []);
+
   // Safety-net: hide spinner after 15 s in case load events don't fire
   useEffect(() => {
     if (!isLoading) return;
