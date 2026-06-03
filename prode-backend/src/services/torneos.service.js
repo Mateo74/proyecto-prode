@@ -6,6 +6,7 @@ const { esPrediccionExacta } = require("./scoring.service");
 const torneoInclude = {
   competencia: true,
   creador: { select: { id: true, nombre: true, apellido: true, username: true } },
+  usuarios: { select: { id: true } },
   _count: { select: { usuarios: true } },
 };
 

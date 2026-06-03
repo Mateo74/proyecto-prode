@@ -764,8 +764,13 @@ async function initTorneoActionMenu() {
   document.getElementById('invite-btn')?.classList.add('hidden');
 
   const selected = API.getSelectedTorneo();
-  const user = API.getCurrentUser();
   if (!selected) return;
+
+  // Ensure token is in memory before checking auth
+  if (!API.getToken()) {
+    try { await API.restoreSession(); } catch { /* not logged in */ }
+  }
+  const user = API.getCurrentUser();
 
   let torneo;
   try {

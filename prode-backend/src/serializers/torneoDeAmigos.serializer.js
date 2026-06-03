@@ -18,6 +18,7 @@ function torneoDeAmigosResponse(torneo, { miembrosCount } = {}) {
         }
       : null,
     miembrosCount: miembrosCount ?? torneo.usuarios?.length ?? torneo._count?.usuarios ?? null,
+    usuarios: torneo.usuarios ? torneo.usuarios.map(u => ({ id: u.id })) : undefined,
     fechaCreacion: torneo.fechaCreacion,
   };
 }

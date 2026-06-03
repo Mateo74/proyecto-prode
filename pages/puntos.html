@@ -53,7 +53,7 @@
         </div>
       </div>
       <p class="scoring-note">
-        <strong>Bonus de goles:</strong> cuando el marcador exacto tiene muchos goles, los puntos por acierto exacto son iguales a la suma total de goles del partido (con un mínimo de 3). Por ejemplo, acertar un 4–2 vale 6 pts.
+        <strong>Bonus de goles:</strong> cuando el partido tiene más de 3 goles, los puntos que se dan por acierto exacto es igual al total de goles en el partido. Por ejemplo, acertar un 4-2 vale 6 puntos.
       </p>
     </section>
 
@@ -77,8 +77,8 @@
   <script>
     // Render scoring examples using the same card component as the main app
     const ARG_CREST = 'https://crests.football-data.org/762.png';
-    const FRA_CREST = 'https://crests.football-data.org/773.png';
-    const BRA_CREST = 'https://crests.football-data.org/770.png';
+    const FRA_CREST = 'https://crests.football-data.org/773.svg';
+    const BRA_CREST = 'https://crests.football-data.org/764.svg';
     const LIGA      = 'Copa del Mundo 2026';
     const FECHA     = '2026-07-19T00:00:00Z';
 
@@ -118,7 +118,7 @@
       {
         id: 'ex-6', estado: 'finalizado', liga: LIGA, fecha: FECHA,
         equipo1: 'Argentina', equipo1EscudoUrl: ARG_CREST,
-        equipo2: 'Brasil',    equipo2EscudoUrl: BRA_CREST,
+        equipo2: 'Francia',   equipo2EscudoUrl: FRA_CREST,
         scoreEquipo1: 4, scoreEquipo2: 2,
         resultadoConfirmado: true,
         userPred: { scoreEquipo1: 4, scoreEquipo2: 2, estado: 'acierto', puntos: 6, exacto: true },
