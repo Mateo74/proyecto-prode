@@ -18,9 +18,11 @@ function estadoPrediccion(prediccion) {
 
 function partidoResponse(partido, userPrediccion) {
   const pred = userPrediccion || partido.predicciones?.[0];
+  // Lock purely at the scheduled start time — the API estado can lag
+  // behind reality (still "PROGRAMADO" minutes after kick-off), so we
+  // never rely on it for the cutoff; we only use partido.fecha.
   const prediccionEditable = Boolean(
-    ["FUTURO", "PROGRAMADO"].includes(partido.estado) &&
-    new Date() < new Date(partido.fechaInicioReal || partido.fecha),
+    new Date() < new Date(partido.fecha),
   );
   const exacto = Boolean(
     pred &&
