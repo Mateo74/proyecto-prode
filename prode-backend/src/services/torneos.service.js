@@ -23,9 +23,10 @@ function assertEsCreador(torneo, usuarioId) {
 async function list({ usuarioId } = {}) {
   // Always include global torneos (implicit membership for everyone).
   // If a userId is provided, also include torneos the user explicitly joined.
+  const visibleOnly = { competencia: { visible: true } };
   const where = usuarioId
-    ? { OR: [{ esGlobal: true }, { usuarios: { some: { id: usuarioId } } }] }
-    : undefined;
+    ? { OR: [{ esGlobal: true, ...visibleOnly }, { usuarios: { some: { id: usuarioId } }, ...visibleOnly }] }
+    : visibleOnly;
   return prisma.torneoDeAmigos.findMany({
     where,
     include: torneoInclude,
