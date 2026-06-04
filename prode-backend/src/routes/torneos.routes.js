@@ -15,7 +15,10 @@ const {
 const controller = require("../controllers/torneos.controller");
 
 const router = Router();
-const listQuery = z.object({ mias: z.enum(["true", "false"]).optional() });
+const listQuery = z.object({
+  mias: z.enum(["true", "false"]).optional(),
+  competenciaId: z.string().trim().min(1).optional(),
+});
 const userPredParams = z.object({ id: z.string().min(1), usuarioId: z.string().min(1) });
 
 router.get("/", optionalAuth, validate({ query: listQuery }), asyncRoute(controller.list));

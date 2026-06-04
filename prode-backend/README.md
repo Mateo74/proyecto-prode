@@ -33,6 +33,20 @@ En Google Cloud Console, agregar el origen local que uses para abrir la app, por
 
 Ver [DEPLOY.md](../DEPLOY.md) en la raiz del monorepo (App Service + Static Web Apps + GitHub Actions).
 
+## Tests
+
+```bash
+npm test
+```
+
+La suite usa `node:test`. Los tests funcionales mockean Prisma y respuestas de football-data para evitar depender de una base real o de la API externa en CI.
+
+## Telemetria
+
+- `GET /health` expone un health-check liviano.
+- `GET /metrics` expone metricas Prometheus de requests, latencia e in-flight requests.
+- Para Azure Application Insights, configurar `APPLICATIONINSIGHTS_CONNECTION_STRING` en App Service. Opcionalmente usar `APPLICATIONINSIGHTS_SAMPLING_RATIO` para reducir volumen.
+
 ## Endpoints principales
 
 - `GET /api/partidos`

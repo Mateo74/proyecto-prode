@@ -4,21 +4,26 @@
   "description": "App de predicciones de partidos de futbol",
   "private": true,
   "scripts": {
-    "sync":         "cap sync",
-    "android":      "cap run android",
-    "ios":          "cap run ios",
+    "test": "npm run test:frontend",
+    "test:all": "npm run test:frontend && npm --prefix prode-backend test",
+    "test:frontend": "playwright test",
+    "sync": "cap sync",
+    "android": "cap run android",
+    "ios": "cap run ios",
     "open:android": "cap open android",
-    "open:ios":     "cap open ios"
+    "open:ios": "cap open ios"
   },
   "dependencies": {
-    "@capacitor/android":       "^6.0.0",
-    "@capacitor/core":          "^6.0.0",
-    "@capacitor/ios":           "^6.0.0",
-    "@capacitor/status-bar":    "^6.0.0",
+    "@capacitor/android": "^6.0.0",
+    "@capacitor/core": "^6.0.0",
+    "@capacitor/haptics": "^6.0.0",
+    "@capacitor/ios": "^6.0.0",
     "@capacitor/splash-screen": "^6.0.0",
-    "@capacitor/haptics":       "^6.0.0"
+    "@capacitor/status-bar": "^6.0.0"
   },
   "devDependencies": {
-    "@capacitor/cli": "^6.0.0"
+    "@capacitor/cli": "^6.0.0",
+    "@playwright/test": "^1.60.0",
+    "http-server": "^14.1.1"
   }
 }

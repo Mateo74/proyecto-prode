@@ -4,17 +4,10 @@ const { calcularPuntos } = require("./scoring.service");
 const footballDataProvider = require("../providers/footballData.provider");
 const { PROVIDER, deriveMinute } = require("../providers/footballData.mapper");
 const { COMPETITION_ALIASES } = require("./externalCompetitionSync.service");
+const { slugify } = require("../utils/slugify");
 
 const TRACKED_COMPETITION_CODES = ["WC", "CL", "BSA"];
 const TRACKED_COMPETITIONS = new Set(TRACKED_COMPETITION_CODES);
-
-function slugify(value) {
-  return String(value || "")
-    .trim()
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-+|-+$/g, "");
-}
 
 function isTracked(match) {
   return TRACKED_COMPETITIONS.has(match.competition?.code);

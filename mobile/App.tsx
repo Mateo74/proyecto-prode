@@ -35,18 +35,27 @@ export default function App() {
   const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const webViewRef = useRef<WebView>(null);
   const loginResolverRef = useRef<LoginResolver | null>(null);
-  const canGoBackRef = useRef(false);
+  const currentUrlRef = useRef(FRONTEND_URL);
 
-  // Handle Android hardware back button — go back in WebView history instead of exiting
+  // Handle Android hardware back button — go back in WebView history instead of exiting.
+  // We track the current URL rather than relying on state.canGoBack, because
+  // history.replaceState() calls in the web app don't trigger onNavigationStateChange
+  // on Android, leaving canGoBack stale.
   useEffect(() => {
     if (Platform.OS !== "android") return;
     const { BackHandler } = require("react-native");
     const handler = BackHandler.addEventListener("hardwareBackPress", () => {
-      if (webViewRef.current && canGoBackRef.current) {
-        webViewRef.current.goBack();
-        return true; // prevent default (exit app)
-      }
-      return false;
+      if (!webViewRef.current) return false;
+      // Only intercept when we're on a sub-page (all inner pages live under /pages/)
+      const url = currentUrlRef.current;
+      const isRootPage =
+        url === FRONTEND_URL ||
+        url === `${FRONTEND_URL}/` ||
+        url.endsWith("/index.html") ||
+        (!url.includes("/pages/") && !url.includes("/auth"));
+      if (isRootPage) return false; // let system handle (exit/minimize)
+      webViewRef.current.goBack();
+      return true;
     });
     return () => handler.remove();
   }, []);
@@ -110,7 +119,7 @@ export default function App() {
 
   // Show native login when WebView navigates to auth.html
   const onNavigationStateChange = useCallback((state: WebViewNavigation) => {
-    canGoBackRef.current = state.canGoBack;
+    currentUrlRef.current = state.url;
     const isAuthPage = state.url.includes("auth.html");
     setShowLogin(isAuthPage);
     if (!isAuthPage) {

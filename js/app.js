@@ -581,14 +581,16 @@ function switchHomeTab(tab) {
 }
 
 function renderTorneoCard(torneo, active) {
-  const miembros = torneo.miembrosCount === 1 ? t('members.one') : t('members.many', { n: torneo.miembrosCount ?? 0 });
+  const miembros = torneo.esGlobal
+    ? ''
+    : (torneo.miembrosCount === 1 ? t('members.one') : t('members.many', { n: torneo.miembrosCount ?? 0 }));
   return `
     <button class="tournament-card ${active ? 'active' : ''}" data-torneo-id="${torneo.id}">
       <span>
         <strong>${escapeHtml(torneoNombre(torneo))}</strong>
         ${torneo.esGlobal ? '' : `<small>${escapeHtml(competenciaNombre(torneo.competencia) || '')}</small>`}
       </span>
-      <span class="tournament-card__meta">${miembros}</span>
+      ${miembros ? `<span class="tournament-card__meta">${miembros}</span>` : ''}
     </button>
   `;
 }

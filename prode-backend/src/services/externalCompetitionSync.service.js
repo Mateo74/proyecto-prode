@@ -2,6 +2,7 @@ const { prisma } = require("../config/prisma");
 const logger = require("../utils/logger");
 const footballDataProvider = require("../providers/footballData.provider");
 const { PROVIDER } = require("../providers/footballData.mapper");
+const { slugify } = require("../utils/slugify");
 
 const VISIBLE_COMPETITION_CODES = new Set(["WC", "CL", "BSA"]);
 
@@ -11,16 +12,6 @@ const COMPETITION_ALIASES = {
   BSA: { slug: "brasileirao", nombre: "Brasileirao" },
   CLI: { slug: "copa-libertadores", nombre: "Copa Libertadores" },
 };
-
-function slugify(value) {
-  return String(value || "")
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .trim()
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-+|-+$/g, "");
-}
 
 function competenciaData(dto) {
   const alias = COMPETITION_ALIASES[dto.code];

@@ -20,13 +20,17 @@ function assertEsCreador(torneo, usuarioId) {
   }
 }
 
-async function list({ usuarioId } = {}) {
+async function list({ usuarioId, competenciaId } = {}) {
   // Always include global torneos (implicit membership for everyone).
   // If a userId is provided, also include torneos the user explicitly joined.
+  // If a competenciaId is provided, restrict results to that competencia.
   const visibleOnly = { competencia: { visible: true } };
-  const where = usuarioId
-    ? { OR: [{ esGlobal: true, ...visibleOnly }, { usuarios: { some: { id: usuarioId } }, ...visibleOnly }] }
+  const competenciaFilter = competenciaId
+    ? { competenciaId, ...visibleOnly }
     : visibleOnly;
+  const where = usuarioId
+    ? { OR: [{ esGlobal: true, ...competenciaFilter }, { usuarios: { some: { id: usuarioId } }, ...competenciaFilter }] }
+    : competenciaFilter;
   return prisma.torneoDeAmigos.findMany({
     where,
     include: torneoInclude,
@@ -85,8 +89,7 @@ async function leaveUser(torneoId, usuarioId) {
   const torneo = await getById(torneoId);
   assertNotGlobal(torneo);
   if (torneo.creadorId === usuarioId) {
-    const { httpError } = require('../utils/httpError');
-    throw httpError(400, 'El creador no puede salir del torneo. Podés eliminarlo.');
+    throw httpError(400, "El creador no puede salir del torneo. Podés eliminarlo.");
   }
   await prisma.torneoDeAmigos.update({
     where: { id: torneoId },

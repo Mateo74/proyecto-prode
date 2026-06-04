@@ -269,7 +269,7 @@ const API = (() => {
 
   async function getTorneosDeAmigos({ mias, competenciaId } = {}) {
     if (mias && !getToken()) throw new Error('Tenés que iniciar sesión para ver tus torneos.');
-    const torneos = await request(`/torneos${buildQuery({ mias })}`);
+    const torneos = await request(`/torneos${buildQuery({ mias, competenciaId })}`);
     return competenciaId
       ? torneos.filter(t => t.competenciaId === competenciaId)
       : torneos;

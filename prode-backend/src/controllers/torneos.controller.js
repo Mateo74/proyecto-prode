@@ -19,7 +19,8 @@ async function list(req, res) {
     throw httpError(401, "Tenés que iniciar sesión para ver tus torneos");
   }
   const usuarioId = req.query.mias === "true" ? req.usuario.id : undefined;
-  const torneos = await torneosService.list({ usuarioId });
+  const competenciaId = req.query.competenciaId || undefined;
+  const torneos = await torneosService.list({ usuarioId, competenciaId });
   res.json(torneos.map(torneoToJson));
 }
 

@@ -63,6 +63,10 @@ jobs:
         working-directory: prode-backend
         run: npm ci
 
+      - name: Run tests
+        working-directory: prode-backend
+        run: npm test
+
       - name: Run Prisma migrations
         working-directory: prode-backend
         run: npx prisma migrate deploy
