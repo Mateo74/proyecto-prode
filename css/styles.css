@@ -88,6 +88,13 @@ body.native-webview {
   padding-top: 60px;
   padding-bottom: 0;
 }
+/* Account for iOS safe area (notch / Dynamic Island) so content isn't
+   hidden behind the fixed header */
+@supports (padding-top: env(safe-area-inset-top)) {
+  body.native-webview {
+    padding-top: calc(60px + env(safe-area-inset-top));
+  }
+}
 body.native-webview main {
   padding-bottom: 2rem;
 }
@@ -97,6 +104,11 @@ body.native-webview .bottom-nav {
 @media (max-width: 700px) {
   body.native-webview {
     padding-top: 54px;
+  }
+  @supports (padding-top: env(safe-area-inset-top)) {
+    body.native-webview {
+      padding-top: calc(54px + env(safe-area-inset-top));
+    }
   }
 }
 
@@ -997,10 +1009,8 @@ button { font-family: var(--font); cursor: pointer; }
 }
 
 @media (max-width: 760px) {
-  .page-header-inner {
-    align-items: flex-start;
-    flex-direction: column;
-  }
+  /* page-header-inner intentionally stays as a row so the back arrow,
+     title and action button remain in a single line on mobile */
 
   .workspace-grid {
     grid-template-columns: 1fr;
