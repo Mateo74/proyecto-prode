@@ -20,6 +20,7 @@ function usuarioResponse(usuario) {
     fotoPerfil: usuario.fotoPerfil ?? null,
     rol: usuario.rol,
     activo: usuario.activo,
+    idioma: usuario.idioma ?? null,
     hinchaDe: equipoBreve(usuario.hinchaDe),
   };
 }

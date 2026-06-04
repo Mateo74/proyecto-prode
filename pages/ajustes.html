@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Ajustes | Once Metros</title>
+  <link rel="icon" type="image/png" href="/favicon.png" sizes="32x32">
+  <link rel="apple-touch-icon" href="/assets/apple-touch-icon.png">
+  <link rel="manifest" href="/manifest.json">
+  <meta name="theme-color" content="#00c853">
+  <link rel="stylesheet" href="../css/styles.css">
+  <style>
+    .settings-wrapper {
+      max-width: 480px;
+      margin: 0 auto;
+    }
+    .settings-section-title {
+      font-size: 0.72rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: var(--text-3);
+      margin: 0 0 0.85rem;
+    }
+    .settings-card {
+      background: var(--bg-2);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 1.25rem;
+      margin-bottom: 1rem;
+    }
+    .settings-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 1rem;
+    }
+    .settings-row__label {
+      font-size: 0.95rem;
+      font-weight: 600;
+      color: var(--text);
+    }
+    .settings-row__desc {
+      font-size: 0.8rem;
+      color: var(--text-3);
+      margin-top: 0.2rem;
+    }
+    .lang-options {
+      display: flex;
+      gap: 0.5rem;
+      flex-shrink: 0;
+    }
+    .lang-option-btn {
+      background: var(--bg-3);
+      border: 1px solid var(--border-2);
+      border-radius: var(--radius-sm);
+      color: var(--text-3);
+      font: inherit;
+      font-size: 0.82rem;
+      font-weight: 700;
+      padding: 0.35rem 0.8rem;
+      cursor: pointer;
+      letter-spacing: 0.04em;
+      transition: color var(--t), border-color var(--t), background var(--t);
+    }
+    .lang-option-btn.active {
+      background: var(--primary);
+      border-color: var(--primary);
+      color: #000;
+    }
+    .lang-option-btn:not(.active):hover {
+      border-color: var(--text-3);
+      color: var(--text);
+    }
+  </style>
+</head>
+<body>
+  <header class="header">
+    <nav class="navbar">
+      <a class="logo" href="../index.html"><span class="logo-pulse"></span>Once Metros</a>
+      <div class="nav-links">
+        <a href="../index.html" data-i18n="nav.competitions">Competencias</a>
+        <a href="torneos.html" data-i18n="nav.friendTournaments">Torneos de amigos</a>
+      </div>
+    </nav>
+  </header>
+
+  <main>
+    <section class="page-header page-header--compact">
+      <div class="page-header-inner">
+        <a class="icon-btn" href="javascript:history.back()" aria-label="Volver">‹</a>
+        <div>
+          <span class="section-label"><span class="dot"></span><span data-i18n="section.settings">Configuración</span></span>
+          <h1 class="page-title" data-i18n="page.settings">Ajustes</h1>
+        </div>
+      </div>
+    </section>
+
+    <section class="section">
+      <div class="settings-wrapper">
+        <p class="settings-section-title" data-i18n="settings.language">Idioma</p>
+        <div class="settings-card">
+          <div class="settings-row">
+            <div>
+              <div class="settings-row__label" data-i18n="settings.language">Idioma</div>
+              <div class="settings-row__desc" data-i18n="settings.languageDesc">Elegí el idioma de la aplicación.</div>
+            </div>
+            <div class="lang-options">
+              <button class="lang-option-btn" id="lang-es" data-lang="es">ES</button>
+              <button class="lang-option-btn" id="lang-en" data-lang="en">EN</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <nav class="bottom-nav">
+    <div class="bottom-nav__inner">
+      <a class="bottom-nav__item" href="../index.html" data-i18n="nav.competitions">Competencias</a>
+      <a class="bottom-nav__item" href="torneos.html" data-i18n="nav.friendTournaments">Torneos de amigos</a>
+    </div>
+  </nav>
+
+  <script src="../js/i18n.js"></script>
+  <script src="../js/config.js"></script>
+  <script src="../js/api.js"></script>
+  <script src="../js/app.js"></script>
+  <script>
+    (function () {
+      const lang = I18n.getLang();
+      document.getElementById('lang-es').classList.toggle('active', lang === 'es');
+      document.getElementById('lang-en').classList.toggle('active', lang === 'en');
+
+      document.querySelectorAll('.lang-option-btn').forEach(btn => {
+        btn.addEventListener('click', async () => {
+          const newLang = btn.dataset.lang;
+          // Persist to DB if logged in (best-effort; localStorage is the source of truth)
+          const user = API.getCurrentUser();
+          if (user) {
+            try { await API.updateIdioma(user.id, newLang); } catch {}
+          }
+          I18n.setLang(newLang);
+        });
+      });
+    })();
+  </script>
+</body>
+</html>

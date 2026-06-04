@@ -36,8 +36,9 @@ function partidoResponse(partido, userPrediccion) {
     id: partido.id,
     competenciaId: partido.competenciaId,
     liga: partido.competencia?.nombre,
+    ligaEn: partido.competencia?.nombreEn ?? null,
     competencia: partido.competencia
-      ? { id: partido.competencia.id, nombre: partido.competencia.nombre, slug: partido.competencia.slug }
+      ? { id: partido.competencia.id, nombre: partido.competencia.nombre, nombreEn: partido.competencia.nombreEn ?? null, slug: partido.competencia.slug }
       : null,
     equipo1: partido.equipo1.nombre,
     equipo1NombreCompleto: partido.equipo1.nombreCompleto,

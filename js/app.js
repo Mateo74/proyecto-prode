@@ -54,7 +54,18 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   // Start session restore without blocking — pages that need auth will handle the
   // not-yet-authenticated state gracefully once the promise resolves
-  const sessionPromise = API.restoreSession();
+  const sessionPromise = API.restoreSession().then(user => {
+    // Sync language from the user's persisted idioma preference (only if it
+    // differs from what's currently stored, to avoid an infinite reload loop).
+    if (user?.idioma) {
+      const stored = localStorage.getItem('once_metros_lang');
+      if (stored !== user.idioma) {
+        localStorage.setItem('once_metros_lang', user.idioma);
+        window.location.reload();
+      }
+    }
+    return user;
+  });
 
   // Pages that must know auth state before rendering anything
   const authBlockingPages = ['home', 'auth', 'invitacion', 'torneo-edit'];
@@ -195,6 +206,7 @@ function initAccountMenu() {
           <a href="${homeRelativePath()}">${t('nav.competitions')}</a>
           <a href="${pagePath('torneos.html')}">${t('nav.friendTournaments')}</a>
           ${user ? `<a href="${pagePath('perfil.html')}">${t('nav.myAccount')}</a>` : ''}
+          <a href="${pagePath('ajustes.html')}">${t('nav.settings')}</a>
         </nav>
         <div class="native-side-drawer__footer">
           ${footerHtml}
@@ -239,6 +251,7 @@ function initAccountMenu() {
           <small>${t('nav.activeSession')}</small>
         </div>
         <a href="${authRelativePath('perfil.html')}">${t('nav.myAccount')}</a>
+        <a href="${authRelativePath('ajustes.html')}">${t('nav.settings')}</a>
         <button data-menu-logout>${t('nav.signOut')}</button>
       </div>
     `;
@@ -403,6 +416,16 @@ function setAuthError(message) {
   el.classList.toggle('hidden', !message);
 }
 
+/**
+ * Returns the competition name in the current UI language.
+ * Falls back to `nombre` (Spanish) when `nombreEn` is not set.
+ */
+function competenciaNombre(competencia) {
+  if (!competencia) return '';
+  if (I18n.getLang() === 'en' && competencia.nombreEn) return competencia.nombreEn;
+  return competencia.nombre || '';
+}
+
 /* --------------------------------------------------------
    HOME: COMPETENCIAS -> PREDICCIONES / TORNEOS DE AMIGOS
    -------------------------------------------------------- */
@@ -480,7 +503,7 @@ async function selectCompetencia(competencia, preferredTab = 'predicciones') {
   API.setSelectedCompetencia(competencia);
   document.getElementById('competition-picker')?.classList.add('hidden');
   document.getElementById('competencia-workspace')?.classList.remove('hidden');
-  setText('competencia-title', competencia.nombre);
+  setText('competencia-title', competenciaNombre(competencia));
   switchHomeTab(preferredTab === 'torneos' ? 'torneos' : 'predicciones');
   await loadPartidos();
   startMatchesPolling();
@@ -490,7 +513,7 @@ async function selectCompetencia(competencia, preferredTab = 'predicciones') {
 function renderCompetenciaCard(competencia, active) {
   return `
     <button class="competition-card ${active ? 'active' : ''}" data-competencia-id="${competencia.id}">
-      <span class="competition-card__name">${escapeHtml(competencia.nombre)}</span>
+      <span class="competition-card__name">${escapeHtml(competenciaNombre(competencia))}</span>
     </button>
   `;
 }
@@ -825,14 +848,15 @@ async function initTorneoActionMenu() {
     editBtn?.classList.remove('hidden');
     deleteBtn?.classList.remove('hidden');
   }
-  if (isMember) {
-    inviteBtn?.classList.remove('hidden');
-  }
   if (isMember && !isCreador) {
     leaveBtn?.classList.remove('hidden');
   }
 
-  // Share/copy invite link helper
+  // Show invite button for all members
+  if (isMember) {
+    inviteBtn?.classList.remove('hidden');
+  }
+
   let inviteUrl = null;
   async function doInviteShare(buttonEl) {
     if (!inviteUrl) {
@@ -851,21 +875,32 @@ async function initTorneoActionMenu() {
           return;
         }
       } else {
-        alert('El creador del torneo aún no generó un enlace de invitación.');
+        alert(t('alert.noInviteLink'));
         return;
       }
     }
     if (!inviteUrl) return;
     const shareTitle = t('share.title', { name: torneo.nombre });
     const shareText  = t('share.text', { competition: torneo.competencia?.nombre || 'Fútbol' });
-    if (navigator.share) {
-      navigator.share({ title: shareTitle, text: shareText, url: inviteUrl }).catch(() => {});
+
+    if (window.__ONCE_METROS_NATIVE_WEBVIEW__) {
+      // Native WebView: ask React Native to trigger the OS share sheet
+      try {
+        window.ReactNativeWebView.postMessage(JSON.stringify({
+          type: 'SHARE', title: shareTitle, text: shareText, url: inviteUrl,
+        }));
+      } catch {
+        // Fallback: clipboard via injected JS bridge isn't available, use prompt
+        prompt(t('share.promptCopy'), inviteUrl);
+      }
     } else {
+      // Web: copy to clipboard and show brief toast
       try {
         await navigator.clipboard.writeText(inviteUrl);
         const orig = buttonEl.textContent;
         buttonEl.textContent = t('action.linkCopied');
-        setTimeout(() => { buttonEl.textContent = orig; }, 2000);
+        buttonEl.disabled = true;
+        setTimeout(() => { buttonEl.textContent = orig; buttonEl.disabled = false; }, 2000);
       } catch {
         prompt(t('share.promptCopy'), inviteUrl);
       }
@@ -1155,7 +1190,7 @@ function renderInviteInboxCard(inv) {
     <div class="invite-inbox-card">
       <div class="invite-inbox-card__head">
         <strong>${escapeHtml(torneo.nombre || 'Torneo')}</strong>
-        <small>${escapeHtml(competencia.nombre || '')} · te invitó @${escapeHtml(sender.username || '?')}</small>
+        <small>${escapeHtml(competenciaNombre(competencia) || '')} · te invitó @${escapeHtml(sender.username || '?')}</small>
       </div>
       <div class="invite-inbox-card__actions">
         <button class="btn btn-primary" data-accept="${inv.id}">${t('action.accept')}</button>

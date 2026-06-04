@@ -32,6 +32,14 @@ const API = (() => {
   function setSession({ token, usuario }) {
     accessToken = token;
     localStorage.setItem(USER_KEY, JSON.stringify(usuario));
+    // Sync the app language from the user's persisted preference
+    if (usuario?.idioma && typeof I18n !== 'undefined') {
+      const stored = localStorage.getItem('once_metros_lang');
+      if (stored !== usuario.idioma) {
+        localStorage.setItem('once_metros_lang', usuario.idioma);
+        window.location.reload();
+      }
+    }
   }
 
   function clearSession() {
@@ -222,6 +230,15 @@ const API = (() => {
       method: 'PUT',
       body: JSON.stringify(data),
     });
+  }
+
+  async function updateIdioma(id, idioma) {
+    const usuario = await request(`/usuarios/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify({ idioma }),
+    });
+    localStorage.setItem(USER_KEY, JSON.stringify(usuario));
+    return usuario;
   }
 
   async function deleteUsuario(id) {
@@ -489,6 +506,7 @@ const API = (() => {
     deleteTorneoDeAmigos,
     leaveTorneoDeAmigos,
     updateUsuario,
+    updateIdioma,
     deleteUsuario,
   };
 })();

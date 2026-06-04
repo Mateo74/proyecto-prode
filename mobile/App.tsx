@@ -7,6 +7,7 @@ import {
   Platform,
   Pressable,
   SafeAreaView,
+  Share,
   StatusBar as NativeStatusBar,
   StyleSheet,
   Text,
@@ -131,6 +132,8 @@ export default function App() {
     } else if (data.type === "LOGIN_ERROR") {
       loginResolverRef.current?.reject(new Error(data.message || "Error al iniciar sesión"));
       loginResolverRef.current = null;
+    } else if (data.type === "SHARE") {
+      Share.share({ title: data.title || "", message: `${data.text || ""} ${data.url || ""}`.trim(), url: data.url || "" }).catch(() => {});
     }
   }, []);
 

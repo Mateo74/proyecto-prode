@@ -45,6 +45,7 @@ model Usuario {
   fotoPerfil           String?
   hinchaDeEquipoId     String?
   rol                  RolUsuario       @default(USER)
+  idioma               String?          // 'es' | 'en' | null (null = auto-detect from browser)
   activo               Boolean          @default(true)
   fechaCreacion        DateTime         @default(now())
   fechaActualizacion   DateTime         @updatedAt
@@ -63,6 +64,7 @@ model Usuario {
 model Competencia {
   id                   String           @id @default(cuid())
   nombre               String
+  nombreEn             String?
   slug                 String           @unique
   externalId           String?
   proveedor            String?

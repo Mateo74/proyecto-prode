@@ -26,6 +26,7 @@ const I18n = (() => {
       'nav.back':                'Volver',
       'nav.backToCompetitions':  'Volver a competencias',
       'nav.howPoints':           'Cómo se calculan los puntos',
+      'nav.settings':            'Ajustes',
 
       // ── Section labels ─────────────────────────────────────────────
       'section.available':           'Disponibles',
@@ -218,6 +219,12 @@ const I18n = (() => {
       'profile.changesSaved':       'Cambios guardados.',
       'profile.loadError':          'No se pudo cargar el perfil.',
       'profile.username':           'Usuario',
+
+      // ── Settings page ─────────────────────────────────────────────
+      'settings.language':         'Idioma',
+      'settings.languageDesc':     'Eligí el idioma de la aplicación.',
+      'section.settings':          'Configuración',
+      'page.settings':             'Ajustes',
       'profile.nombre':             'Nombre',
       'profile.apellido':           'Apellido',
       'profile.email':              'Email',
@@ -264,6 +271,7 @@ const I18n = (() => {
       'nav.back':                'Back',
       'nav.backToCompetitions':  'Back to competitions',
       'nav.howPoints':           'How points are calculated',
+      'nav.settings':            'Settings',
 
       // ── Section labels ─────────────────────────────────────────────
       'section.available':           'Available',
@@ -456,6 +464,12 @@ const I18n = (() => {
       'profile.changesSaved':       'Changes saved.',
       'profile.loadError':          'Could not load profile.',
       'profile.username':           'Username',
+
+      // ── Settings page ─────────────────────────────────────────────
+      'settings.language':         'Language',
+      'settings.languageDesc':     'Choose the app language.',
+      'section.settings':          'Settings',
+      'page.settings':             'Settings',
       'profile.nombre':             'First name',
       'profile.apellido':           'Last name',
       'profile.email':              'Email',
@@ -490,7 +504,11 @@ const I18n = (() => {
   };
 
   function getLang() {
-    return localStorage.getItem(LANG_KEY) === 'en' ? 'en' : 'es';
+    const stored = localStorage.getItem(LANG_KEY);
+    if (stored === 'en' || stored === 'es') return stored;
+    // Auto-detect from browser/OS language on first visit
+    const browserLang = (navigator.language || navigator.userLanguage || 'es').split('-')[0].toLowerCase();
+    return browserLang === 'en' ? 'en' : 'es';
   }
 
   function setLang(lang) {
@@ -535,17 +553,6 @@ const I18n = (() => {
     // Apply data-i18n-html (innerHTML — use with caution)
     document.querySelectorAll('[data-i18n-html]').forEach(el => {
       el.innerHTML = t(el.dataset.i18nHtml);
-    });
-
-    // Inject language toggle button into each navbar (idempotent)
-    document.querySelectorAll('.navbar').forEach(navbar => {
-      if (navbar.querySelector('.lang-toggle')) return;
-      const btn = document.createElement('button');
-      btn.className = 'lang-toggle';
-      btn.setAttribute('aria-label', lang === 'es' ? 'Switch to English' : 'Cambiar a Español');
-      btn.textContent = lang === 'es' ? 'EN' : 'ES';
-      btn.addEventListener('click', () => setLang(lang === 'es' ? 'en' : 'es'));
-      navbar.appendChild(btn);
     });
   }
 
