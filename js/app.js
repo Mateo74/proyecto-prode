@@ -426,6 +426,16 @@ function competenciaNombre(competencia) {
   return competencia.nombre || '';
 }
 
+/**
+ * Returns the display name for a torneo.
+ * Global (Once Metros) torneos are shown as "Once Metros - <competition>".
+ */
+function torneoNombre(torneo) {
+  if (!torneo) return '';
+  if (torneo.esGlobal) return `Once Metros - ${competenciaNombre(torneo.competencia)}`;
+  return torneo.nombre || '';
+}
+
 /* --------------------------------------------------------
    HOME: COMPETENCIAS -> PREDICCIONES / TORNEOS DE AMIGOS
    -------------------------------------------------------- */
@@ -575,8 +585,8 @@ function renderTorneoCard(torneo, active) {
   return `
     <button class="tournament-card ${active ? 'active' : ''}" data-torneo-id="${torneo.id}">
       <span>
-        <strong>${escapeHtml(torneo.nombre)}</strong>
-        <small>${escapeHtml(torneo.competencia?.nombre || '')}</small>
+        <strong>${escapeHtml(torneoNombre(torneo))}</strong>
+        ${torneo.esGlobal ? '' : `<small>${escapeHtml(competenciaNombre(torneo.competencia) || '')}</small>`}
       </span>
       <span class="tournament-card__meta">${miembros}</span>
     </button>
@@ -880,8 +890,8 @@ async function initTorneoActionMenu() {
       }
     }
     if (!inviteUrl) return;
-    const shareTitle = t('share.title', { name: torneo.nombre });
-    const shareText  = t('share.text', { competition: torneo.competencia?.nombre || 'Fútbol' });
+    const shareTitle = t('share.title', { name: torneoNombre(torneo) });
+    const shareText  = t('share.text', { competition: competenciaNombre(torneo.competencia) || 'Fútbol' });
 
     if (window.__ONCE_METROS_NATIVE_WEBVIEW__) {
       // Native WebView: ask React Native to trigger the OS share sheet
@@ -925,7 +935,7 @@ async function initTorneoActionMenu() {
   // Leave torneo
   leaveBtn?.addEventListener('click', async () => {
     menuEl?.classList.remove('open');
-    if (!await appConfirm(t('confirm.leaveTorneo', { name: torneo.nombre }), { confirmText: t('action.leave'), cancelText: t('action.cancel') })) return;
+    if (!await appConfirm(t('confirm.leaveTorneo', { name: torneoNombre(torneo) }), { confirmText: t('action.leave'), cancelText: t('action.cancel') })) return;
     leaveBtn.disabled = true;
     try {
       await API.leaveTorneoDeAmigos(torneo.id);
@@ -940,7 +950,7 @@ async function initTorneoActionMenu() {
   // Delete torneo (creators only)
   deleteBtn?.addEventListener('click', async () => {
     menuEl?.classList.remove('open');
-    if (!await appConfirm(t('confirm.deleteTorneo', { name: torneo.nombre }), { confirmText: t('action.delete'), cancelText: t('action.cancel'), danger: true })) return;
+    if (!await appConfirm(t('confirm.deleteTorneo', { name: torneoNombre(torneo) }), { confirmText: t('action.delete'), cancelText: t('action.cancel'), danger: true })) return;
     deleteBtn.disabled = true;
     try {
       await API.deleteTorneoDeAmigos(torneo.id);
@@ -992,8 +1002,8 @@ async function initInvitar() {
 
   const titleEl = document.getElementById('invite-torneo-title');
   const labelEl = document.getElementById('invite-torneo-label');
-  if (titleEl) titleEl.textContent = torneo.nombre;
-  if (labelEl) labelEl.innerHTML = `<span class="dot"></span>${escapeHtml(torneo.competencia?.nombre || 'Torneo de amigos')}`;
+  if (titleEl) titleEl.textContent = torneoNombre(torneo);
+  if (labelEl) labelEl.innerHTML = `<span class="dot"></span>${escapeHtml(competenciaNombre(torneo.competencia) || 'Torneo de amigos')}`;
 
   const backBtn = document.getElementById('invite-back-btn');
   if (backBtn) backBtn.href = 'clasificacion.html';
@@ -1189,7 +1199,7 @@ function renderInviteInboxCard(inv) {
   return `
     <div class="invite-inbox-card">
       <div class="invite-inbox-card__head">
-        <strong>${escapeHtml(torneo.nombre || 'Torneo')}</strong>
+        <strong>${escapeHtml(torneoNombre(torneo) || 'Torneo')}</strong>
         <small>${escapeHtml(competenciaNombre(competencia) || '')} · te invitó @${escapeHtml(sender.username || '?')}</small>
       </div>
       <div class="invite-inbox-card__actions">
@@ -1236,8 +1246,8 @@ async function initInviteLanding() {
     return;
   }
 
-  title.textContent = t('torneo.joinTitle', { name: torneo.nombre });
-  meta.textContent = torneo.competencia?.nombre || '';
+  title.textContent = t('torneo.joinTitle', { name: torneoNombre(torneo) });
+  meta.textContent = competenciaNombre(torneo.competencia) || '';
 
   if (!API.getToken()) {
     const next = encodeURIComponent(`invitacion.html?token=${token}`);
@@ -1277,10 +1287,10 @@ async function loadSelectedTorneoHeader() {
   try {
     const torneo = await API.getTorneoDeAmigos(selected.id);
     API.setSelectedTorneo(torneo);
-    if (title) title.textContent = torneo.nombre;
-    if (subtitle) subtitle.textContent = torneo.competencia?.nombre || t('section.friendTournamentCap');
+    if (title) title.textContent = torneoNombre(torneo);
+    if (subtitle) subtitle.textContent = competenciaNombre(torneo.competencia) || t('section.friendTournamentCap');
   } catch {
-    if (title) title.textContent = selected.nombre || t('section.friendTournamentCap');
+    if (title) title.textContent = torneoNombre(selected) || t('section.friendTournamentCap');
   }
 }
 

@@ -21,10 +21,16 @@ function assertEsCreador(torneo, usuarioId) {
 }
 
 async function list({ usuarioId } = {}) {
+  // Always include global torneos (implicit membership for everyone).
+  // If a userId is provided, also include torneos the user explicitly joined.
+  const where = usuarioId
+    ? { OR: [{ esGlobal: true }, { usuarios: { some: { id: usuarioId } } }] }
+    : undefined;
   return prisma.torneoDeAmigos.findMany({
-    where: usuarioId ? { usuarios: { some: { id: usuarioId } } } : undefined,
+    where,
     include: torneoInclude,
-    orderBy: { fechaCreacion: "desc" },
+    // Global torneos pinned first, then most recently created
+    orderBy: [{ esGlobal: "desc" }, { fechaCreacion: "desc" }],
   });
 }
 
@@ -52,8 +58,13 @@ async function create({ nombre, competenciaId, creadorId }) {
   });
 }
 
+function assertNotGlobal(torneo) {
+  if (torneo.esGlobal) throw httpError(403, "No se puede modificar un torneo global");
+}
+
 async function update(id, usuarioId, { nombre }) {
   const torneo = await getById(id);
+  assertNotGlobal(torneo);
   assertEsCreador(torneo, usuarioId);
   return prisma.torneoDeAmigos.update({
     where: { id },
@@ -64,12 +75,14 @@ async function update(id, usuarioId, { nombre }) {
 
 async function remove(id, usuarioId) {
   const torneo = await getById(id);
+  assertNotGlobal(torneo);
   assertEsCreador(torneo, usuarioId);
   await prisma.torneoDeAmigos.delete({ where: { id } });
 }
 
 async function leaveUser(torneoId, usuarioId) {
   const torneo = await getById(torneoId);
+  assertNotGlobal(torneo);
   if (torneo.creadorId === usuarioId) {
     const { httpError } = require('../utils/httpError');
     throw httpError(400, 'El creador no puede salir del torneo. Podés eliminarlo.');
@@ -88,6 +101,12 @@ async function joinUser(torneoId, usuarioId) {
 
   if (!torneo) throw httpError(404, "Torneo no encontrado");
   if (!torneo.activo) throw httpError(409, "El torneo esta inactivo");
+
+  // Global torneos have implicit membership — nothing to write to the DB.
+  if (torneo.esGlobal) {
+    const torneoFinal = await prisma.torneoDeAmigos.findUnique({ where: { id: torneoId }, include: torneoInclude });
+    return { torneo: torneoFinal, yaEraMiembro: true };
+  }
 
   const yaEra = torneo.usuarios.length > 0;
 
@@ -114,9 +133,20 @@ async function getTabla(torneoId) {
     },
   });
   if (!torneo) throw httpError(404, "Torneo no encontrado");
-  if (torneo.usuarios.length === 0) return [];
 
-  const usuarioIds = torneo.usuarios.map((u) => u.id);
+  // For global torneos, use ALL active users as implicit members and score
+  // from the very beginning of the competition (no creation-date cutoff).
+  let usuarios = torneo.usuarios;
+  if (torneo.esGlobal) {
+    usuarios = await prisma.usuario.findMany({
+      where: { activo: true },
+      include: { hinchaDe: true },
+    });
+  }
+
+  if (usuarios.length === 0) return [];
+
+  const usuarioIds = usuarios.map((u) => u.id);
 
   const predicciones = await prisma.prediccion.findMany({
     where: {
@@ -124,9 +154,9 @@ async function getTabla(torneoId) {
       partido: {
         competenciaId: torneo.competenciaId,
         estado: "TERMINADO",
-        // Only count matches that were played after this torneo was created,
-        // so all participants compete on an even footing from day one.
-        fecha: { gte: torneo.fechaCreacion },
+        // For regular torneos only: count matches from the torneo creation date
+        // so all members compete on even footing. Global torneos have no cutoff.
+        ...(torneo.esGlobal ? {} : { fecha: { gte: torneo.fechaCreacion } }),
       },
       puntosOtorgados: { not: null },
     },
@@ -145,7 +175,7 @@ async function getTabla(torneoId) {
     if (esPrediccionExacta(prediccion)) acc.exactos += 1;
   }
 
-  return torneo.usuarios
+  return usuarios
     .map((usuario) => ({
       usuarioId: usuario.id,
       usuario,

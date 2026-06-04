@@ -5,6 +5,8 @@ function torneoDeAmigosResponse(torneo, { miembrosCount } = {}) {
   return {
     id: torneo.id,
     nombre: torneo.nombre,
+    esGlobal: torneo.esGlobal ?? false,
+    imagen: torneo.imagen ?? null,
     activo: torneo.activo,
     competenciaId: torneo.competenciaId,
     competencia: torneo.competencia ? competenciaResponse(torneo.competencia) : null,

@@ -85,6 +85,8 @@ model TorneoDeAmigos {
   competenciaId        String
   creadorId            String?
   inviteToken          String?          @unique
+  esGlobal             Boolean          @default(false) // true = Once Metros official torneo; all users are implicit members
+  imagen               String?          // optional logo/cover image URL (used for global torneos)
   activo               Boolean          @default(true)
   fechaCreacion        DateTime         @default(now())
   fechaActualizacion   DateTime         @updatedAt
@@ -95,6 +97,7 @@ model TorneoDeAmigos {
 
   @@index([competenciaId])
   @@index([creadorId])
+  @@index([esGlobal])
 }
 
 model Invitacion {
