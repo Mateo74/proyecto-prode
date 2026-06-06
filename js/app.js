@@ -490,8 +490,8 @@ async function loadCompetencias() {
       });
     });
 
-    if (active && window.location.hash) {
-      selectCompetencia(active, window.location.hash.replace('#', ''));
+    if (active) {
+      selectCompetencia(active, window.location.hash.replace('#', '') || 'predicciones');
     } else {
       showCompetitionPicker();
     }
@@ -581,16 +581,14 @@ function switchHomeTab(tab) {
 }
 
 function renderTorneoCard(torneo, active) {
-  const miembros = torneo.esGlobal
-    ? ''
-    : (torneo.miembrosCount === 1 ? t('members.one') : t('members.many', { n: torneo.miembrosCount ?? 0 }));
+  const miembros = torneo.miembrosCount === 1 ? t('members.one') : t('members.many', { n: torneo.miembrosCount ?? 0 });
   return `
     <button class="tournament-card ${active ? 'active' : ''}" data-torneo-id="${torneo.id}">
       <span>
         <strong>${escapeHtml(torneoNombre(torneo))}</strong>
         ${torneo.esGlobal ? '' : `<small>${escapeHtml(competenciaNombre(torneo.competencia) || '')}</small>`}
       </span>
-      ${miembros ? `<span class="tournament-card__meta">${miembros}</span>` : ''}
+      <span class="tournament-card__meta">${miembros}</span>
     </button>
   `;
 }
@@ -870,54 +868,138 @@ async function initTorneoActionMenu() {
   }
 
   let inviteUrl = null;
-  async function doInviteShare(buttonEl) {
-    if (!inviteUrl) {
+  let inviteLinkReady = false;
+  let nativeShareRequestId = null;
+  let nativeShareFallbackTimer = null;
+
+  // Pre-load (and auto-generate for creators) the invite link in the background
+  // so the share sheet opens instantly when the user taps Invite.
+  async function preloadInviteLink() {
+    try {
+      const r = await API.getInviteLink(torneo.id);
+      inviteUrl = r.url || null;
+    } catch {}
+    if (!inviteUrl && isCreador) {
       try {
-        const r = await API.getInviteLink(torneo.id);
+        const r = await API.generarInviteLink(torneo.id);
         inviteUrl = r.url || null;
       } catch {}
     }
-    if (!inviteUrl) {
-      if (isCreador) {
-        try {
-          const r = await API.generarInviteLink(torneo.id);
-          inviteUrl = r.url || null;
-        } catch {
-          alert(t('alert.inviteLinkError'));
-          return;
-        }
-      } else {
-        alert(t('alert.noInviteLink'));
-        return;
-      }
+    inviteLinkReady = true;
+    // Re-enable the button if it was put in loading state while we were fetching
+    if (inviteBtn && inviteBtn.dataset.inviteLoading) {
+      delete inviteBtn.dataset.inviteLoading;
+      inviteBtn.disabled = false;
+      inviteBtn.textContent = t('action.invite');
+      if (inviteUrl) triggerShare();
     }
+  }
+
+  function nativeAlert(msg) {
+    if (window.__ONCE_METROS_NATIVE_WEBVIEW__) {
+      try { window.ReactNativeWebView.postMessage(JSON.stringify({ type: 'ALERT', message: msg })); } catch {}
+    } else {
+      alert(msg);
+    }
+  }
+
+  function showInviteCopiedFeedback() {
+    if (!inviteBtn) return;
+    const orig = inviteBtn.textContent;
+    inviteBtn.textContent = t('action.linkCopied');
+    inviteBtn.disabled = true;
+    setTimeout(() => { inviteBtn.textContent = orig; inviteBtn.disabled = false; }, 2000);
+  }
+
+  async function copyInviteUrlToClipboard() {
+    if (!inviteUrl) return false;
+    try {
+      if (navigator.clipboard?.writeText) {
+        await navigator.clipboard.writeText(inviteUrl);
+        return true;
+      }
+    } catch {}
+
+    const ta = document.createElement('textarea');
+    ta.value = inviteUrl;
+    ta.setAttribute('readonly', '');
+    ta.style.position = 'fixed';
+    ta.style.left = '-9999px';
+    ta.style.top = '0';
+    document.body.appendChild(ta);
+    ta.focus();
+    ta.select();
+    ta.setSelectionRange(0, ta.value.length);
+    try {
+      return document.execCommand('copy');
+    } catch {
+      return false;
+    } finally {
+      document.body.removeChild(ta);
+    }
+  }
+
+  async function fallbackCopyInviteUrl() {
+    if (!inviteUrl) return;
+    if (await copyInviteUrlToClipboard()) {
+      showInviteCopiedFeedback();
+    } else {
+      prompt(t('share.promptCopy'), inviteUrl);
+    }
+  }
+
+  function finishNativeShareRequest(requestId, shouldFallback) {
+    if (!requestId || requestId !== nativeShareRequestId) return;
+    nativeShareRequestId = null;
+    if (nativeShareFallbackTimer) {
+      clearTimeout(nativeShareFallbackTimer);
+      nativeShareFallbackTimer = null;
+    }
+    if (shouldFallback) fallbackCopyInviteUrl();
+  }
+
+  window.__ONCE_METROS_NATIVE_SHARE_RESULT__ = result => {
+    if (!result || result.type !== 'SHARE_RESULT') return;
+    if (result.status === 'received') {
+      if (result.requestId !== nativeShareRequestId) return;
+      if (nativeShareFallbackTimer) {
+        clearTimeout(nativeShareFallbackTimer);
+        nativeShareFallbackTimer = null;
+      }
+      return;
+    }
+    finishNativeShareRequest(result.requestId, result.status === 'error');
+  };
+
+  function triggerShare() {
     if (!inviteUrl) return;
     const shareTitle = t('share.title', { name: torneoNombre(torneo) });
     const shareText  = t('share.text', { competition: competenciaNombre(torneo.competencia) || 'Fútbol' });
-
     if (window.__ONCE_METROS_NATIVE_WEBVIEW__) {
-      // Native WebView: ask React Native to trigger the OS share sheet
+      const bridge = window.ReactNativeWebView;
+      if (!bridge?.postMessage) {
+        fallbackCopyInviteUrl();
+        return;
+      }
+      const requestId = `share-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+      nativeShareRequestId = requestId;
+      if (nativeShareFallbackTimer) clearTimeout(nativeShareFallbackTimer);
+      nativeShareFallbackTimer = setTimeout(() => {
+        finishNativeShareRequest(requestId, true);
+      }, 2000);
       try {
-        window.ReactNativeWebView.postMessage(JSON.stringify({
-          type: 'SHARE', title: shareTitle, text: shareText, url: inviteUrl,
+        bridge.postMessage(JSON.stringify({
+          type: 'SHARE', requestId, title: shareTitle, text: shareText, url: inviteUrl,
         }));
       } catch {
-        // Fallback: clipboard via injected JS bridge isn't available, use prompt
-        prompt(t('share.promptCopy'), inviteUrl);
+        finishNativeShareRequest(requestId, true);
       }
     } else {
-      // Web: copy to clipboard and show brief toast
-      try {
-        await navigator.clipboard.writeText(inviteUrl);
-        const orig = buttonEl.textContent;
-        buttonEl.textContent = t('action.linkCopied');
-        buttonEl.disabled = true;
-        setTimeout(() => { buttonEl.textContent = orig; buttonEl.disabled = false; }, 2000);
-      } catch {
-        prompt(t('share.promptCopy'), inviteUrl);
-      }
+      fallbackCopyInviteUrl();
     }
   }
+
+  if (isMember) preloadInviteLink();
 
   // Toggle open/close
   toggleBtn?.addEventListener('click', e => {
@@ -932,9 +1014,20 @@ async function initTorneoActionMenu() {
   });
 
   // Invite button (standalone)
-  inviteBtn?.addEventListener('click', () => doInviteShare(inviteBtn));
-
-  // Leave torneo
+  inviteBtn?.addEventListener('click', () => {
+    if (inviteLinkReady) {
+      if (!inviteUrl) {
+        nativeAlert(isCreador ? t('alert.inviteLinkError') : t('alert.noInviteLink'));
+        return;
+      }
+      triggerShare();
+    } else {
+      // Still fetching — show loading state; triggerShare() will fire once ready
+      inviteBtn.dataset.inviteLoading = '1';
+      inviteBtn.disabled = true;
+      inviteBtn.textContent = '...';
+    }
+  });
   leaveBtn?.addEventListener('click', async () => {
     menuEl?.classList.remove('open');
     if (!await appConfirm(t('confirm.leaveTorneo', { name: torneoNombre(torneo) }), { confirmText: t('action.leave'), cancelText: t('action.cancel') })) return;
@@ -963,11 +1056,6 @@ async function initTorneoActionMenu() {
       deleteBtn.disabled = false;
     }
   });
-
-  // Pre-fetch invite link in background for faster sharing
-  if (isMember) {
-    API.getInviteLink(torneo.id).then(r => { inviteUrl = r.url || null; }).catch(() => {});
-  }
 }
 
 /* --------------------------------------------------------
@@ -1796,7 +1884,9 @@ async function initPerfil() {
   photoInput?.addEventListener('change', async () => {
     const file = photoInput.files?.[0];
     if (!file) return;
-    if (!file.type.startsWith('image/')) { showMsg('El archivo debe ser una imagen.', 'error'); return; }
+    // Some Android browsers leave MIME type empty for camera captures — only reject
+    // if the type is explicitly set to something non-image.
+    if (file.type && !file.type.startsWith('image/')) { showMsg(t('feedback.photoNotImage'), 'error'); return; }
     changePhotoBtn.disabled = true;
     changePhotoBtn.textContent = t('action.processing');
     try {
@@ -1877,12 +1967,12 @@ function resizeImageToDataUrl(file, maxSize) {
       canvas.getContext('2d').drawImage(img, 0, 0, w, h);
       const dataUrl = canvas.toDataURL('image/jpeg', 0.82);
       if (dataUrl.length > 200_000) {
-        reject(new Error('La imagen es demasiado grande. Elegí una más pequeña.'));
+        reject(new Error(t('feedback.photoTooLarge')));
       } else {
         resolve(dataUrl);
       }
     };
-    img.onerror = () => { URL.revokeObjectURL(url); reject(new Error('No se pudo leer la imagen.')); };
+    img.onerror = () => { URL.revokeObjectURL(url); reject(new Error(t('feedback.photoReadError'))); };
     img.src = url;
   });
 }

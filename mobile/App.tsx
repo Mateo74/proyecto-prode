@@ -2,6 +2,7 @@ import { StatusBar } from "expo-status-bar";
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
+  Alert,
   AppState,
   Linking,
   Platform,
@@ -19,6 +20,14 @@ import { FRONTEND_URL } from "./src/config";
 import LoginScreen, { AuthCredentials } from "./src/LoginScreen";
 
 type LoginResolver = { resolve: () => void; reject: (e: Error) => void };
+type WebViewMessage = {
+  message?: string;
+  requestId?: string;
+  text?: string;
+  title?: string;
+  type: string;
+  url?: string;
+};
 
 export default function App() {
   const [isLoading, setIsLoading] = useState(true);
@@ -99,7 +108,7 @@ export default function App() {
     autoRetryCountRef.current = 0;
     hasErrorRef.current = false;
     // Clear cached responses so a stale error page isn't served again
-    webViewRef.current?.clearCache(true);
+    webViewRef.current?.clearCache?.(true);
     setHasError(false);
     setIsLoading(true);
     setShowLogin(false);
@@ -129,8 +138,16 @@ export default function App() {
   }, []);
 
   // Handle LOGIN_SUCCESS / LOGIN_ERROR messages from injected scripts
+  const sendShareResult = useCallback((requestId: string | undefined, status: "received" | "completed" | "error", message?: string) => {
+    if (!requestId) return;
+    const payload = JSON.stringify({ type: "SHARE_RESULT", requestId, status, message });
+    webViewRef.current?.injectJavaScript(
+      `window.__ONCE_METROS_NATIVE_SHARE_RESULT__&&window.__ONCE_METROS_NATIVE_SHARE_RESULT__(${payload});true;`
+    );
+  }, []);
+
   const onMessage = useCallback((event: { nativeEvent: { data: string } }) => {
-    let data: { type: string; message?: string };
+    let data: WebViewMessage;
     try { data = JSON.parse(event.nativeEvent.data); } catch { return; }
     if (data.type === "LOGIN_SUCCESS") {
       loginResolverRef.current?.resolve();
@@ -142,9 +159,19 @@ export default function App() {
       loginResolverRef.current?.reject(new Error(data.message || "Error al iniciar sesión"));
       loginResolverRef.current = null;
     } else if (data.type === "SHARE") {
-      Share.share({ title: data.title || "", message: `${data.text || ""} ${data.url || ""}`.trim(), url: data.url || "" }).catch(() => {});
+      const shareMsg = `${data.text || ""} ${data.url || ""}`.trim();
+      sendShareResult(data.requestId, "received");
+      Share.share({
+        title: data.title || "",
+        message: shareMsg,
+        url: data.url || "",
+      })
+        .then(() => sendShareResult(data.requestId, "completed"))
+        .catch((error) => sendShareResult(data.requestId, "error", error?.message || "No se pudo compartir"));
+    } else if (data.type === "ALERT") {
+      Alert.alert("Once Metros", data.message || "");
     }
-  }, []);
+  }, [sendShareResult]);
 
   // Inject the API call into the WebView so the httpOnly cookie is set in its own cookie jar
   const handleNativeSubmit = useCallback((credentials: AuthCredentials): Promise<void> => {
@@ -217,7 +244,7 @@ export default function App() {
                   autoRetryCountRef.current += 1;
                   const delay = autoRetryCountRef.current === 1 ? 3000 : 6000;
                   setTimeout(() => {
-                    webViewRef.current?.clearCache(true);
+                    webViewRef.current?.clearCache?.(true);
                     setHasError(false);
                     setIsLoading(true);
                     setWebViewKey((k) => k + 1);

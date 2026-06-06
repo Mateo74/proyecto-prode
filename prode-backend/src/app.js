@@ -18,7 +18,7 @@ function createApp() {
   app.use(helmet());
   app.use(cors(buildCorsOptions(env.CORS_ORIGINS)));
   app.use(cookieParser());
-  app.use(express.json());
+  app.use(express.json({ limit: '400kb' }));
   app.use(requestTelemetry);
 
   // Health-check — used by Azure "Always On" and uptime monitors to prevent cold starts

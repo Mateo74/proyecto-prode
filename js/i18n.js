@@ -132,6 +132,7 @@ const I18n = (() => {
       'action.moreOptions':     'Más opciones',
 
       // ── Auth form ──────────────────────────────────────────────────
+      'auth.or':          'o',
       'auth.userOrEmail': 'Usuario o email',
       'auth.password':    'Clave',
       'auth.username':    'Usuario',
@@ -183,6 +184,9 @@ const I18n = (() => {
       'feedback.linkCopied':      'Enlace copiado.',
       'feedback.joined':          'Te uniste al torneo.',
       'feedback.photoUpdated':    'Foto actualizada.',
+      'feedback.photoNotImage':   'El archivo debe ser una imagen.',
+      'feedback.photoTooLarge':   'La imagen es demasiado grande. Elegí una más pequeña.',
+      'feedback.photoReadError':  'No se pudo leer la imagen.',
       'feedback.changesSaved':    'Cambios guardados.',
 
       // ── Invite statuses ────────────────────────────────────────────
@@ -237,6 +241,7 @@ const I18n = (() => {
       'scoring.correctOutcome':     'Ganador o empate correcto',
       'scoring.wrong':              'Resultado incorrecto',
       'scoring.bonusNote':          '<strong>Bonus de goles:</strong> cuando el partido tiene más de 3 goles, los puntos por acierto exacto equivalen al total de goles. Por ejemplo, acertar un 4-2 vale 6 puntos.',
+      'scoring.lockNote':           'Las predicciones se bloquean automáticamente al inicio del partido (hora de comienzo programada). Podés predecir en cualquier momento antes de esa hora.',
       'scoring.pts3':               '3 pts <small>(o más)</small>',
       'scoring.pts2':               '2 pts',
       'scoring.pts1':               '1 pt',
@@ -280,8 +285,8 @@ const I18n = (() => {
       'section.myTournaments':       'My tournaments',
       'section.account':             'Account',
       'section.invitation':          'Invitation',
-      'section.friendTournament':    'Friend tournament',
-      'section.friendTournamentCap': 'Friend Tournament',
+      'section.friendTournament':    'Friends tournament',
+      'section.friendTournamentCap': 'Friends Tournament',
 
       // ── Page headings ──────────────────────────────────────────────
       'page.competitions':  'Competitions',
@@ -377,6 +382,7 @@ const I18n = (() => {
       'action.moreOptions':     'More options',
 
       // ── Auth form ──────────────────────────────────────────────────
+      'auth.or':          'or',
       'auth.userOrEmail': 'Username or email',
       'auth.password':    'Password',
       'auth.username':    'Username',
@@ -428,6 +434,9 @@ const I18n = (() => {
       'feedback.linkCopied':      'Link copied.',
       'feedback.joined':          'You joined the tournament.',
       'feedback.photoUpdated':    'Photo updated.',
+      'feedback.photoNotImage':   'The file must be an image.',
+      'feedback.photoTooLarge':   'The image is too large. Please choose a smaller one.',
+      'feedback.photoReadError':  'Could not read the image. Try a different format.',
       'feedback.changesSaved':    'Changes saved.',
 
       // ── Invite statuses ────────────────────────────────────────────
@@ -450,7 +459,7 @@ const I18n = (() => {
       'torneo.invalidInviteRevoked': 'Invalid or revoked invitation',
       'torneo.missingToken':         'Missing invitation token.',
       'torneo.joinTitle':            'Join "{{name}}"',
-      'torneo.friendTournament':     'Friend tournament',
+      'torneo.friendTournament':     'Friends tournament',
 
       // ── Profile ────────────────────────────────────────────────────
       'profile.personalInfo':       'Personal information',
@@ -482,6 +491,7 @@ const I18n = (() => {
       'scoring.correctOutcome':     'Correct winner or draw',
       'scoring.wrong':              'Incorrect result',
       'scoring.bonusNote':          '<strong>Goal bonus:</strong> when a match has more than 3 goals, the points for an exact prediction equal the total goals. For example, correctly predicting 4-2 is worth 6 points.',
+      'scoring.lockNote':           'Predictions are automatically locked at the scheduled match start time. You can make or update your prediction any time before kick-off.',
       'scoring.pts3':               '3 pts <small>(or more)</small>',
       'scoring.pts2':               '2 pts',
       'scoring.pts1':               '1 pt',

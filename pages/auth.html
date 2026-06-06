@@ -9,6 +9,36 @@
   <link rel="manifest" href="/manifest.json">
   <meta name="theme-color" content="#00c853">
   <link rel="stylesheet" href="../css/styles.css">
+  <style>
+    .auth-lang-toggle {
+      display: flex;
+      justify-content: center;
+      gap: 0.5rem;
+      margin-top: 1.25rem;
+    }
+    .auth-lang-btn {
+      background: var(--bg-3);
+      border: 1px solid var(--border-2);
+      border-radius: var(--radius-sm);
+      color: var(--text-3);
+      font: inherit;
+      font-size: 0.82rem;
+      font-weight: 700;
+      padding: 0.35rem 0.8rem;
+      cursor: pointer;
+      letter-spacing: 0.04em;
+      transition: color var(--t), border-color var(--t), background var(--t);
+    }
+    .auth-lang-btn.active {
+      background: var(--primary);
+      border-color: var(--primary);
+      color: #000;
+    }
+    .auth-lang-btn:not(.active):hover {
+      border-color: var(--text-3);
+      color: var(--text);
+    }
+  </style>
   <script src="https://accounts.google.com/gsi/client" async defer></script>
 </head>
 <body>
@@ -18,7 +48,7 @@
       <div class="nav-links">
         <a href="../index.html" data-i18n="nav.competitions">Competencias</a>
         <a href="../index.html#torneos" data-i18n="nav.friendTournaments">Torneos</a>
-        <a href="auth.html" class="active" data-auth-link data-auth-href="auth.html">Ingresar</a>
+        <a href="auth.html" class="active" data-auth-link data-auth-href="auth.html" data-i18n="nav.signIn">Ingresar</a>
       </div>
     </nav>
   </header>
@@ -43,7 +73,7 @@
 
       <div id="google-auth" class="google-auth hidden">
         <div id="google-signin"></div>
-        <div class="auth-divider"><span>o</span></div>
+        <div class="auth-divider"><span data-i18n="auth.or">o</span></div>
       </div>
 
       <div id="tab-login" class="tab-content">
@@ -85,6 +115,11 @@
           <button class="btn btn-primary btn-lg" type="submit" data-i18n="tab.register">Crear cuenta</button>
         </form>
       </div>
+
+      <div class="auth-lang-toggle">
+        <button class="auth-lang-btn lang-option-btn" id="auth-lang-es" data-lang="es">ES</button>
+        <button class="auth-lang-btn lang-option-btn" id="auth-lang-en" data-lang="en">EN</button>
+      </div>
     </section>
   </main>
 
@@ -100,5 +135,15 @@
   <script src="../js/api.js"></script>
   <script src="../js/predictions.js"></script>
   <script src="../js/app.js"></script>
+  <script>
+    (function () {
+      const lang = I18n.getLang();
+      document.getElementById('auth-lang-es').classList.toggle('active', lang === 'es');
+      document.getElementById('auth-lang-en').classList.toggle('active', lang === 'en');
+      document.querySelectorAll('.auth-lang-btn').forEach(btn => {
+        btn.addEventListener('click', () => I18n.setLang(btn.dataset.lang));
+      });
+    })();
+  </script>
 </body>
 </html>
