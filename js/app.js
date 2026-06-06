@@ -68,7 +68,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   });
 
   // Pages that must know auth state before rendering anything
-  const authBlockingPages = ['home', 'auth', 'invitacion', 'torneo-edit'];
+  const authBlockingPages = ['home', 'auth', 'invitacion', 'torneo-edit', 'grupos'];
 
   if (authBlockingPages.includes(page)) {
     await sessionPromise;
@@ -93,6 +93,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     case 'invitaciones':   initInvitaciones();  break;
     case 'invitacion':     initInviteLanding(); break;
     case 'torneos':        initTorneos();       break;
+    case 'grupos':         initGrupos();        break;
     case 'invitar':        initInvitar();       break;
     case 'perfil':         initPerfil();        break;
     case 'torneo-edit':    initTorneoEdit();    break;
@@ -121,6 +122,7 @@ function detectPage() {
   if (p.includes('predicciones'))      return 'predicciones';
   if (p.includes('clasificacion'))     return 'clasificacion';
   if (p.includes('torneos.html'))      return 'torneos';
+  if (p.includes('grupos'))            return 'grupos';
   if (p.includes('auth'))              return 'auth';
   if (p.includes('perfil'))            return 'perfil';
   return 'home';

@@ -451,5 +451,5 @@ const Predictions = (() => {
     return diffPred === diffReal ? 2 : 1;
   }
 
-  return { createMatchCard, calcularPuntos };
+  return { createMatchCard, calcularPuntos, teamCrest };
 })();
