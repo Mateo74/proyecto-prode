@@ -175,13 +175,13 @@ function initAccountMenu() {
         : '';
 
       const profileSection = user ? `
-        <div class="native-side-drawer__profile">
+        <a class="native-side-drawer__profile" href="${pagePath('perfil.html')}">
           <div class="native-side-drawer__avatar">${avatarHtml}</div>
           <div>
             <div class="native-side-drawer__name">${escapeHtml(user.nombre || user.username)}</div>
             <div class="native-side-drawer__status">${t('nav.activeSession')}</div>
           </div>
-        </div>` : '';
+        </a>` : '';
 
       const footerHtml = user
         ? `<button class="native-side-drawer__logout" id="native-drawer-logout">${t('nav.signOut')}</button>`
@@ -207,6 +207,7 @@ function initAccountMenu() {
           <a href="${pagePath('torneos.html')}">${t('nav.friendTournaments')}</a>
           ${user ? `<a href="${pagePath('perfil.html')}">${t('nav.myAccount')}</a>` : ''}
           <a href="${pagePath('ajustes.html')}">${t('nav.settings')}</a>
+          <a href="${pagePath('puntos.html')}">${t('nav.howPoints')}</a>
         </nav>
         <div class="native-side-drawer__footer">
           ${footerHtml}
@@ -426,6 +427,14 @@ function competenciaNombre(competencia) {
   return competencia.nombre || '';
 }
 
+function equipoNombre(partido, num) {
+  if (I18n.getLang() === 'en') {
+    const en = num === 1 ? partido.equipo1NombreEn : partido.equipo2NombreEn;
+    if (en) return en;
+  }
+  return num === 1 ? partido.equipo1 : partido.equipo2;
+}
+
 /**
  * Returns the display name for a torneo.
  * Global (Once Metros) torneos are shown as "Once Metros - <competition>".
@@ -581,7 +590,9 @@ function switchHomeTab(tab) {
 }
 
 function renderTorneoCard(torneo, active) {
-  const miembros = torneo.miembrosCount === 1 ? t('members.one') : t('members.many', { n: torneo.miembrosCount ?? 0 });
+  const miembros = torneo.esGlobal
+    ? `👥 ${t('members.open')}`
+    : torneo.miembrosCount === 1 ? `👤 ${t('members.one')}` : `👥 ${t('members.many', { n: torneo.miembrosCount ?? 0 })}`;
   return `
     <button class="tournament-card ${active ? 'active' : ''}" data-torneo-id="${torneo.id}">
       <span>
@@ -742,12 +753,13 @@ function renderPredRow(pred) {
   const label = pred.estado === 'acierto' ? t('pred.hit') : pred.estado === 'fallo' ? t('pred.miss') : t('pred.pending');
   const pts   = pred.puntos > 0 ? `+${pred.puntos}` : '-';
   const score = `${pred.scoreEquipo1Pred ?? '?'}-${pred.scoreEquipo2Pred ?? '?'}`;
-  const metaNote = `${escapeHtml(pred.liga || '')} · ${t('pred.myPred', { score })}`;
+  const ligaDisplay = I18n.getLang() === 'en' && pred.ligaEn ? pred.ligaEn : (pred.liga || '');
+  const metaNote = `${escapeHtml(ligaDisplay)} · ${t('pred.myPred', { score })}`;
   const rowCls = pred.estado === 'acierto' ? 'is-hit' : pred.estado === 'fallo' ? 'is-miss' : '';
   return `
     <div class="pred-row ${rowCls}">
       <div class="pred-match">
-        <div class="pred-match-name">${escapeHtml(pred.equipo1)} vs ${escapeHtml(pred.equipo2)}</div>
+        <div class="pred-match-name">${escapeHtml(I18n.getLang() === 'en' && pred.equipo1NombreEn ? pred.equipo1NombreEn : pred.equipo1)} vs ${escapeHtml(I18n.getLang() === 'en' && pred.equipo2NombreEn ? pred.equipo2NombreEn : pred.equipo2)}</div>
         <div class="pred-match-meta">${metaNote}</div>
       </div>
       <span class="pred-tag ${cls}">${label}</span>
@@ -852,6 +864,13 @@ async function initTorneoActionMenu() {
 
   const isCreador = user && torneo.creadorId === user.id;
   const isMember  = user && (isCreador || torneo.usuarios?.some(u => u.id === user.id));
+
+  // Global torneos: no invite link, no edit/leave/delete
+  if (torneo.esGlobal) {
+    inviteBtn?.classList.add('hidden');
+    menuEl?.classList.add('hidden');
+    return;
+  }
 
   // Show relevant actions based on role
   if (isCreador) {
@@ -1603,7 +1622,7 @@ function renderUserPredRow(partido) {
   return `
     <div class="user-pred-row ${cls}">
       <div class="user-pred-match">
-        <div class="user-pred-teams">${escapeHtml(partido.equipo1)} vs ${escapeHtml(partido.equipo2)}</div>
+        <div class="user-pred-teams">${escapeHtml(equipoNombre(partido, 1))} vs ${escapeHtml(equipoNombre(partido, 2))}</div>
         <div class="user-pred-meta">${fecha} · ${escapeHtml(partido.liga || '')}</div>
       </div>
       <div class="user-pred-scores">

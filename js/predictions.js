@@ -91,8 +91,14 @@ const Predictions = (() => {
   }
 
   // ─── Dispatcher principal ─────────────────────────────────────────
-  function equipo1De(match) { return match.equipo1 ?? match.equipoLocal; }
-  function equipo2De(match) { return match.equipo2 ?? match.equipoVisitante; }
+  function equipo1De(match) {
+    if (typeof I18n !== 'undefined' && I18n.getLang() === 'en' && match.equipo1NombreEn) return match.equipo1NombreEn;
+    return match.equipo1 ?? match.equipoLocal;
+  }
+  function equipo2De(match) {
+    if (typeof I18n !== 'undefined' && I18n.getLang() === 'en' && match.equipo2NombreEn) return match.equipo2NombreEn;
+    return match.equipo2 ?? match.equipoVisitante;
+  }
   function score1De(match) { return match.scoreEquipo1 ?? match.scoreLocal; }
   function score2De(match) { return match.scoreEquipo2 ?? match.scoreVisitante; }
   function predScore1De(pred) { return pred.scoreEquipo1 ?? pred.scoreLocal; }

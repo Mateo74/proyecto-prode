@@ -40,11 +40,11 @@
           <div class="scoring-row__pts" data-i18n-html="scoring.pts3">3 pts <small>(o más)</small></div>
         </div>
         <div class="scoring-row">
-          <div class="scoring-row__label" data-i18n="scoring.sameDiff">Misma diferencia de goles</div>
+          <div class="scoring-row__label" data-i18n="scoring.sameDiff">Misma diferencia / ganador o empate correcto</div>
           <div class="scoring-row__pts" data-i18n="scoring.pts2">2 pts</div>
         </div>
         <div class="scoring-row">
-          <div class="scoring-row__label" data-i18n="scoring.correctOutcome">Ganador o empate correcto</div>
+          <div class="scoring-row__label" data-i18n="scoring.correctOutcome">Ganador o empate correcto (sin acertar diferencia)</div>
           <div class="scoring-row__pts" data-i18n="scoring.pts1">1 pt</div>
         </div>
         <div class="scoring-row scoring-row--miss">
@@ -54,6 +54,9 @@
       </div>
       <p class="scoring-note" data-i18n-html="scoring.bonusNote">
         <strong>Bonus de goles:</strong> cuando el partido tiene más de 3 goles, los puntos que se dan por acierto exacto es igual al total de goles en el partido. Por ejemplo, acertar un 4-2 vale 6 puntos.
+      </p>
+      <p class="scoring-note" data-i18n="scoring.extraTimeNote">
+        Para partidos que van a tiempo extra, los puntos se calculan según el resultado al final del tiempo extra (no a los 90 minutos). Los penales no se toman en cuenta.
       </p>
       <p class="scoring-note" data-i18n="scoring.lockNote">
         Las predicciones se bloquean automáticamente al inicio del partido (hora de comienzo programada). Podés predecir en cualquier momento antes de esa hora.
@@ -83,46 +86,52 @@
     const ARG_CREST = 'https://crests.football-data.org/762.png';
     const FRA_CREST = 'https://crests.football-data.org/773.svg';
     const BRA_CREST = 'https://crests.football-data.org/764.svg';
-    const LIGA      = 'Copa del Mundo 2026';
+    const LIGA_ES   = 'Copa Mundial FIFA 2026';
+    const LIGA_EN   = 'FIFA World Cup 2026';
+    const LIGA      = I18n.getLang() === 'en' ? LIGA_EN : LIGA_ES;
+    const TEAM1_EN  = 'Argentina';
+    const TEAM2_ES  = 'Francia';
+    const TEAM2_EN  = 'France';
+    const TEAM2     = I18n.getLang() === 'en' ? TEAM2_EN : TEAM2_ES;
     const FECHA     = '2026-07-19T00:00:00Z';
 
     const exampleMatches = [
       {
         id: 'ex-0', estado: 'finalizado', liga: LIGA, fecha: FECHA,
-        equipo1: 'Argentina', equipo1EscudoUrl: ARG_CREST,
-        equipo2: 'Francia',   equipo2EscudoUrl: FRA_CREST,
+        equipo1: TEAM1_EN, equipo1EscudoUrl: ARG_CREST,
+        equipo2: TEAM2,   equipo2EscudoUrl: FRA_CREST,
         scoreEquipo1: 2, scoreEquipo2: 0,
         resultadoConfirmado: true,
         userPred: { scoreEquipo1: 0, scoreEquipo2: 1, estado: 'fallo', puntos: 0, exacto: false },
       },
       {
         id: 'ex-1', estado: 'finalizado', liga: LIGA, fecha: FECHA,
-        equipo1: 'Argentina', equipo1EscudoUrl: ARG_CREST,
-        equipo2: 'Francia',   equipo2EscudoUrl: FRA_CREST,
+        equipo1: TEAM1_EN, equipo1EscudoUrl: ARG_CREST,
+        equipo2: TEAM2,   equipo2EscudoUrl: FRA_CREST,
         scoreEquipo1: 2, scoreEquipo2: 0,
         resultadoConfirmado: true,
         userPred: { scoreEquipo1: 1, scoreEquipo2: 0, estado: 'acierto', puntos: 1, exacto: false },
       },
       {
         id: 'ex-2', estado: 'finalizado', liga: LIGA, fecha: FECHA,
-        equipo1: 'Argentina', equipo1EscudoUrl: ARG_CREST,
-        equipo2: 'Francia',   equipo2EscudoUrl: FRA_CREST,
+        equipo1: TEAM1_EN, equipo1EscudoUrl: ARG_CREST,
+        equipo2: TEAM2,   equipo2EscudoUrl: FRA_CREST,
         scoreEquipo1: 2, scoreEquipo2: 0,
         resultadoConfirmado: true,
         userPred: { scoreEquipo1: 3, scoreEquipo2: 1, estado: 'acierto', puntos: 2, exacto: false },
       },
       {
         id: 'ex-3', estado: 'finalizado', liga: LIGA, fecha: FECHA,
-        equipo1: 'Argentina', equipo1EscudoUrl: ARG_CREST,
-        equipo2: 'Francia',   equipo2EscudoUrl: FRA_CREST,
+        equipo1: TEAM1_EN, equipo1EscudoUrl: ARG_CREST,
+        equipo2: TEAM2,   equipo2EscudoUrl: FRA_CREST,
         scoreEquipo1: 2, scoreEquipo2: 0,
         resultadoConfirmado: true,
         userPred: { scoreEquipo1: 2, scoreEquipo2: 0, estado: 'acierto', puntos: 3, exacto: true },
       },
       {
         id: 'ex-6', estado: 'finalizado', liga: LIGA, fecha: FECHA,
-        equipo1: 'Argentina', equipo1EscudoUrl: ARG_CREST,
-        equipo2: 'Francia',   equipo2EscudoUrl: FRA_CREST,
+        equipo1: TEAM1_EN, equipo1EscudoUrl: ARG_CREST,
+        equipo2: TEAM2,   equipo2EscudoUrl: FRA_CREST,
         scoreEquipo1: 4, scoreEquipo2: 2,
         resultadoConfirmado: true,
         userPred: { scoreEquipo1: 4, scoreEquipo2: 2, estado: 'acierto', puntos: 6, exacto: true },

@@ -196,6 +196,7 @@ const I18n = (() => {
       'inviteStatus.cancelled': 'Cancelada',
 
       // ── Members count ──────────────────────────────────────────────
+      'members.open': 'Abierto',
       'members.one':  '1 miembro',
       'members.many': '{{n}} miembros',
 
@@ -237,10 +238,11 @@ const I18n = (() => {
       'page.howPoints':             'Cómo se calculan los puntos',
       'section.rules':              'Reglas',
       'scoring.exact':              'Resultado exacto',
-      'scoring.sameDiff':           'Misma diferencia de goles',
-      'scoring.correctOutcome':     'Ganador o empate correcto',
+      'scoring.sameDiff':           'Misma diferencia / ganador o empate correcto',
+      'scoring.correctOutcome':     'Ganador o empate correcto (sin acertar diferencia)',
       'scoring.wrong':              'Resultado incorrecto',
       'scoring.bonusNote':          '<strong>Bonus de goles:</strong> cuando el partido tiene más de 3 goles, los puntos por acierto exacto equivalen al total de goles. Por ejemplo, acertar un 4-2 vale 6 puntos.',
+      'scoring.extraTimeNote':      'Para partidos que van a tiempo extra, los puntos se calculan según el resultado al final del tiempo extra (no a los 90 minutos). Los penales no se toman en cuenta.',
       'scoring.lockNote':           'Las predicciones se bloquean automáticamente al inicio del partido (hora de comienzo programada). Podés predecir en cualquier momento antes de esa hora.',
       'scoring.pts3':               '3 pts <small>(o más)</small>',
       'scoring.pts2':               '2 pts',
@@ -446,6 +448,7 @@ const I18n = (() => {
       'inviteStatus.cancelled': 'Cancelled',
 
       // ── Members count ──────────────────────────────────────────────
+      'members.open': 'Open',
       'members.one':  '1 member',
       'members.many': '{{n}} members',
 
@@ -487,10 +490,11 @@ const I18n = (() => {
       'page.howPoints':             'How points are calculated',
       'section.rules':              'Rules',
       'scoring.exact':              'Exact result',
-      'scoring.sameDiff':           'Same goal difference',
-      'scoring.correctOutcome':     'Correct winner or draw',
+      'scoring.sameDiff':           'Same goal difference / correct winner or draw',
+      'scoring.correctOutcome':     'Correct winner or draw (wrong goal difference)',
       'scoring.wrong':              'Incorrect result',
       'scoring.bonusNote':          '<strong>Goal bonus:</strong> when a match has more than 3 goals, the points for an exact prediction equal the total goals. For example, correctly predicting 4-2 is worth 6 points.',
+      'scoring.extraTimeNote':      'For matches that go to extra time, points are calculated on the result at the end of extra time (not after 90 minutes). Penalties are not taken into account.',
       'scoring.lockNote':           'Predictions are automatically locked at the scheduled match start time. You can make or update your prediction any time before kick-off.',
       'scoring.pts3':               '3 pts <small>(or more)</small>',
       'scoring.pts2':               '2 pts',

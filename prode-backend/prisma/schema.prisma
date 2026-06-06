@@ -121,6 +121,7 @@ model Invitacion {
 model Equipo {
   id                   String    @id @default(cuid())
   nombre               String
+  nombreEn             String?
   nombreCompleto       String?
   tipo                 TipoEquipo @default(CLUB)
   slug                 String    @unique
