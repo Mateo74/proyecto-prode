@@ -69,3 +69,9 @@ test-results/
 playwright-report/
 
 .claude/*
+
+# Playwright
+test-results/
+playwright-report/
+blob-report/
+.playwright/

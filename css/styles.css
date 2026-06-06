@@ -2580,3 +2580,99 @@ img.team__badge-img {
   color: #ff6666;
 }
 
+/* =============================================
+   GRUPOS — tablas de posiciones predichas
+   ============================================= */
+.groups-grid {
+  width: 100%;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 320px), 1fr));
+  gap: 1.25rem;
+}
+
+.groups-grid__cell {
+  min-width: 0;
+}
+
+.group-table {
+  width: 100%;
+  border-collapse: collapse;
+  background: var(--bg-2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  font-size: 0.8rem;
+}
+
+.group-table th,
+.group-table td {
+  padding: 0.55rem 0.6rem;
+  text-align: center;
+  border-bottom: 1px solid var(--border);
+}
+
+.group-table tbody tr:last-child td { border-bottom: none; }
+
+.group-table__title {
+  background: var(--bg-3);
+  color: var(--primary);
+  font-size: 0.7rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  text-align: left;
+}
+
+.group-table thead tr:nth-child(2) th {
+  font-size: 0.6rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--text-3);
+}
+
+.group-table__team {
+  text-align: left;
+  font-weight: 600;
+  color: var(--text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.group-table td.group-table__team {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.group-table__crest {
+  flex-shrink: 0;
+  display: inline-flex;
+}
+
+.group-table__crest .team__badge {
+  width: 20px;
+  height: 20px;
+}
+
+.group-table__name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.group-table td { color: var(--text-2); }
+
+.group-table tbody tr { transition: background var(--t); }
+.group-table tbody tr:hover { background: var(--bg-3); }
+
+/* Equipo con sus 3 partidos de grupo ya pronosticados: línea naranja a la izquierda */
+.group-table tbody tr.is-complete .group-table__team {
+  box-shadow: inset 3px 0 0 var(--warning);
+}
+
+.group-table__pts {
+  font-weight: 800;
+  color: var(--primary);
+}

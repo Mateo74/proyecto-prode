@@ -11,6 +11,7 @@ const equiposData = require("./seed/data/equipos");
 const partidosLibertadores = require("./seed/data/partidos-libertadores");
 const partidosLiga = require("./seed/data/partidos-liga-argentina");
 const partidosMundial = require("./seed/data/partidos-mundial");
+const prediccionesMundial = require("./seed/data/predicciones-mundial");
 
 const adapter = new PrismaPg({
   connectionString: process.env.DATABASE_URL,
@@ -70,7 +71,7 @@ async function main() {
   for (const comp of competenciasData) {
     competencias[comp.slug] = await prisma.competencia.upsert({
       where: { slug: comp.slug },
-      update: { nombre: comp.nombre },
+      update: { nombre: comp.nombre, visible: comp.visible ?? false },
       create: comp,
     });
   }
@@ -125,6 +126,28 @@ async function main() {
         golesEquipo1: partido.golesEquipo1,
         golesEquipo2: partido.golesEquipo2,
         equipo1EsLocal: partido.equipo1EsLocal,
+      },
+    });
+  }
+
+  // PREDICCIONES (usuario demo) — fase de grupos del Mundial
+  for (const pred of prediccionesMundial) {
+    await prisma.prediccion.upsert({
+      where: {
+        partidoId_usuarioId: {
+          partidoId: pred.partidoId,
+          usuarioId: usuario.id,
+        },
+      },
+      update: {
+        golesEquipo1Predicho: pred.golesEquipo1Predicho,
+        golesEquipo2Predicho: pred.golesEquipo2Predicho,
+      },
+      create: {
+        partidoId: pred.partidoId,
+        usuarioId: usuario.id,
+        golesEquipo1Predicho: pred.golesEquipo1Predicho,
+        golesEquipo2Predicho: pred.golesEquipo2Predicho,
       },
     });
   }
