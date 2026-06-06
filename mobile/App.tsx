@@ -21,6 +21,7 @@ import LoginScreen, { AuthCredentials } from "./src/LoginScreen";
 
 type LoginResolver = { resolve: () => void; reject: (e: Error) => void };
 type WebViewMessage = {
+  lang?: string;
   message?: string;
   requestId?: string;
   text?: string;
@@ -34,6 +35,14 @@ export default function App() {
   const [hasError, setHasError] = useState(false);
   const [webViewKey, setWebViewKey] = useState(0);
   const [showLogin, setShowLogin] = useState(false);
+  const [lang, setLang] = useState<"es" | "en">(() => {
+    try {
+      const locale = Intl.DateTimeFormat().resolvedOptions().locale || "";
+      return locale.toLowerCase().startsWith("en") ? "en" : "es";
+    } catch {
+      return "es";
+    }
+  });
   // Deep-link URL: if the app was opened via a universal/app link, load that URL instead
   const [initialUrl, setInitialUrl] = useState(FRONTEND_URL);
   // Track how many times we've auto-retried to avoid infinite loops
@@ -170,6 +179,9 @@ export default function App() {
         .catch((error) => sendShareResult(data.requestId, "error", error?.message || "No se pudo compartir"));
     } else if (data.type === "ALERT") {
       Alert.alert("Once Metros", data.message || "");
+    } else if (data.type === "LANG") {
+      const l = data.lang === "en" ? "en" : "es";
+      setLang(l);
     }
   }, [sendShareResult]);
 
@@ -233,7 +245,15 @@ export default function App() {
                 setIsLoading(true);
               }}
               // onLoad fires when main document has loaded (more reliable on Android)
-              onLoad={finishLoading}
+              onLoad={() => {
+                finishLoading();
+                // Read the user's stored language preference from the WebView's localStorage
+                // so the native LoginScreen can show the correct language.
+                webViewRef.current?.injectJavaScript(
+                  `(function(){var l=localStorage.getItem('once_metros_lang');` +
+                  `if(l)window.ReactNativeWebView.postMessage(JSON.stringify({type:'LANG',lang:l}));})();true;`
+                );
+              }}
               // onLoadEnd as fallback
               onLoadEnd={finishLoading}
               onError={() => {
@@ -271,7 +291,7 @@ export default function App() {
               </View>
             ) : null}
             {showLogin ? (
-              <LoginScreen onSubmit={handleNativeSubmit} />
+              <LoginScreen onSubmit={handleNativeSubmit} lang={lang} />
             ) : null}
           </>
         )}

@@ -41,9 +41,38 @@ export type AuthCredentials =
 
 interface Props {
   onSubmit: (credentials: AuthCredentials) => Promise<void>;
+  lang?: "es" | "en";
 }
 
-export default function LoginScreen({ onSubmit }: Props) {
+const STRINGS = {
+  es: {
+    login:              'Ingresar',
+    register:           'Crear cuenta',
+    continueWithGoogle: 'Continuar con Google',
+    or:                 'o',
+    userOrEmail:        'Usuario o email',
+    password:           'Clave',
+    username:           'Usuario',
+    displayName:        'Nombre para mostrar',
+    email:              'Email',
+    unknownError:       'Error desconocido',
+  },
+  en: {
+    login:              'Sign in',
+    register:           'Create account',
+    continueWithGoogle: 'Continue with Google',
+    or:                 'or',
+    userOrEmail:        'Username or email',
+    password:           'Password',
+    username:           'Username',
+    displayName:        'Name',
+    email:              'Email',
+    unknownError:       'Unknown error',
+  },
+} as const;
+
+export default function LoginScreen({ onSubmit, lang = "en" }: Props) {
+  const s = STRINGS[lang];
   const [tab, setTab] = useState<"login" | "register">("login");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -128,7 +157,7 @@ export default function LoginScreen({ onSubmit }: Props) {
     try {
       await onSubmit(credentials);
     } catch (e: any) {
-      setError(e.message || "Error desconocido");
+      setError(e.message || s.unknownError);
     } finally {
       setLoading(false);
     }
@@ -150,7 +179,7 @@ export default function LoginScreen({ onSubmit }: Props) {
         </View>
 
         <Text style={styles.pageTitle}>
-          {tab === "login" ? "Ingresar" : "Crear cuenta"}
+          {tab === "login" ? s.login : s.register}
         </Text>
 
         {/* Tabs */}
@@ -160,7 +189,7 @@ export default function LoginScreen({ onSubmit }: Props) {
             onPress={() => { setTab("login"); setError(""); }}
           >
             <Text style={[styles.tabText, tab === "login" && styles.tabTextActive]}>
-              Ingresar
+              {s.login}
             </Text>
           </Pressable>
           <Pressable
@@ -168,7 +197,7 @@ export default function LoginScreen({ onSubmit }: Props) {
             onPress={() => { setTab("register"); setError(""); }}
           >
             <Text style={[styles.tabText, tab === "register" && styles.tabTextActive]}>
-              Crear cuenta
+              {s.register}
             </Text>
           </Pressable>
         </View>
@@ -191,21 +220,21 @@ export default function LoginScreen({ onSubmit }: Props) {
           ) : (
             <>
               <GoogleIcon />
-              <Text style={styles.googleBtnText}>Continuar con Google</Text>
+              <Text style={styles.googleBtnText}>{s.continueWithGoogle}</Text>
             </>
           )}
         </Pressable>
 
         <View style={styles.divider}>
           <View style={styles.line} />
-          <Text style={styles.dividerText}>o</Text>
+          <Text style={styles.dividerText}>{s.or}</Text>
           <View style={styles.line} />
         </View>
 
         {/* Login form */}
         {tab === "login" && (
           <>
-            <Text style={styles.label}>Usuario o email</Text>
+            <Text style={styles.label}>{s.userOrEmail}</Text>
             <TextInput
               style={styles.input}
               value={identificador}
@@ -216,7 +245,7 @@ export default function LoginScreen({ onSubmit }: Props) {
               returnKeyType="next"
               editable={!loading}
             />
-            <Text style={styles.label}>Clave</Text>
+            <Text style={styles.label}>{s.password}</Text>
             <TextInput
               style={styles.input}
               value={password}
@@ -237,7 +266,7 @@ export default function LoginScreen({ onSubmit }: Props) {
               {loading ? (
                 <ActivityIndicator color="#fff" />
               ) : (
-                <Text style={styles.submitBtnText}>Ingresar</Text>
+                <Text style={styles.submitBtnText}>{s.login}</Text>
               )}
             </Pressable>
           </>
@@ -246,7 +275,7 @@ export default function LoginScreen({ onSubmit }: Props) {
         {/* Register form */}
         {tab === "register" && (
           <>
-            <Text style={styles.label}>Usuario</Text>
+            <Text style={styles.label}>{s.username}</Text>
             <TextInput
               style={styles.input}
               value={username}
@@ -256,7 +285,7 @@ export default function LoginScreen({ onSubmit }: Props) {
               returnKeyType="next"
               editable={!loading}
             />
-            <Text style={styles.label}>Nombre para mostrar</Text>
+            <Text style={styles.label}>{s.displayName}</Text>
             <TextInput
               style={styles.input}
               value={nombre}
@@ -264,7 +293,7 @@ export default function LoginScreen({ onSubmit }: Props) {
               returnKeyType="next"
               editable={!loading}
             />
-            <Text style={styles.label}>Email</Text>
+            <Text style={styles.label}>{s.email}</Text>
             <TextInput
               style={styles.input}
               value={regEmail}
@@ -275,7 +304,7 @@ export default function LoginScreen({ onSubmit }: Props) {
               returnKeyType="next"
               editable={!loading}
             />
-            <Text style={styles.label}>Clave</Text>
+            <Text style={styles.label}>{s.password}</Text>
             <TextInput
               style={styles.input}
               value={regPassword}
@@ -310,7 +339,7 @@ export default function LoginScreen({ onSubmit }: Props) {
               {loading ? (
                 <ActivityIndicator color="#fff" />
               ) : (
-                <Text style={styles.submitBtnText}>Crear cuenta</Text>
+                <Text style={styles.submitBtnText}>{s.register}</Text>
               )}
             </Pressable>
           </>
