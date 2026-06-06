@@ -109,6 +109,9 @@ const I18n = (() => {
       'groups.gcTitle':      'Goles en contra',
       'groups.pointsTitle':  'Puntos predichos',
       'groups.empty':        'No hay grupos para mostrar.',
+      'groups.fab':          'Ver grupos predichos',
+      'groups.overlayTitle': 'Grupos predichos',
+      'action.close':        'Cerrar',
 
       // ── Actions ───────────────────────────────────────────────────
       'action.invite':          'Invitar',
@@ -383,6 +386,9 @@ const I18n = (() => {
       'groups.gcTitle':      'Goals against',
       'groups.pointsTitle':  'Predicted points',
       'groups.empty':        'No groups to show.',
+      'groups.fab':          'View predicted groups',
+      'groups.overlayTitle': 'Predicted groups',
+      'action.close':        'Close',
 
       // ── Actions ───────────────────────────────────────────────────
       'action.invite':          'Invite',

@@ -437,6 +437,18 @@ const Predictions = (() => {
   }
 
   /**
+   * Devuelve los marcadores actuales en memoria para un partido (incluye
+   * ediciones del usuario aún sin guardar). Es la fuente de verdad viva de la
+   * página: cada tecla actualiza este estado. Devuelve null si la tarjeta del
+   * partido no se renderizó (p. ej. partidos finalizados sin input editable).
+   */
+  function getCurrentScores(matchId) {
+    const s = state.get(matchId);
+    if (!s) return null;
+    return { equipo1: s.equipo1, equipo2: s.equipo2 };
+  }
+
+  /**
    * Calcula puntos de una predicción.
    * Resultado correcto: 1 · diferencia correcta: 2 · exacto: max(3, goles totales)
    */
@@ -455,5 +467,5 @@ const Predictions = (() => {
     return diffPred === diffReal ? 2 : 1;
   }
 
-  return { createMatchCard, calcularPuntos, teamCrest };
+  return { createMatchCard, calcularPuntos, teamCrest, getCurrentScores };
 })();

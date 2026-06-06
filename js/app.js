@@ -111,6 +111,10 @@ document.addEventListener('DOMContentLoaded', async () => {
 
 let matchesPollingId = null;
 
+// Últimos partidos traídos por loadPartidos(); el overlay los reutiliza junto
+// con el estado vivo de Predictions, evitando leer datos del DOM o repetir fetch.
+let lastLoadedMatches = [];
+
 function detectPage() {
   const p = window.location.pathname;
   if (p.includes('partido-detalle'))  return 'partido-detalle';
@@ -550,6 +554,7 @@ async function selectCompetencia(competencia, preferredTab = 'predicciones') {
   await loadPartidos();
   startMatchesPolling();
   await loadTorneosForCompetencia(competencia);
+  setupGroupsOverlay();
 }
 
 function renderCompetenciaCard(competencia, active) {
@@ -658,6 +663,8 @@ function initPartidos() {
       loadPartidos();
     });
   });
+
+  setupGroupsOverlay();
 }
 
 function startMatchesPolling() {
@@ -691,6 +698,7 @@ async function loadPartidos({ quiet = false } = {}) {
 
   try {
     const matches = await API.getMatches({ competenciaId: competencia.id, estado });
+    lastLoadedMatches = matches;
     el.innerHTML = '';
     if (!matches.length) {
       el.innerHTML = emptyState(t('empty.noMatches'));
@@ -2181,5 +2189,94 @@ function resizeImageToDataUrl(file, maxSize) {
     };
     img.onerror = () => { URL.revokeObjectURL(url); reject(new Error(t('feedback.photoReadError'))); };
     img.src = url;
+  });
+}
+
+/* --------------------------------------------------------
+   GRUPOS — overlay flotante sobre la página de predicciones
+   Reutiliza los partidos ya traídos del backend (lastLoadedMatches)
+   y los marcadores en memoria del módulo Predictions (incluyendo
+   ediciones del usuario aún sin guardar). No lee el DOM.
+   -------------------------------------------------------- */
+
+/**
+ * Construye la lista de partidos para el overlay combinando:
+ *  - los partidos cacheados del último fetch (equipos, escudos, competencia)
+ *  - los marcadores vivos en memoria de Predictions (ediciones sin guardar)
+ * Si un partido no tiene marcador vivo, se usa su predicción del backend.
+ */
+function matchesWithLivePredictions() {
+  return (lastLoadedMatches || []).map(match => {
+    const live = Predictions.getCurrentScores(match.id);
+    let userPred = match.userPred || null;
+    if (live) {
+      userPred = (live.equipo1 != null && live.equipo2 != null)
+        ? { scoreEquipo1: live.equipo1, scoreEquipo2: live.equipo2 }
+        : null;
+    }
+    return { ...match, userPred };
+  });
+}
+
+/**
+ * Monta (una sola vez) el botón flotante y el overlay de grupos en las páginas
+ * que muestran #matches-list. Solo aparece para la competencia del Mundial.
+ * Idempotente: se puede llamar en cada render de partidos.
+ */
+function setupGroupsOverlay() {
+  if (typeof WORLD_CUP_2026_GROUPS === 'undefined') return;
+  if (!document.getElementById('matches-list')) return;
+
+  const comp = API.getSelectedCompetencia();
+  const isMundial = comp && comp.slug === WORLD_CUP_2026_SLUG;
+
+  const existingFab = document.getElementById('grupos-fab');
+  if (!isMundial) {
+    existingFab?.remove();
+    document.getElementById('grupos-overlay')?.remove();
+    return;
+  }
+  if (existingFab) return; // ya montado
+
+  const fab = document.createElement('button');
+  fab.id = 'grupos-fab';
+  fab.className = 'grupos-fab';
+  fab.type = 'button';
+  fab.setAttribute('aria-label', t('groups.fab'));
+  fab.title = t('groups.fab');
+  fab.innerHTML = `
+    <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+      <rect x="3" y="3" width="7" height="7" rx="1.5"></rect>
+      <rect x="14" y="3" width="7" height="7" rx="1.5"></rect>
+      <rect x="3" y="14" width="7" height="7" rx="1.5"></rect>
+      <rect x="14" y="14" width="7" height="7" rx="1.5"></rect>
+    </svg>`;
+  document.body.appendChild(fab);
+
+  const overlay = document.createElement('div');
+  overlay.id = 'grupos-overlay';
+  overlay.className = 'grupos-overlay';
+  overlay.innerHTML = `
+    <div class="grupos-overlay__panel" role="dialog" aria-modal="true" aria-label="${t('groups.overlayTitle')}">
+      <div class="grupos-overlay__head">
+        <h2 class="grupos-overlay__title">${t('groups.overlayTitle')}</h2>
+        <button class="icon-btn grupos-overlay__close" type="button" aria-label="${t('action.close')}" title="${t('action.close')}">×</button>
+      </div>
+      <div class="grupos-overlay__body" id="grupos-overlay-body"></div>
+    </div>`;
+  document.body.appendChild(overlay);
+
+  const open = () => {
+    const groups = buildPredictedGroups(matchesWithLivePredictions(), WORLD_CUP_2026_GROUPS);
+    document.getElementById('grupos-overlay-body').innerHTML = renderGroupsGrid(groups);
+    overlay.classList.add('grupos-overlay--visible');
+  };
+  const close = () => overlay.classList.remove('grupos-overlay--visible');
+
+  fab.addEventListener('click', open);
+  overlay.querySelector('.grupos-overlay__close').addEventListener('click', close);
+  overlay.addEventListener('click', event => { if (event.target === overlay) close(); });
+  document.addEventListener('keydown', event => {
+    if (event.key === 'Escape') close();
   });
 }

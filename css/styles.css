@@ -2676,3 +2676,101 @@ img.team__badge-img {
   font-weight: 800;
   color: var(--primary);
 }
+
+/* =============================================
+   GRUPOS — botón flotante (FAB) + overlay
+   ============================================= */
+.grupos-fab {
+  position: fixed;
+  left: 18px;
+  bottom: 24px;
+  z-index: 8000;
+  width: 54px;
+  height: 54px;
+  border-radius: 50%;
+  border: none;
+  background: var(--primary);
+  color: #06210f;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  box-shadow: 0 12px 28px rgba(0,0,0,0.45), 0 0 0 5px var(--primary-glow);
+  transition: transform var(--t) var(--ease), box-shadow var(--t);
+}
+
+.grupos-fab:hover {
+  transform: translateY(-2px) scale(1.05);
+  box-shadow: 0 16px 34px rgba(0,0,0,0.5), 0 0 0 6px var(--primary-glow);
+}
+
+.grupos-fab:active { transform: scale(0.97); }
+
+/* Sobre la barra inferior cuando aparece en mobile */
+@media (max-width: 700px) {
+  .grupos-fab { bottom: calc(72px + env(safe-area-inset-bottom, 0px)); }
+}
+
+.grupos-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 9000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1.25rem;
+  background: rgba(0,0,0,0);
+  backdrop-filter: blur(0px);
+  opacity: 0;
+  pointer-events: none;
+  transition: background 0.2s, backdrop-filter 0.2s, opacity 0.2s;
+}
+
+.grupos-overlay--visible {
+  background: rgba(0,0,0,0.6);
+  backdrop-filter: blur(4px);
+  opacity: 1;
+  pointer-events: auto;
+}
+
+/* Un poco más chico que la página de predicciones */
+.grupos-overlay__panel {
+  width: 100%;
+  max-width: min(940px, 92vw);
+  max-height: 88vh;
+  background: var(--bg-2);
+  border: 1px solid var(--border-2);
+  border-radius: var(--radius-lg);
+  box-shadow: 0 24px 60px rgba(0,0,0,0.55);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  transform: translateY(10px) scale(0.98);
+  transition: transform 0.2s var(--ease);
+}
+
+.grupos-overlay--visible .grupos-overlay__panel {
+  transform: translateY(0) scale(1);
+}
+
+.grupos-overlay__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 1rem 1.25rem;
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+}
+
+.grupos-overlay__title {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 850;
+  color: var(--text);
+}
+
+.grupos-overlay__body {
+  padding: 1.25rem;
+  overflow: auto;
+}
