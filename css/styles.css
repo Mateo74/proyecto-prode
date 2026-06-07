@@ -630,9 +630,11 @@ button { font-family: var(--font); cursor: pointer; }
   font-weight: 700;
   letter-spacing: 0.06em;
   text-transform: uppercase;
+  white-space: nowrap;
 }
 
 .badge-league { background: var(--bg-4); color: var(--text-3); }
+.badge-group  { background: var(--primary-dim); color: var(--primary); }
 .badge-soon   { background: var(--blue-dim); color: var(--blue); }
 .badge-done   { background: var(--bg-4); color: var(--text-4); }
 .badge-stopped { background: rgba(255,145,0,0.12); color: var(--warning); }
@@ -2682,7 +2684,7 @@ img.team__badge-img {
    ============================================= */
 .grupos-fab {
   position: fixed;
-  left: 18px;
+  right: 18px;
   bottom: 24px;
   z-index: 8000;
   width: 54px;

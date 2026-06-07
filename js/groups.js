@@ -91,6 +91,35 @@ function localizeTeamName(name) {
   return WORLD_CUP_2026_TEAM_NAMES_EN[name] || name;
 }
 
+function canonicalTeamNameFromMatch(name, localizedName) {
+  const normalized = normalizeTeamName(name);
+  if (teamToGroupFromDefinition(WORLD_CUP_2026_GROUPS)[normalized]) return name;
+
+  const localized = normalizeTeamName(localizedName);
+  const englishMap = typeof WORLD_CUP_2026_TEAM_NAMES_EN !== 'undefined'
+    ? Object.fromEntries(Object.entries(WORLD_CUP_2026_TEAM_NAMES_EN).map(([es, en]) => [normalizeTeamName(en), es]))
+    : {};
+  return englishMap[localized] || name;
+}
+
+function teamToGroupFromDefinition(groupsDef = {}) {
+  const out = {};
+  for (const [letter, teams] of Object.entries(groupsDef)) {
+    for (const team of teams) out[normalizeTeamName(team)] = letter;
+  }
+  return out;
+}
+
+function groupLetterForMatch(match, groupsDef = WORLD_CUP_2026_GROUPS) {
+  if (!match || typeof groupsDef === 'undefined') return null;
+  const teamToGroup = teamToGroupFromDefinition(groupsDef);
+  const equipo1 = canonicalTeamNameFromMatch(match.equipo1, match.equipo1NombreEn);
+  const equipo2 = canonicalTeamNameFromMatch(match.equipo2, match.equipo2NombreEn);
+  const g1 = teamToGroup[normalizeTeamName(equipo1)];
+  const g2 = teamToGroup[normalizeTeamName(equipo2)];
+  return g1 && g1 === g2 ? g1 : null;
+}
+
 /**
  * Construye las posiciones predichas de cada grupo a partir de los partidos del
  * backend y las predicciones del usuario (Win=3, Draw=1, Lose=0).

@@ -797,8 +797,13 @@ function renderPredRow(pred) {
   const label = pred.estado === 'acierto' ? t('pred.hit') : pred.estado === 'fallo' ? t('pred.miss') : t('pred.pending');
   const pts   = pred.puntos > 0 ? `+${pred.puntos}` : '-';
   const score = `${pred.scoreEquipo1Pred ?? '?'}-${pred.scoreEquipo2Pred ?? '?'}`;
-  const ligaDisplay = I18n.getLang() === 'en' && pred.ligaEn ? pred.ligaEn : (pred.liga || '');
-  const metaNote = `${escapeHtml(ligaDisplay)} · ${t('pred.myPred', { score })}`;
+  let ligaDisplay = I18n.getLang() === 'en' && pred.ligaEn ? pred.ligaEn : (pred.liga || '');
+  if (I18n.getLang() === 'en' && ligaDisplay === 'Copa Mundial FIFA') ligaDisplay = 'FIFA World Cup';
+  const group = typeof groupLetterForMatch === 'function' ? groupLetterForMatch(pred) : null;
+  const metaNote = [ligaDisplay, group ? t('groups.title', { letter: group }) : null, t('pred.myPred', { score })]
+    .filter(Boolean)
+    .map(escapeHtml)
+    .join(' · ');
   const rowCls = pred.estado === 'acierto' ? 'is-hit' : pred.estado === 'fallo' ? 'is-miss' : '';
   return `
     <div class="pred-row ${rowCls}">

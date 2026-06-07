@@ -81,6 +81,7 @@ async function setup(page, matches) {
 
   await page.goto("/pages/partidos.html");
   await expect(page.locator('.match-card[data-match-id="wc-H-1"]')).toBeVisible();
+  await expect(page.locator('.match-card[data-match-id="wc-H-1"] .badge-group')).toHaveText("Grupo H");
 }
 
 const overlay = (page) => page.locator("#grupos-overlay");

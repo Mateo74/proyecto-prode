@@ -116,6 +116,31 @@ const Predictions = (() => {
     return '';
   }
 
+  function competitionName(match) {
+    if (
+      typeof I18n !== 'undefined' &&
+      I18n.getLang() === 'en' &&
+      (match.competencia?.slug === 'copa-mundial-fifa' || match.liga === 'Copa Mundial FIFA')
+    ) {
+      return 'FIFA World Cup';
+    }
+    return ligaDe(match);
+  }
+
+  function groupLabel(match) {
+    if (typeof groupLetterForMatch !== 'function') return '';
+    const letter = groupLetterForMatch(match);
+    return letter ? t('groups.title', { letter }) : '';
+  }
+
+  function metaBadges(match, statusHtml = '') {
+    const group = groupLabel(match);
+    return `
+        <span class="badge badge-league">${competitionName(match)}</span>
+        ${group ? `<span class="badge badge-group">${group}</span>` : ''}
+        ${statusHtml}`;
+  }
+
   function createMatchCard(match) {
     if (match.estado === 'en-vivo')    return createLiveCard(match);
     if (match.estado === 'finalizado') return createFinishedCard(match);
@@ -142,8 +167,7 @@ const Predictions = (() => {
 
     card.innerHTML = `
       <div class="match-card__meta">
-        <span class="badge badge-league">${ligaDe(match)}</span>
-        <span class="badge badge-soon">${t('badge.upcoming')}</span>
+        ${metaBadges(match, `<span class="badge badge-soon">${t('badge.upcoming')}</span>`)}
         <span class="match-card__time">${fecha}</span>
       </div>
 
@@ -254,8 +278,7 @@ const Predictions = (() => {
 
     card.innerHTML = `
       <div class="match-card__meta">
-        <span class="badge badge-league">${ligaDe(match)}</span>
-        <span class="badge badge-live">${t('badge.live')}</span>
+        ${metaBadges(match, `<span class="badge badge-live">${t('badge.live')}</span>`)}
       </div>
 
       <div class="match-card__body">
@@ -330,8 +353,7 @@ const Predictions = (() => {
 
     card.innerHTML = `
       <div class="match-card__meta">
-        <span class="badge badge-league">${ligaDe(match)}</span>
-        <span class="badge badge-done">${t('badge.finished')}</span>
+        ${metaBadges(match, `<span class="badge badge-done">${t('badge.finished')}</span>`)}
         <span class="match-card__time">${fecha}</span>
       </div>
 
@@ -370,8 +392,7 @@ const Predictions = (() => {
 
     card.innerHTML = `
       <div class="match-card__meta">
-        <span class="badge badge-league">${ligaDe(match)}</span>
-        <span class="badge badge-stopped">${label}</span>
+        ${metaBadges(match, `<span class="badge badge-stopped">${label}</span>`)}
       </div>
 
       <div class="match-card__body">
