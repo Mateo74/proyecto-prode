@@ -7,16 +7,6 @@ const { errorResponse } = require("../schemas/common.schema");
 const { inviteTokenParam } = require("../schemas/invitaciones.schema");
 const { torneoPayload } = require("../schemas/torneos.schema");
 const controller = require("../controllers/torneos.controller");
-
-const { Router } = require("express");
-const { registry, z } = require("../openapi/registry");
-const { asyncRoute } = require("../utils/asyncRoute");
-const { validate } = require("../middlewares/validate.middleware");
-const { requireAuth } = require("../middlewares/auth.middleware");
-const { errorResponse } = require("../schemas/common.schema");
-const { inviteTokenParam } = require("../schemas/invitaciones.schema");
-const { torneoPayload } = require("../schemas/torneos.schema");
-const controller = require("../controllers/torneos.controller");
 const env = require("../config/env");
 
 const router = Router();
