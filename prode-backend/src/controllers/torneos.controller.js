@@ -9,6 +9,7 @@ const {
 const { prediccionResponse } = require("../serializers/prediccion.serializer");
 const { partidoResponse } = require("../serializers/partido.serializer");
 const { invitacionResponse } = require("../serializers/invitacion.serializer");
+const { usuarioPublico } = require("../serializers/usuario.serializer");
 
 function torneoToJson(torneo) {
   return torneoDeAmigosResponse(torneo, { miembrosCount: torneo._count?.usuarios });
@@ -21,7 +22,11 @@ async function list(req, res) {
   const usuarioId = req.query.mias === "true" ? req.usuario.id : undefined;
   const competenciaId = req.query.competenciaId || undefined;
   const torneos = await torneosService.list({ usuarioId, competenciaId });
-  res.json(torneos.map(torneoToJson));
+  const hasGlobal = torneos.some(t => t.esGlobal);
+  const totalActivos = hasGlobal ? await torneosService.countActiveUsers() : 0;
+  res.json(torneos.map(t => torneoDeAmigosResponse(t, {
+    miembrosCount: t.esGlobal ? totalActivos : (t._count?.usuarios ?? 0),
+  })));
 }
 
 async function getById(req, res) {
@@ -130,11 +135,30 @@ async function leaveUser(req, res) {
   res.status(204).end();
 }
 
+async function getMatchPredicciones(req, res) {
+  const { id: torneoId, partidoId } = req.params;
+  const { partido, entries } = await torneosService.getMatchPredictions(torneoId, partidoId);
+  res.json({
+    partido: partidoResponse(partido),
+    entries: entries.map(e => ({
+      usuario: usuarioPublico(e.usuario),
+      prediccion: e.prediccion
+        ? {
+            golesEquipo1: e.prediccion.golesEquipo1Predicho,
+            golesEquipo2: e.prediccion.golesEquipo2Predicho,
+            puntos: e.prediccion.puntosOtorgados ?? null,
+          }
+        : null,
+    })),
+  });
+}
+
 module.exports = {
   create,
   getById,
   getByInviteToken,
   getInviteLink,
+  getMatchPredicciones,
   getMisPredicciones,
   getPrediccionesDeUsuario,
   getTabla,

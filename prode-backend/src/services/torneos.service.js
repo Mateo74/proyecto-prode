@@ -2,6 +2,7 @@ const crypto = require("node:crypto");
 const { prisma } = require("../config/prisma");
 const { httpError } = require("../utils/httpError");
 const { esPrediccionExacta } = require("./scoring.service");
+const { includePartido } = require("./includes");
 
 const torneoInclude = {
   competencia: true,
@@ -247,6 +248,60 @@ async function revokeInviteToken(torneoId, usuarioId) {
   });
 }
 
+async function countActiveUsers() {
+  return prisma.usuario.count({ where: { activo: true } });
+}
+
+async function getMatchPredictions(torneoId, partidoId) {
+  const torneo = await prisma.torneoDeAmigos.findUnique({
+    where: { id: torneoId },
+    include: { usuarios: true },
+  });
+  if (!torneo) throw httpError(404, "Torneo no encontrado");
+
+  const partido = await prisma.partido.findUnique({
+    where: { id: partidoId },
+    include: includePartido,
+  });
+  if (!partido) throw httpError(404, "Partido no encontrado");
+  if (partido.competenciaId !== torneo.competenciaId) {
+    throw httpError(400, "El partido no pertenece a la competencia del torneo");
+  }
+
+  if (torneo.esGlobal) {
+    // For global torneos: show all users who made a prediction for this match
+    const predicciones = await prisma.prediccion.findMany({
+      where: { partidoId },
+      include: { usuario: { include: { hinchaDe: true } } },
+      orderBy: [{ puntosOtorgados: "desc" }],
+    });
+    return {
+      partido,
+      entries: predicciones.map(p => ({ usuario: p.usuario, prediccion: p })),
+    };
+  }
+
+  // Regular torneo: show all members regardless of whether they predicted
+  const usuarios = torneo.usuarios;
+  if (!usuarios.length) return { partido, entries: [] };
+
+  const predicciones = await prisma.prediccion.findMany({
+    where: { partidoId, usuarioId: { in: usuarios.map(u => u.id) } },
+  });
+  const predByUser = new Map(predicciones.map(p => [p.usuarioId, p]));
+
+  return {
+    partido,
+    entries: usuarios
+      .map(u => ({ usuario: u, prediccion: predByUser.get(u.id) ?? null }))
+      .sort((a, b) => {
+        const pa = a.prediccion?.puntosOtorgados ?? -1;
+        const pb = b.prediccion?.puntosOtorgados ?? -1;
+        return pb - pa || (a.usuario.username || '').localeCompare(b.usuario.username || '');
+      }),
+  };
+}
+
 async function getByInviteToken(token) {
   const torneo = await prisma.torneoDeAmigos.findUnique({
     where: { inviteToken: token },
@@ -269,7 +324,9 @@ module.exports = {
   assertEsCreador,
   create,
   getById,
+  countActiveUsers,
   getByInviteToken,
+  getMatchPredictions,
   getInviteToken,
   getTabla,
   joinByInviteToken,

@@ -54,6 +54,13 @@ router.get(
   asyncRoute(controller.getPrediccionesDeUsuario),
 );
 
+router.get(
+  "/:id/partidos/:partidoId",
+  optionalAuth,
+  validate({ params: z.object({ id: z.string().min(1), partidoId: z.string().min(1) }) }),
+  asyncRoute(controller.getMatchPredicciones),
+);
+
 // Creator-only: invitaciones e invite link
 router.post(
   "/:id/invitaciones",

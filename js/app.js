@@ -84,6 +84,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   }
 
   switch (page) {
+    case 'partido-detalle':  initPartidoDetalle(); break;
     case 'home':           initHome();          break;
     case 'partidos':       initPartidos();      break;
     case 'predicciones':   initPredicciones();  break;
@@ -111,6 +112,7 @@ let matchesPollingId = null;
 
 function detectPage() {
   const p = window.location.pathname;
+  if (p.includes('partido-detalle'))  return 'partido-detalle';
   if (p.includes('invitaciones.html')) return 'invitaciones';
   if (p.includes('invitacion.html'))   return 'invitacion';
   if (p.includes('invitar.html'))      return 'invitar';
@@ -145,6 +147,15 @@ function initAccountMenu() {
     // Always remove any existing menu so re-calling (e.g. after session restore)
     // replaces guest link with avatar — and prevents duplicates.
     navbar.querySelector('.account-menu')?.remove();
+    navbar.querySelector('.nav-info-btn')?.remove();
+
+    // ⓘ button — always visible, to the left of the hamburger/avatar
+    const infoBtnEl = document.createElement('a');
+    infoBtnEl.className = 'icon-btn nav-info-btn';
+    infoBtnEl.href = pagePath('puntos.html');
+    infoBtnEl.textContent = 'ⓘ';
+    infoBtnEl.title = t('nav.howPoints');
+    infoBtnEl.setAttribute('aria-label', t('nav.howPoints'));
 
     const user = API.getCurrentUser();
     const isNative = document.body.classList.contains('native-webview');
@@ -166,6 +177,7 @@ function initAccountMenu() {
       menu.innerHTML = `
         <button class="account-menu__button" id="native-drawer-toggle" aria-label="${t('nav.menu')}">☰</button>
       `;
+      navbar.appendChild(infoBtnEl);
       navbar.appendChild(menu);
 
       const avatarHtml = user
@@ -236,6 +248,7 @@ function initAccountMenu() {
       menu.innerHTML = `
         <a class="account-menu__button account-menu__button--guest" href="${authRelativePath('auth.html')}">${t('nav.signIn')}</a>
       `;
+      navbar.appendChild(infoBtnEl);
       navbar.appendChild(menu);
       return;
     }
@@ -256,6 +269,7 @@ function initAccountMenu() {
         <button data-menu-logout>${t('nav.signOut')}</button>
       </div>
     `;
+    navbar.appendChild(infoBtnEl);
     navbar.appendChild(menu);
   });
 
@@ -672,7 +686,17 @@ async function loadPartidos({ quiet = false } = {}) {
       el.innerHTML = emptyState(t('empty.noMatches'));
       return;
     }
-    matches.forEach(m => el.appendChild(Predictions.createMatchCard(m)));
+    matches.forEach(m => {
+      const card = Predictions.createMatchCard(m);
+      card.addEventListener('click', e => {
+        if (e.target.closest('.score-input')) return;
+        const torneo = API.getSelectedTorneo();
+        if (!torneo) return;
+        const dest = pagePath('partido-detalle.html');
+        window.location.href = `${dest}?torneoId=${encodeURIComponent(torneo.id)}&partidoId=${encodeURIComponent(m.id)}`;
+      });
+      el.appendChild(card);
+    });
   } catch (error) {
     el.innerHTML = errorState(error.message);
   }
@@ -1331,6 +1355,95 @@ function setInvitacionesFeedback(msg, type) {
 /* --------------------------------------------------------
    INVITE LINK LANDING
    -------------------------------------------------------- */
+/* --------------------------------------------------------
+   PARTIDO DETALLE — match card + per-match ranking
+   -------------------------------------------------------- */
+async function initPartidoDetalle() {
+  const params   = new URLSearchParams(window.location.search);
+  const torneoId = params.get('torneoId');
+  const partidoId = params.get('partidoId');
+
+  document.getElementById('back-btn')?.addEventListener('click', () => history.back());
+
+  const cardContainer  = document.getElementById('match-card-container');
+  const rankingList    = document.getElementById('match-ranking-list');
+  const subtitle       = document.getElementById('partido-subtitle');
+
+  if (!torneoId || !partidoId) {
+    rankingList && (rankingList.innerHTML = errorState(t('alert.invalidRequest') || 'Invalid request'));
+    return;
+  }
+
+  showSkeleton(cardContainer, 1);
+  rankingList && showSkeleton(rankingList, 5);
+
+  let data;
+  try {
+    data = await API.getMatchPredicciones(torneoId, partidoId);
+  } catch (err) {
+    cardContainer && (cardContainer.innerHTML = errorState(err.message));
+    rankingList   && (rankingList.innerHTML   = '');
+    return;
+  }
+
+  const { partido, entries } = data;
+
+  // Header subtitle: competition name
+  if (subtitle) {
+    const comp = partido.competencia;
+    subtitle.innerHTML = `<span class="dot"></span>${escapeHtml(competenciaNombre(comp) || '')}`;
+  }
+
+  // Match card (interactive — score inputs still work)
+  cardContainer && (cardContainer.innerHTML = '');
+  if (cardContainer) cardContainer.appendChild(Predictions.createMatchCard(partido));
+
+  // Per-match ranking
+  if (!rankingList) return;
+  if (!entries.length) {
+    rankingList.innerHTML = emptyState(t('empty.noScoresYet'));
+    return;
+  }
+
+  const matchFinished = partido.estado === 'finalizado';
+  rankingList.innerHTML = entries.map((e, i) => {
+    const { usuario, prediccion } = e;
+    const pred = prediccion
+      ? `${prediccion.golesEquipo1} — ${prediccion.golesEquipo2}`
+      : `<span class="text-muted">${t('pred.noPred')}</span>`;
+
+    let ptsHtml = '';
+    let tagHtml = '';
+    if (!prediccion) {
+      tagHtml = `<span class="pred-tag no-pred">${t('pred.noPred')}</span>`;
+    } else if (prediccion.puntos === null) {
+      tagHtml = `<span class="pred-tag pending">${t('pred.pending')}</span>`;
+    } else if (prediccion.puntos > 0) {
+      ptsHtml = `<span class="pred-pts positive">+${prediccion.puntos}</span>`;
+      tagHtml = `<span class="pred-tag hit">${t('pred.hit')}</span>`;
+    } else {
+      ptsHtml = `<span class="pred-pts">—</span>`;
+      tagHtml = `<span class="pred-tag miss">${t('pred.miss')}</span>`;
+    }
+
+    const avatarHtml = usuario.fotoPerfil
+      ? `<img src="${escapeHtml(usuario.fotoPerfil)}" alt="" style="width:100%;height:100%;object-fit:cover;border-radius:50%;">`
+      : `<span>${initial(usuario.nombre || usuario.username || 'U')}</span>`;
+
+    return `
+      <div class="match-pred-row">
+        <span class="match-pred-row__rank">${i + 1}</span>
+        <div class="match-pred-row__avatar">${avatarHtml}</div>
+        <div class="match-pred-row__info">
+          <span class="match-pred-row__name">${escapeHtml(usuario.nombre || usuario.username)}</span>
+          <span class="match-pred-row__pred">${pred}</span>
+        </div>
+        ${tagHtml}
+        ${ptsHtml}
+      </div>`;
+  }).join('');
+}
+
 async function initInviteLanding() {
   const params = new URLSearchParams(window.location.search);
   const token = params.get('token');

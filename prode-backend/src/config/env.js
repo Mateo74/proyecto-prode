@@ -34,6 +34,7 @@ const env = {
   FOOTBAL_DATA_TOKEN: process.env.FOOTBAL_DATA_TOKEN || process.env.FOOTBALL_DATA_TOKEN || "",
   FOOTBALL_DATA_BASE_URL: process.env.FOOTBALL_DATA_BASE_URL || "https://api.football-data.org/v4",
   FOOTBALL_DATA_SYNC_ENABLED: process.env.FOOTBALL_DATA_SYNC_ENABLED !== "false",
+  FRONTEND_BASE_URL: process.env.FRONTEND_BASE_URL || "https://www.oncemetros.com",
 };
 
 module.exports = env;

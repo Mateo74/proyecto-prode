@@ -317,6 +317,10 @@ const API = (() => {
     return request(`/torneos/${torneoId}/usuarios/${usuarioId}/predicciones`);
   }
 
+  async function getMatchPredicciones(torneoId, partidoId) {
+    return request(`/torneos/${encodeURIComponent(torneoId)}/partidos/${encodeURIComponent(partidoId)}`);
+  }
+
   // --- AUTH ---
 
   async function register({ username, nombre, email, password }) {
@@ -425,11 +429,8 @@ const API = (() => {
   function buildInviteUrl(token) {
     if (!token) return null;
     const base = window.location.origin;
-    const path = window.location.pathname.includes('/pages/')
-      ? 'invitacion.html'
-      : 'pages/invitacion.html';
-    const dir = window.location.pathname.replace(/[^/]*$/, '');
-    return `${base}${dir}${path}?token=${encodeURIComponent(token)}`;
+    const lang = (typeof I18n !== 'undefined') ? I18n.getLang() : 'es';
+    return `${base}/api/invites/${encodeURIComponent(token)}/og-preview?lang=${lang}`;
   }
 
   async function getTorneoPorInviteToken(token) {
@@ -477,6 +478,7 @@ const API = (() => {
     getMisInvitacionesPendientes,
     getMisPrediccionesEnTorneoDeAmigos,
     getPrediccionesUsuarioEnTorneo,
+    getMatchPredicciones,
     getSelectedCompetencia,
     getSelectedTorneo,
     getTablaTorneoDeAmigos,
