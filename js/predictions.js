@@ -99,6 +99,10 @@ const Predictions = (() => {
     if (typeof I18n !== 'undefined' && I18n.getLang() === 'en' && match.equipo2NombreEn) return match.equipo2NombreEn;
     return match.equipo2 ?? match.equipoVisitante;
   }
+  function ligaDe(match) {
+    if (typeof I18n !== 'undefined' && I18n.getLang() === 'en' && match.ligaEn) return match.ligaEn;
+    return match.liga ?? '';
+  }
   function score1De(match) { return match.scoreEquipo1 ?? match.scoreLocal; }
   function score2De(match) { return match.scoreEquipo2 ?? match.scoreVisitante; }
   function predScore1De(pred) { return pred.scoreEquipo1 ?? pred.scoreLocal; }
@@ -138,7 +142,7 @@ const Predictions = (() => {
 
     card.innerHTML = `
       <div class="match-card__meta">
-        <span class="badge badge-league">${match.liga}</span>
+        <span class="badge badge-league">${ligaDe(match)}</span>
         <span class="badge badge-soon">${t('badge.upcoming')}</span>
         <span class="match-card__time">${fecha}</span>
       </div>
@@ -250,7 +254,7 @@ const Predictions = (() => {
 
     card.innerHTML = `
       <div class="match-card__meta">
-        <span class="badge badge-league">${match.liga}</span>
+        <span class="badge badge-league">${ligaDe(match)}</span>
         <span class="badge badge-live">${t('badge.live')}</span>
       </div>
 
@@ -326,7 +330,7 @@ const Predictions = (() => {
 
     card.innerHTML = `
       <div class="match-card__meta">
-        <span class="badge badge-league">${match.liga}</span>
+        <span class="badge badge-league">${ligaDe(match)}</span>
         <span class="badge badge-done">${t('badge.finished')}</span>
         <span class="match-card__time">${fecha}</span>
       </div>
@@ -366,7 +370,7 @@ const Predictions = (() => {
 
     card.innerHTML = `
       <div class="match-card__meta">
-        <span class="badge badge-league">${match.liga}</span>
+        <span class="badge badge-league">${ligaDe(match)}</span>
         <span class="badge badge-stopped">${label}</span>
       </div>
 

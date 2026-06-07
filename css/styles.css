@@ -2385,11 +2385,18 @@ img.team__badge-img {
 /* =============================================
    MATCH DETAIL — per-match prediction ranking
    ============================================= */
+.section-notice {
+  font-size: 0.78rem;
+  color: var(--text-3);
+  text-align: center;
+  padding: 0.5rem 0 1rem;
+  margin: 0;
+}
 .match-pred-row {
   display: flex;
   align-items: center;
   gap: 0.75rem;
-  padding: 0.65rem 0.1rem;
+  padding: 0.75rem 0;
   border-bottom: 1px solid var(--border);
 }
 .match-pred-row:last-child { border-bottom: none; }

@@ -68,7 +68,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   });
 
   // Pages that must know auth state before rendering anything
-  const authBlockingPages = ['home', 'auth', 'invitacion', 'torneo-edit'];
+  const authBlockingPages = ['home', 'auth', 'invitacion', 'torneo-edit', 'partido-detalle'];
 
   if (authBlockingPages.includes(page)) {
     await sessionPromise;
@@ -181,9 +181,7 @@ function initAccountMenu() {
       navbar.appendChild(menu);
 
       const avatarHtml = user
-        ? (user.fotoPerfil
-            ? `<img src="${escapeHtml(user.fotoPerfil)}" alt="" style="width:100%;height:100%;object-fit:cover;">`
-            : `<span>${initial(user.nombre || user.username || 'U')}</span>`)
+        ? fotoImg(user.fotoPerfil, user.nombre || user.username || 'U', 'width:100%;height:100%;object-fit:cover;border-radius:50%;')
         : '';
 
       const profileSection = user ? `
@@ -255,9 +253,7 @@ function initAccountMenu() {
 
     menu.innerHTML = `
       <button class="account-menu__button" data-menu-toggle aria-label="${t('nav.menu')}">
-        ${user.fotoPerfil
-          ? `<img src="${escapeHtml(user.fotoPerfil)}" alt="foto de perfil" style="width:100%;height:100%;border-radius:50%;object-fit:cover;">`
-          : `<span>${initial(user.nombre || user.username || 'U')}</span>`}
+        ${fotoImg(user.fotoPerfil, user.nombre || user.username || 'U')}
       </button>
       <div class="account-drawer" data-menu-drawer>
         <div class="account-drawer__head">
@@ -313,7 +309,17 @@ function homeRelativePath(hash = '') {
 /* --------------------------------------------------------
    AUTH
    -------------------------------------------------------- */
+function translateAuthError(msg) {
+  if (!msg) return msg;
+  const m = msg.toLowerCase();
+  if (m.includes('credenciales')) return t('auth.error.invalidCredentials');
+  if (m.includes('ya existe una cuenta')) return t('auth.error.duplicateAccount');
+  return msg; // pass through (already translated by api.js, or unknown)
+}
+
 function initAuth() {
+  document.title = `${t('page.signIn')} | Once Metros`;
+
   // Support ?tab=login or ?tab=register to open a specific tab on load
   const tabParam = new URLSearchParams(window.location.search).get('tab');
   if (tabParam) switchTab(tabParam);
@@ -343,7 +349,7 @@ function initAuth() {
       });
       redirectAfterAuth();
     } catch (error) {
-      setAuthError(error.message);
+      setAuthError(translateAuthError(error.message));
     }
   });
 
@@ -362,7 +368,7 @@ function initAuth() {
       });
       redirectAfterAuth();
     } catch (error) {
-      setAuthError(error.message);
+      setAuthError(translateAuthError(error.message));
     }
   });
 }
@@ -420,7 +426,7 @@ async function handleGoogleCredential(response) {
     await API.loginWithGoogle(response.credential);
     redirectAfterAuth();
   } catch (error) {
-    setAuthError(error.message);
+    setAuthError(translateAuthError(error.message));
   }
 }
 
@@ -513,9 +519,10 @@ async function loadCompetencias() {
       });
     });
 
-    if (active) {
+    if (active && !new URLSearchParams(window.location.search).has('reset') && window.location.hash) {
       selectCompetencia(active, window.location.hash.replace('#', '') || 'predicciones');
     } else {
+      API.setSelectedCompetencia(null);
       showCompetitionPicker();
     }
   } catch (error) {
@@ -604,9 +611,10 @@ function switchHomeTab(tab) {
 }
 
 function renderTorneoCard(torneo, active) {
+  const n = torneo.miembrosCount ?? 0;
   const miembros = torneo.esGlobal
-    ? `👥 ${t('members.open')}`
-    : torneo.miembrosCount === 1 ? `👤 ${t('members.one')}` : `👥 ${t('members.many', { n: torneo.miembrosCount ?? 0 })}`;
+    ? (n === 1 ? `👤 ${t('members.one')}` : `👥 ${t('members.many', { n })}`)
+    : (n === 1 ? `👤 ${t('members.one')}` : `👥 ${t('members.many', { n })}`);
   return `
     <button class="tournament-card ${active ? 'active' : ''}" data-torneo-id="${torneo.id}">
       <span>
@@ -689,11 +697,13 @@ async function loadPartidos({ quiet = false } = {}) {
     matches.forEach(m => {
       const card = Predictions.createMatchCard(m);
       card.addEventListener('click', e => {
-        if (e.target.closest('.score-input')) return;
+        if (e.target.tagName === 'INPUT') return;
         const torneo = API.getSelectedTorneo();
-        if (!torneo) return;
-        const dest = pagePath('partido-detalle.html');
-        window.location.href = `${dest}?torneoId=${encodeURIComponent(torneo.id)}&partidoId=${encodeURIComponent(m.id)}`;
+        const dest = pagePath('partido-detalle');
+        const params = new URLSearchParams({ partidoId: m.id });
+        if (torneo) params.set('torneoId', torneo.id);
+        else if (m.competenciaId) params.set('competenciaId', m.competenciaId);
+        window.location.href = `${dest}?${params}`;
       });
       el.appendChild(card);
     });
@@ -850,7 +860,15 @@ async function loadMisPrediccionesEnTorneo() {
       el.innerHTML = emptyState(t('empty.noUpcoming'));
       return;
     }
-    matches.forEach(m => el.appendChild(Predictions.createMatchCard(m)));
+    matches.forEach(m => {
+      const card = Predictions.createMatchCard(m);
+      card.addEventListener('click', e => {
+        if (e.target.tagName === 'INPUT') return;
+        const dest = pagePath('partido-detalle');
+        window.location.href = `${dest}?torneoId=${encodeURIComponent(torneo.id)}&partidoId=${encodeURIComponent(m.id)}`;
+      });
+      el.appendChild(card);
+    });
   } catch (err) {
     el.innerHTML = errorState(err.message);
   }
@@ -1359,18 +1377,47 @@ function setInvitacionesFeedback(msg, type) {
    PARTIDO DETALLE — match card + per-match ranking
    -------------------------------------------------------- */
 async function initPartidoDetalle() {
-  const params   = new URLSearchParams(window.location.search);
-  const torneoId = params.get('torneoId');
-  const partidoId = params.get('partidoId');
+  const params     = new URLSearchParams(window.location.search);
+  let   torneoId   = params.get('torneoId');
+  const partidoId  = params.get('partidoId');
+  const competenciaId = params.get('competenciaId');
 
   document.getElementById('back-btn')?.addEventListener('click', () => history.back());
 
-  const cardContainer  = document.getElementById('match-card-container');
-  const rankingList    = document.getElementById('match-ranking-list');
-  const subtitle       = document.getElementById('partido-subtitle');
+  const cardContainer = document.getElementById('match-card-container');
+  const rankingList   = document.getElementById('match-ranking-list');
 
-  if (!torneoId || !partidoId) {
-    rankingList && (rankingList.innerHTML = errorState(t('alert.invalidRequest') || 'Invalid request'));
+  // Guard against invalid/missing params (e.g. direct URL navigation without query string)
+  const validId = id => id && id !== 'null' && id !== 'undefined';
+  if (!validId(partidoId)) {
+    if (cardContainer) cardContainer.innerHTML = emptyState(t('empty.noMatches'));
+    if (rankingList) rankingList.innerHTML = '';
+    return;
+  }
+
+  // If no torneoId was passed (e.g. clicked from partidos.html without a torneo
+  // selected), try to find the global torneo for this competition.
+  if (!torneoId && competenciaId) {
+    try {
+      const torneos = await API.getTorneosDeAmigos({ competenciaId });
+      const global = torneos.find(t => t.esGlobal);
+      if (global) torneoId = global.id;
+    } catch { /* leave torneoId null */ }
+  }
+
+  if (!torneoId) {
+    // No torneo available — still render the match card without a ranking
+    rankingList && (rankingList.innerHTML = emptyState(t('empty.chooseTorneo')));
+    if (cardContainer) {
+      showSkeleton(cardContainer, 1);
+      try {
+        const partido = await API.getMatch(partidoId);
+        cardContainer.innerHTML = '';
+        cardContainer.appendChild(Predictions.createMatchCard(partido));
+      } catch (err) {
+        cardContainer.innerHTML = errorState(err.message);
+      }
+    }
     return;
   }
 
@@ -1386,62 +1433,65 @@ async function initPartidoDetalle() {
     return;
   }
 
-  const { partido, entries } = data;
+  const { partido, entries, torneo: torneoData } = data;
 
-  // Header subtitle: competition name
-  if (subtitle) {
-    const comp = partido.competencia;
-    subtitle.innerHTML = `<span class="dot"></span>${escapeHtml(competenciaNombre(comp) || '')}`;
+  // Update page title with competition name + torneo name
+  if (torneoData) {
+    document.title = `${torneoNombre(torneoData)} | Once Metros`;
   }
 
-  // Match card (interactive — score inputs still work)
+  // Match card
   cardContainer && (cardContainer.innerHTML = '');
   if (cardContainer) cardContainer.appendChild(Predictions.createMatchCard(partido));
 
-  // Per-match ranking
+  const podiumEl   = document.getElementById('match-podium');
   if (!rankingList) return;
+
   if (!entries.length) {
+    if (podiumEl) podiumEl.innerHTML = '';
     rankingList.innerHTML = emptyState(t('empty.noScoresYet'));
     return;
   }
 
-  const matchFinished = partido.estado === 'finalizado';
-  rankingList.innerHTML = entries.map((e, i) => {
-    const { usuario, prediccion } = e;
-    const pred = prediccion
-      ? `${prediccion.golesEquipo1} — ${prediccion.golesEquipo2}`
-      : `<span class="text-muted">${t('pred.noPred')}</span>`;
+  // Predictions are private until the match starts (prediccionEditable === false means locked)
+  const locked = partido.prediccionEditable === false ||
+                 partido.estado === 'en-vivo' ||
+                 partido.estado === 'finalizado';
 
-    let ptsHtml = '';
-    let tagHtml = '';
-    if (!prediccion) {
-      tagHtml = `<span class="pred-tag no-pred">${t('pred.noPred')}</span>`;
-    } else if (prediccion.puntos === null) {
-      tagHtml = `<span class="pred-tag pending">${t('pred.pending')}</span>`;
-    } else if (prediccion.puntos > 0) {
-      ptsHtml = `<span class="pred-pts positive">+${prediccion.puntos}</span>`;
-      tagHtml = `<span class="pred-tag hit">${t('pred.hit')}</span>`;
-    } else {
-      ptsHtml = `<span class="pred-pts">—</span>`;
-      tagHtml = `<span class="pred-tag miss">${t('pred.miss')}</span>`;
-    }
+  // Build ranking array. Before kick-off: alphabetical, no pts shown. After: sorted by pts.
+  const ranked = entries
+    .map(e => ({
+      usuarioId:  e.usuario.id,
+      nombre:     e.usuario.nombre || e.usuario.username,
+      fotoPerfil: e.usuario.fotoPerfil || null,
+      puntos:     locked ? (e.prediccion?.puntos ?? null) : null,
+      aciertos:   0,
+      exactos:    0,
+      predScore:  e.prediccion ? `${e.prediccion.golesEquipo1}-${e.prediccion.golesEquipo2}` : null,
+      hasPred:    !!e.prediccion,
+    }))
+    .sort((a, b) => {
+      if (!locked) return (a.nombre || '').localeCompare(b.nombre || '');
+      if (a.puntos === null && b.puntos === null) return 0;
+      if (a.puntos === null) return 1;
+      if (b.puntos === null) return -1;
+      return b.puntos - a.puntos;
+    });
 
-    const avatarHtml = usuario.fotoPerfil
-      ? `<img src="${escapeHtml(usuario.fotoPerfil)}" alt="" style="width:100%;height:100%;object-fit:cover;border-radius:50%;">`
-      : `<span>${initial(usuario.nombre || usuario.username || 'U')}</span>`;
+  const positions = computePositions(ranked);
 
-    return `
-      <div class="match-pred-row">
-        <span class="match-pred-row__rank">${i + 1}</span>
-        <div class="match-pred-row__avatar">${avatarHtml}</div>
-        <div class="match-pred-row__info">
-          <span class="match-pred-row__name">${escapeHtml(usuario.nombre || usuario.username)}</span>
-          <span class="match-pred-row__pred">${pred}</span>
-        </div>
-        ${tagHtml}
-        ${ptsHtml}
-      </div>`;
-  }).join('');
+  // Notice shown above the list before kick-off
+  const noticeEl = document.getElementById('match-ranking-notice');
+  if (noticeEl) noticeEl.classList.toggle('hidden', locked);
+
+  const matchSubLine = r => locked
+    ? (r.hasPred ? escapeHtml(r.predScore) : `<span style="color:var(--text-3)">${t('match.noPred')}</span>`)
+    : `<span style="color:var(--text-3)">${t('match.predsHidden')}</span>`;
+
+  renderRankingInto(podiumEl, rankingList, ranked, positions, {
+    subLineFn: matchSubLine,
+    clickable: false,
+  });
 }
 
 async function initInviteLanding() {
@@ -1554,37 +1604,7 @@ async function loadLeaderboard() {
       return;
     }
 
-    if (podiumEl) {
-      const top = ranking.slice(0, 3);
-      const order     = [top[1], top[0], top[2]];
-      const topPos    = [positions[1], positions[0], positions[2]];
-      const mClasses  = ['medal medal-2', 'medal medal-1', 'medal medal-3'];
-      const classes   = ['podium-item--2', 'podium-item--1', 'podium-item--3'];
-
-      podiumEl.innerHTML = order.map((r, i) => r ? `
-        <div class="podium-item ${classes[i]}" data-user-id="${escapeHtml(r.usuarioId || '')}" data-user-name="${escapeHtml(r.nombre)}">
-          <span class="${mClasses[i]}">${topPos[i] ?? i + 1}</span>
-          <div class="podium-avatar">${r.fotoPerfil ? `<img src="${escapeHtml(r.fotoPerfil)}" alt="" style="width:100%;height:100%;object-fit:cover;border-radius:50%;">` : initial(r.nombre)}</div>
-          <div class="podium-name">${escapeHtml(r.nombre)}</div>
-          <div class="podium-pts">${r.puntos} ${t('stat.pts')}</div>
-          <div class="podium-bar"></div>
-        </div>
-      ` : '').join('');
-    }
-
-    const rest = ranking.slice(3);
-    rankingEl.innerHTML = rest.length
-      ? rest.map((r, i) => renderRankRow(r, positions[i + 3])).join('')
-      : '';
-
-    // Attach click handlers to podium items and rank rows
-    document.querySelectorAll('[data-user-id]').forEach(el => {
-      el.addEventListener('click', () => {
-        const userId = el.dataset.userId;
-        const userName = el.dataset.userName;
-        if (userId) openUserPredsDrawer(userId, userName);
-      });
-    });
+    renderRankingInto(podiumEl, rankingEl, ranking, positions);
 
   } catch (error) {
     if (podiumEl) podiumEl.innerHTML = '';
@@ -1625,28 +1645,78 @@ async function loadTournamentUpcomingMatches() {
   }
 }
 
-function renderRankRow(r, pos) {
+/**
+ * Renders a single ranking row.
+ * @param {object} r - ranking entry (usuarioId, nombre, fotoPerfil, puntos, aciertos, exactos)
+ * @param {number} pos - display position (1-based, accounts for ties)
+ * @param {(r: object) => string} [subLineFn] - optional override for the sub-line text; defaults to hits/exact
+ */
+function renderRankRow(r, pos, subLineFn) {
   const posEl = pos === 1 ? `<span class="medal medal-1">1</span>`
               : pos === 2 ? `<span class="medal medal-2">2</span>`
               : pos === 3 ? `<span class="medal medal-3">3</span>`
               : `<span class="rank-pos">${pos}</span>`;
-  const avatarInner = r.fotoPerfil
-    ? `<img src="${escapeHtml(r.fotoPerfil)}" alt="" style="width:100%;height:100%;object-fit:cover;border-radius:50%;">`
-    : initial(r.nombre);
+  const avatarInner = fotoImg(r.fotoPerfil, r.nombre);
+  const sub = subLineFn
+    ? subLineFn(r)
+    : `${r.aciertos ?? 0} ${t('stat.hitsLc')} · ${r.exactos ?? 0} ${t('stat.exactLc')}`;
   return `
     <div class="ranking-row" data-user-id="${escapeHtml(r.usuarioId || '')}" data-user-name="${escapeHtml(r.nombre)}">
       ${posEl}
       <div class="rank-avatar">${avatarInner}</div>
       <div class="rank-info">
         <div class="rank-name">${escapeHtml(r.nombre)}</div>
-        <div class="rank-sub">${r.aciertos ?? 0} ${t('stat.hitsLc')} · ${r.exactos ?? 0} ${t('stat.exactLc')}</div>
+        <div class="rank-sub">${sub}</div>
       </div>
       <div class="rank-right">
-        <div class="rank-pts">${r.puntos}</div>
+        <div class="rank-pts">${r.puntos ?? '—'}</div>
         <span class="rank-pts-label">${t('stat.pts')}</span>
       </div>
     </div>
   `;
+}
+
+/**
+ * Renders a full podium + ranking list into the given DOM elements.
+ * Both loadLeaderboard and initPartidoDetalle call this.
+ * @param {HTMLElement|null} podiumEl
+ * @param {HTMLElement} rankingEl
+ * @param {object[]} ranked - sorted ranking entries
+ * @param {number[]} positions - parallel position array from computePositions
+ * @param {{ subLineFn?: (r: object) => string, clickable?: boolean }} opts
+ */
+function renderRankingInto(podiumEl, rankingEl, ranked, positions, { subLineFn, clickable = true } = {}) {
+  if (podiumEl) {
+    const top    = ranked.slice(0, 3);
+    const order  = [top[1], top[0], top[2]];
+    const topPos = [positions[1], positions[0], positions[2]];
+    const mCls   = ['medal medal-2', 'medal medal-1', 'medal medal-3'];
+    const pCls   = ['podium-item--2', 'podium-item--1', 'podium-item--3'];
+    podiumEl.innerHTML = order.map((r, i) => r ? `
+      <div class="podium-item ${pCls[i]}"${clickable ? ` data-user-id="${escapeHtml(r.usuarioId || '')}" data-user-name="${escapeHtml(r.nombre)}"` : ''}>
+        <span class="${mCls[i]}">${topPos[i] ?? i + 1}</span>
+        <div class="podium-avatar">${fotoImg(r.fotoPerfil, r.nombre)}</div>
+        <div class="podium-name">${escapeHtml(r.nombre)}</div>
+        <div class="podium-pts">${r.puntos ?? '—'} ${t('stat.pts')}</div>
+        <div class="podium-bar"></div>
+      </div>` : '').join('');
+  }
+
+  const rest = ranked.slice(3);
+  rankingEl.innerHTML = rest.length
+    ? rest.map((r, i) => renderRankRow(r, positions[i + 3], subLineFn)).join('')
+    : '';
+
+  if (clickable) {
+    const root = podiumEl ? podiumEl.parentElement : rankingEl.parentElement;
+    root?.querySelectorAll('[data-user-id]').forEach(el => {
+      el.addEventListener('click', () => {
+        const userId = el.dataset.userId;
+        const userName = el.dataset.userName;
+        if (userId) openUserPredsDrawer(userId, userName);
+      });
+    });
+  }
 }
 
 function renderSelectedContext() {
@@ -1944,6 +2014,13 @@ function initial(value) {
   return escapeHtml(String(value || '?').trim()[0]?.toUpperCase() || '?');
 }
 
+/** Renders a profile picture img with a letter fallback on broken URL. */
+function fotoImg(src, name, styleStr = 'width:100%;height:100%;object-fit:cover;border-radius:50%;') {
+  if (!src) return `<span>${initial(name)}</span>`;
+  const ini = initial(name);
+  return `<img src="${escapeHtml(src)}" alt="" data-ini="${ini}" style="${styleStr}" onerror="this.onerror=null;var s=document.createElement('span');s.textContent=this.dataset.ini||'?';this.parentNode.replaceChild(s,this)">`;
+}
+
 function escapeHtml(value) {
   return String(value ?? '')
     .replace(/&/g, '&amp;')
@@ -1982,11 +2059,7 @@ async function initPerfil() {
     const avatarEl = document.getElementById('perfil-avatar');
     const nameEl = document.getElementById('perfil-display-name');
     const usernameEl = document.getElementById('perfil-display-username');
-    if (u.fotoPerfil) {
-      avatarEl.innerHTML = `<img src="${escapeHtml(u.fotoPerfil)}" alt="foto de perfil" style="width:100%;height:100%;border-radius:50%;object-fit:cover;">`;
-    } else {
-      avatarEl.textContent = initial(u.nombre || u.username);
-    }
+    avatarEl.innerHTML = fotoImg(u.fotoPerfil, u.nombre || u.username);
     if (nameEl) nameEl.textContent = u.nombre || u.username;
     if (usernameEl) usernameEl.textContent = '@' + u.username;
   }

@@ -25,10 +25,6 @@
     <section class="page-header page-header--compact">
       <div class="page-header-inner">
         <button class="icon-btn" id="back-btn" aria-label="Volver">‹</button>
-        <div class="page-title-group">
-          <span id="partido-subtitle" class="section-label"><span class="dot"></span></span>
-          <h1 class="page-title" data-i18n="page.match">Partido</h1>
-        </div>
       </div>
     </section>
 
@@ -36,9 +32,10 @@
       <div id="match-card-container"></div>
     </section>
 
-    <section class="section">
-      <h2 class="section-title" data-i18n="page.matchRanking">Ranking del partido</h2>
-      <div id="match-ranking-list"></div>
+    <section class="section" style="padding-top:0">
+      <p id="match-ranking-notice" class="section-notice hidden" data-i18n="match.predsHidden"></p>
+      <div id="match-podium" class="podium"></div>
+      <div id="match-ranking-list" class="ranking-list"></div>
     </section>
   </main>
 

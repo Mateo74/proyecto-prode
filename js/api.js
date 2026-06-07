@@ -142,7 +142,8 @@ const API = (() => {
         credentials: 'include',
       });
     } catch {
-      throw new Error('No se pudo conectar con el backend. Revisá que el servidor esté levantado.');
+      const t = (typeof I18n !== 'undefined') ? k => I18n.t(k) : k => k;
+      throw new Error(t('auth.error.networkError'));
     }
 
     if (res.status === 401 && !_isRetry) {
@@ -153,7 +154,8 @@ const API = (() => {
         try {
           await doRefresh();
         } catch {
-          throw new Error('Sesión expirada. Iniciá sesión de nuevo.');
+          const t = (typeof I18n !== 'undefined') ? k => I18n.t(k) : k => k;
+          throw new Error(t('auth.error.sessionExpired'));
         }
         return request(endpoint, options, true);
       }

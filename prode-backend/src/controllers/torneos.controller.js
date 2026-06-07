@@ -137,9 +137,11 @@ async function leaveUser(req, res) {
 
 async function getMatchPredicciones(req, res) {
   const { id: torneoId, partidoId } = req.params;
-  const { partido, entries } = await torneosService.getMatchPredictions(torneoId, partidoId);
+  const usuarioId = req.usuario?.id;
+  const { torneo, partido, userPrediccion, entries } = await torneosService.getMatchPredictions(torneoId, partidoId, usuarioId);
   res.json({
-    partido: partidoResponse(partido),
+    torneo: torneoDeAmigosResponse(torneo),
+    partido: partidoResponse(partido, userPrediccion),
     entries: entries.map(e => ({
       usuario: usuarioPublico(e.usuario),
       prediccion: e.prediccion

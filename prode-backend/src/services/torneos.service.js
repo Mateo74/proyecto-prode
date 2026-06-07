@@ -252,10 +252,10 @@ async function countActiveUsers() {
   return prisma.usuario.count({ where: { activo: true } });
 }
 
-async function getMatchPredictions(torneoId, partidoId) {
+async function getMatchPredictions(torneoId, partidoId, usuarioId) {
   const torneo = await prisma.torneoDeAmigos.findUnique({
     where: { id: torneoId },
-    include: { usuarios: true },
+    include: { ...torneoInclude, usuarios: true },
   });
   if (!torneo) throw httpError(404, "Torneo no encontrado");
 
@@ -268,6 +268,14 @@ async function getMatchPredictions(torneoId, partidoId) {
     throw httpError(400, "El partido no pertenece a la competencia del torneo");
   }
 
+  // Fetch the calling user's own prediction so the match card can render it
+  let userPrediccion = null;
+  if (usuarioId) {
+    userPrediccion = await prisma.prediccion.findFirst({
+      where: { partidoId, usuarioId },
+    });
+  }
+
   if (torneo.esGlobal) {
     // For global torneos: show all users who made a prediction for this match
     const predicciones = await prisma.prediccion.findMany({
@@ -276,14 +284,16 @@ async function getMatchPredictions(torneoId, partidoId) {
       orderBy: [{ puntosOtorgados: "desc" }],
     });
     return {
+      torneo,
       partido,
+      userPrediccion,
       entries: predicciones.map(p => ({ usuario: p.usuario, prediccion: p })),
     };
   }
 
   // Regular torneo: show all members regardless of whether they predicted
   const usuarios = torneo.usuarios;
-  if (!usuarios.length) return { partido, entries: [] };
+  if (!usuarios.length) return { torneo, partido, userPrediccion, entries: [] };
 
   const predicciones = await prisma.prediccion.findMany({
     where: { partidoId, usuarioId: { in: usuarios.map(u => u.id) } },
@@ -291,7 +301,9 @@ async function getMatchPredictions(torneoId, partidoId) {
   const predByUser = new Map(predicciones.map(p => [p.usuarioId, p]));
 
   return {
+    torneo,
     partido,
+    userPrediccion,
     entries: usuarios
       .map(u => ({ usuario: u, prediccion: predByUser.get(u.id) ?? null }))
       .sort((a, b) => {

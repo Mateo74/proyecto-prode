@@ -123,13 +123,18 @@ test("GET /api/torneos/:id/partidos/:partidoId returns partido and entries", asy
     torneoDeAmigos: {
       findUnique: async ({ where }) =>
         where.id === "t-1"
-          ? { id: "t-1", esGlobal: false, competenciaId: "comp-1", usuarios: [usuario] }
+          ? {
+              id: "t-1", nombre: "Test Torneo", esGlobal: false, activo: true,
+              competenciaId: "comp-1", competencia: null, creadorId: "u-1",
+              creador: null, usuarios: [usuario], fechaCreacion: new Date(),
+            }
           : null,
     },
     partido: {
       findUnique: async ({ where }) => (where.id === "p-1" ? partido : null),
     },
     prediccion: {
+      findFirst: async () => null,
       findMany: async () => [{
         id: "pred-1",
         usuarioId: "u-1",
@@ -148,6 +153,7 @@ test("GET /api/torneos/:id/partidos/:partidoId returns partido and entries", asy
     .get("/api/torneos/t-1/partidos/p-1")
     .expect(200);
 
+  assert.equal(response.body.torneo.id, "t-1");
   assert.equal(response.body.partido.id, "p-1");
   assert.equal(response.body.partido.equipo1, "Argentina");
   assert.equal(response.body.entries.length, 1);
