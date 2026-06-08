@@ -80,6 +80,29 @@ async function mockApi(page, matches, lang = "es") {
       await json(route, matches);
       return;
     }
+    if (url.pathname === "/api/torneos/torneo-wc/mis-predicciones") {
+      await json(route, [
+        {
+          id: "pred-wc-H-3",
+          matchId: "wc-H-3",
+          equipo1Id: TEAM_IDS["España"],
+          equipo1: "España",
+          equipo2Id: TEAM_IDS["Arabia Saudita"],
+          equipo2: "Arabia Saudita",
+          liga: "Copa Mundial FIFA",
+          competenciaId: "comp-wc",
+          fecha: "2026-06-15T18:00:00.000Z",
+          scoreEquipo1Pred: 0,
+          scoreEquipo2Pred: 1,
+          scoreEquipo1: null,
+          scoreEquipo2: null,
+          estado: "pendiente",
+          puntos: 0,
+          exacto: false,
+        },
+      ]);
+      return;
+    }
     await json(route, { message: "Unhandled API route" }, 404);
   });
 }
@@ -127,4 +150,16 @@ test("localizes group labels and team names to English", async ({ page }) => {
   // Team names are translated to English while keeping the predicted order.
   const names = groupH.locator(".group-table__name");
   await expect(names).toHaveText(["Saudi Arabia", "Cape Verde", "Uruguay", "Spain"]);
+});
+
+test("localizes prediction rows with team ids and group labels", async ({ page }) => {
+  await page.addInitScript(() => {
+    localStorage.setItem("once_metros_selected_torneo", JSON.stringify({ id: "torneo-wc", nombre: "World Cup" }));
+  });
+  await mockApi(page, groupHMatches(), "en");
+
+  await page.goto("/pages/predicciones.html");
+
+  await expect(page.locator(".pred-match-name")).toHaveText("Spain vs Saudi Arabia");
+  await expect(page.locator(".pred-match-meta")).toContainText("FIFA World Cup · Group H · My pred: 0-1");
 });

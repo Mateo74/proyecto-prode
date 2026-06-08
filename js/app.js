@@ -805,10 +805,16 @@ function renderPredRow(pred) {
     .map(escapeHtml)
     .join(' · ');
   const rowCls = pred.estado === 'acierto' ? 'is-hit' : pred.estado === 'fallo' ? 'is-miss' : '';
+  const equipo1Display = typeof localizeTeamName === 'function'
+    ? localizeTeamName(pred.equipo1Id, pred.equipo1)
+    : (I18n.getLang() === 'en' && pred.equipo1NombreEn ? pred.equipo1NombreEn : pred.equipo1);
+  const equipo2Display = typeof localizeTeamName === 'function'
+    ? localizeTeamName(pred.equipo2Id, pred.equipo2)
+    : (I18n.getLang() === 'en' && pred.equipo2NombreEn ? pred.equipo2NombreEn : pred.equipo2);
   return `
     <div class="pred-row ${rowCls}">
       <div class="pred-match">
-        <div class="pred-match-name">${escapeHtml(I18n.getLang() === 'en' && pred.equipo1NombreEn ? pred.equipo1NombreEn : pred.equipo1)} vs ${escapeHtml(I18n.getLang() === 'en' && pred.equipo2NombreEn ? pred.equipo2NombreEn : pred.equipo2)}</div>
+        <div class="pred-match-name">${escapeHtml(equipo1Display)} vs ${escapeHtml(equipo2Display)}</div>
         <div class="pred-match-meta">${metaNote}</div>
       </div>
       <span class="pred-tag ${cls}">${label}</span>
