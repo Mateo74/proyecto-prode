@@ -2250,11 +2250,13 @@ function setupGroupsOverlay() {
   fab.setAttribute('aria-label', t('groups.fab'));
   fab.title = t('groups.fab');
   fab.innerHTML = `
-    <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
-      <rect x="3" y="3" width="7" height="7" rx="1.5"></rect>
-      <rect x="14" y="3" width="7" height="7" rx="1.5"></rect>
-      <rect x="3" y="14" width="7" height="7" rx="1.5"></rect>
-      <rect x="14" y="14" width="7" height="7" rx="1.5"></rect>
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+      <rect x="9" y="4" width="6" height="16" rx="1.5"></rect>
+      <rect x="3" y="10" width="6" height="10" rx="1.5"></rect>
+      <rect x="15" y="13" width="6" height="7" rx="1.5"></rect>
+      <path d="M10.7 8.2h2.6"></path>
+      <path d="M5 13.7h2"></path>
+      <path d="M17 16.2h2"></path>
     </svg>`;
   document.body.appendChild(fab);
 
