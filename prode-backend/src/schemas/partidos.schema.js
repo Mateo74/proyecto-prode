@@ -34,10 +34,12 @@ const partidoPayload = registry.register(
     competencia: z
       .object({ id: z.string(), nombre: z.string(), slug: z.string() })
       .nullable(),
+    equipo1Id: z.string(),
     equipo1: z.string(),
     equipo1NombreCompleto: z.string().nullable(),
     equipo1Tipo: z.enum(["CLUB", "SELECCION"]),
     equipo1EscudoUrl: z.string().nullable().optional(),
+    equipo2Id: z.string(),
     equipo2: z.string(),
     equipo2NombreCompleto: z.string().nullable(),
     equipo2Tipo: z.enum(["CLUB", "SELECCION"]),

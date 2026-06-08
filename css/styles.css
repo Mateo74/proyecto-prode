@@ -630,9 +630,11 @@ button { font-family: var(--font); cursor: pointer; }
   font-weight: 700;
   letter-spacing: 0.06em;
   text-transform: uppercase;
+  white-space: nowrap;
 }
 
 .badge-league { background: var(--bg-4); color: var(--text-3); }
+.badge-group  { background: var(--primary-dim); color: var(--primary); }
 .badge-soon   { background: var(--blue-dim); color: var(--blue); }
 .badge-done   { background: var(--bg-4); color: var(--text-4); }
 .badge-stopped { background: rgba(255,145,0,0.12); color: var(--warning); }
@@ -2580,3 +2582,211 @@ img.team__badge-img {
   color: #ff6666;
 }
 
+/* =============================================
+   GRUPOS — tablas de posiciones predichas
+   ============================================= */
+.groups-grid {
+  width: 100%;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 320px), 1fr));
+  gap: 1.25rem;
+}
+
+.groups-grid__cell {
+  min-width: 0;
+}
+
+.group-table {
+  width: 100%;
+  border-collapse: collapse;
+  background: var(--bg-2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  font-size: 0.8rem;
+}
+
+.group-table th,
+.group-table td {
+  padding: 0.55rem 0.6rem;
+  text-align: center;
+  border-bottom: 1px solid var(--border);
+}
+
+.group-table tbody tr:last-child td { border-bottom: none; }
+
+.group-table__title {
+  background: var(--bg-3);
+  color: var(--primary);
+  font-size: 0.7rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  text-align: left;
+}
+
+.group-table thead tr:nth-child(2) th {
+  font-size: 0.6rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--text-3);
+}
+
+.group-table__team {
+  text-align: left;
+  font-weight: 600;
+  color: var(--text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.group-table td.group-table__team {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.group-table__crest {
+  flex-shrink: 0;
+  display: inline-flex;
+}
+
+.group-table__crest .team__badge {
+  width: 20px;
+  height: 20px;
+}
+
+.group-table__name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.group-table td { color: var(--text-2); }
+
+.group-table tbody tr { transition: background var(--t); }
+.group-table tbody tr:hover { background: var(--bg-3); }
+
+/* Equipo con sus 3 partidos de grupo ya pronosticados: línea naranja a la izquierda */
+.group-table tbody tr.is-complete .group-table__team {
+  box-shadow: inset 3px 0 0 var(--warning);
+}
+
+.group-table__pts {
+  font-weight: 800;
+  color: var(--primary);
+}
+
+/* =============================================
+   GRUPOS — botón flotante (FAB) + overlay
+   ============================================= */
+.grupos-fab {
+  position: fixed;
+  right: 1.75rem;
+  bottom: 4.75rem;
+  z-index: 8000;
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  border: none;
+  background: var(--primary);
+  color: #06210f;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  box-shadow: 0 18px 40px rgba(0,0,0,0.5), 0 0 0 7px var(--primary-glow);
+  transition: transform var(--t) var(--ease), box-shadow var(--t);
+}
+
+.grupos-fab svg {
+  width: 40px;
+  height: 40px;
+}
+
+.grupos-fab:hover {
+  transform: translateY(-2px) scale(1.05);
+  box-shadow: 0 22px 46px rgba(0,0,0,0.55), 0 0 0 8px var(--primary-glow);
+}
+
+.grupos-fab:active { transform: scale(0.97); }
+
+/* Sobre la barra inferior cuando aparece en mobile */
+@media (max-width: 700px) {
+  .grupos-fab {
+    right: 1rem;
+    bottom: calc(82px + env(safe-area-inset-bottom, 0px));
+    width: 72px;
+    height: 72px;
+  }
+  .grupos-fab svg {
+    width: 36px;
+    height: 36px;
+  }
+}
+
+.grupos-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 9000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1.25rem;
+  background: rgba(0,0,0,0);
+  backdrop-filter: blur(0px);
+  opacity: 0;
+  pointer-events: none;
+  transition: background 0.2s, backdrop-filter 0.2s, opacity 0.2s;
+}
+
+.grupos-overlay--visible {
+  background: rgba(0,0,0,0.6);
+  backdrop-filter: blur(4px);
+  opacity: 1;
+  pointer-events: auto;
+}
+
+/* Un poco más chico que la página de predicciones */
+.grupos-overlay__panel {
+  width: 100%;
+  max-width: min(940px, 92vw);
+  max-height: 88vh;
+  background: var(--bg-2);
+  border: 1px solid var(--border-2);
+  border-radius: var(--radius-lg);
+  box-shadow: 0 24px 60px rgba(0,0,0,0.55);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  transform: translateY(10px) scale(0.98);
+  transition: transform 0.2s var(--ease);
+}
+
+.grupos-overlay--visible .grupos-overlay__panel {
+  transform: translateY(0) scale(1);
+}
+
+.grupos-overlay__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 1rem 1.25rem;
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+}
+
+.grupos-overlay__title {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 850;
+  color: var(--text);
+}
+
+.grupos-overlay__body {
+  padding: 1.25rem;
+  overflow: auto;
+}

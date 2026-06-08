@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Partidos | Once Metros</title>
+  <title>Grupos | Once Metros</title>
   <link rel="icon" type="image/png" href="/favicon.png" sizes="32x32">
   <link rel="apple-touch-icon" href="/assets/apple-touch-icon.png">
   <link rel="manifest" href="/manifest.json">
@@ -16,38 +16,31 @@
       <a class="logo" href="../index.html"><span class="logo-pulse"></span>Once Metros</a>
       <div class="nav-links">
         <a href="../index.html" data-i18n="nav.competitions">Competencias</a>
+        <a href="grupos.html" class="active" data-i18n="nav.groups">Grupos</a>
         <a href="torneos.html" data-i18n="nav.friendTournaments">Torneos de amigos</a>
       </div>
     </nav>
   </header>
 
   <main>
-    <section class="page-header page-header--compact">
+    <section class="page-header">
       <div class="page-header-inner">
-        <a class="icon-btn" href="../index.html#predicciones" aria-label="Volver">‹</a>
         <div>
-          <span class="section-label"><span class="dot"></span><span data-i18n="section.competition">Competencia</span></span>
-          <h1 class="page-title" data-i18n="page.matches">Partidos</h1>
+          <span class="section-label"><span class="dot"></span><span data-i18n="nav.groups">Grupos</span></span>
+          <h1 class="page-title" data-i18n="page.groups">Grupos del Mundial</h1>
         </div>
-        <div id="selected-context" class="selected-context"></div>
       </div>
     </section>
 
     <section class="section">
-      <div class="filters-bar">
-        <button class="filter-chip" data-group="estado" data-value="" data-i18n="filter.all">Todos</button>
-        <button class="filter-chip active" data-group="estado" data-value="proximo" data-i18n="filter.upcoming">Próximos</button>
-        <button class="filter-chip" data-group="estado" data-value="en-vivo" data-i18n="filter.live">En vivo</button>
-        <button class="filter-chip" data-group="estado" data-value="finalizado" data-i18n="filter.finished">Finalizados</button>
-        <a class="icon-btn filters-bar__info" href="puntos.html" data-i18n-aria="nav.howPoints" data-i18n-title="nav.howPoints" aria-label="Cómo se calculan los puntos" title="Cómo se calculan los puntos">ⓘ</a>
-      </div>
-      <div id="matches-list" class="matches-grid"></div>
+      <div id="grupos-root"></div>
     </section>
   </main>
 
   <nav class="bottom-nav">
     <div class="bottom-nav__inner">
       <a class="bottom-nav__item" href="../index.html" data-i18n="nav.competitions">Competencias</a>
+      <a class="bottom-nav__item active" href="grupos.html" data-i18n="nav.groups">Grupos</a>
       <a class="bottom-nav__item" href="torneos.html" data-i18n="nav.friendTournaments">Torneos de amigos</a>
     </div>
   </nav>

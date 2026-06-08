@@ -92,10 +92,12 @@ const Predictions = (() => {
 
   // ─── Dispatcher principal ─────────────────────────────────────────
   function equipo1De(match) {
+    if (typeof localizeTeamName === 'function') return localizeTeamName(match.equipo1Id, match.equipo1 ?? match.equipoLocal);
     if (typeof I18n !== 'undefined' && I18n.getLang() === 'en' && match.equipo1NombreEn) return match.equipo1NombreEn;
     return match.equipo1 ?? match.equipoLocal;
   }
   function equipo2De(match) {
+    if (typeof localizeTeamName === 'function') return localizeTeamName(match.equipo2Id, match.equipo2 ?? match.equipoVisitante);
     if (typeof I18n !== 'undefined' && I18n.getLang() === 'en' && match.equipo2NombreEn) return match.equipo2NombreEn;
     return match.equipo2 ?? match.equipoVisitante;
   }
@@ -114,6 +116,31 @@ const Predictions = (() => {
     if (match.estado === 'suspendido') return t('badge.suspended');
     if (match.estado === 'cancelado') return t('badge.cancelled');
     return '';
+  }
+
+  function competitionName(match) {
+    if (
+      typeof I18n !== 'undefined' &&
+      I18n.getLang() === 'en' &&
+      (match.competencia?.slug === 'copa-mundial-fifa' || match.liga === 'Copa Mundial FIFA')
+    ) {
+      return 'FIFA World Cup';
+    }
+    return ligaDe(match);
+  }
+
+  function groupLabel(match) {
+    if (typeof groupLetterForMatch !== 'function') return '';
+    const letter = groupLetterForMatch(match);
+    return letter ? t('groups.title', { letter }) : '';
+  }
+
+  function metaBadges(match, statusHtml = '') {
+    const group = groupLabel(match);
+    return `
+        <span class="badge badge-league">${competitionName(match)}</span>
+        ${group ? `<span class="badge badge-group">${group}</span>` : ''}
+        ${statusHtml}`;
   }
 
   function createMatchCard(match) {
@@ -142,8 +169,7 @@ const Predictions = (() => {
 
     card.innerHTML = `
       <div class="match-card__meta">
-        <span class="badge badge-league">${ligaDe(match)}</span>
-        <span class="badge badge-soon">${t('badge.upcoming')}</span>
+        ${metaBadges(match, `<span class="badge badge-soon">${t('badge.upcoming')}</span>`)}
         <span class="match-card__time">${fecha}</span>
       </div>
 
@@ -254,8 +280,7 @@ const Predictions = (() => {
 
     card.innerHTML = `
       <div class="match-card__meta">
-        <span class="badge badge-league">${ligaDe(match)}</span>
-        <span class="badge badge-live">${t('badge.live')}</span>
+        ${metaBadges(match, `<span class="badge badge-live">${t('badge.live')}</span>`)}
       </div>
 
       <div class="match-card__body">
@@ -330,8 +355,7 @@ const Predictions = (() => {
 
     card.innerHTML = `
       <div class="match-card__meta">
-        <span class="badge badge-league">${ligaDe(match)}</span>
-        <span class="badge badge-done">${t('badge.finished')}</span>
+        ${metaBadges(match, `<span class="badge badge-done">${t('badge.finished')}</span>`)}
         <span class="match-card__time">${fecha}</span>
       </div>
 
@@ -370,8 +394,7 @@ const Predictions = (() => {
 
     card.innerHTML = `
       <div class="match-card__meta">
-        <span class="badge badge-league">${ligaDe(match)}</span>
-        <span class="badge badge-stopped">${label}</span>
+        ${metaBadges(match, `<span class="badge badge-stopped">${label}</span>`)}
       </div>
 
       <div class="match-card__body">
@@ -437,6 +460,18 @@ const Predictions = (() => {
   }
 
   /**
+   * Devuelve los marcadores actuales en memoria para un partido (incluye
+   * ediciones del usuario aún sin guardar). Es la fuente de verdad viva de la
+   * página: cada tecla actualiza este estado. Devuelve null si la tarjeta del
+   * partido no se renderizó (p. ej. partidos finalizados sin input editable).
+   */
+  function getCurrentScores(matchId) {
+    const s = state.get(matchId);
+    if (!s) return null;
+    return { equipo1: s.equipo1, equipo2: s.equipo2 };
+  }
+
+  /**
    * Calcula puntos de una predicción.
    * Resultado correcto: 1 · diferencia correcta: 2 · exacto: max(3, goles totales)
    */
@@ -455,5 +490,5 @@ const Predictions = (() => {
     return diffPred === diffReal ? 2 : 1;
   }
 
-  return { createMatchCard, calcularPuntos };
+  return { createMatchCard, calcularPuntos, teamCrest, getCurrentScores };
 })();

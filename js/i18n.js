@@ -16,6 +16,7 @@ const I18n = (() => {
       // ── Navigation ───────────────────────────────────────────────────
       'nav.competitions':        'Competencias',
       'nav.friendTournaments':   'Torneos de amigos',
+      'nav.groups':              'Grupos',
       'nav.predictions':         'Predicciones',
       'nav.myAccount':           'Mi cuenta',
       'nav.signIn':              'Ingresar',
@@ -42,6 +43,7 @@ const I18n = (() => {
       'page.competitions':  'Competencias',
       'page.matches':       'Partidos',
       'page.predictions':   'Predicciones',
+      'page.groups':        'Grupos del Mundial',
       'page.myPredictions': 'Mis predicciones',
       'page.tournaments':   'Torneos de amigos',
       'page.ranking':       'Ranking',
@@ -94,6 +96,22 @@ const I18n = (() => {
       'stat.pts':      'pts',
       'stat.hitsLc':   'aciertos',
       'stat.exactLc':  'exactos',
+
+      // ── Grupos ────────────────────────────────────────────────────
+      'groups.title':        'Grupo {{letter}}',
+      'groups.team':         'Equipo',
+      'groups.played':       'PJ',
+      'groups.gf':           'GF',
+      'groups.gc':           'GC',
+      'groups.points':       'Pts',
+      'groups.playedTitle':  'Partidos jugados',
+      'groups.gfTitle':      'Goles a favor',
+      'groups.gcTitle':      'Goles en contra',
+      'groups.pointsTitle':  'Puntos predichos',
+      'groups.empty':        'No hay grupos para mostrar.',
+      'groups.fab':          'Ver grupos predichos',
+      'groups.overlayTitle': 'Grupos predichos',
+      'action.close':        'Cerrar',
 
       // ── Actions ───────────────────────────────────────────────────
       'action.invite':          'Invitar',
@@ -276,6 +294,7 @@ const I18n = (() => {
       // ── Navigation ───────────────────────────────────────────────────
       'nav.competitions':        'Competitions',
       'nav.friendTournaments':   'Friends Tournaments',
+      'nav.groups':              'Groups',
       'nav.predictions':         'Predictions',
       'nav.myAccount':           'My account',
       'nav.signIn':              'Sign in',
@@ -302,6 +321,7 @@ const I18n = (() => {
       'page.competitions':  'Competitions',
       'page.matches':       'Matches',
       'page.predictions':   'Predictions',
+      'page.groups':        'World Cup Groups',
       'page.myPredictions': 'My predictions',
       'page.tournaments':   'Friends Tournaments',
       'page.ranking':       'Ranking',
@@ -353,6 +373,22 @@ const I18n = (() => {
       'stat.pts':      'pts',
       'stat.hitsLc':   'hits',
       'stat.exactLc':  'exact',
+
+      // ── Grupos ────────────────────────────────────────────────────
+      'groups.title':        'Group {{letter}}',
+      'groups.team':         'Team',
+      'groups.played':       'MP',
+      'groups.gf':           'GF',
+      'groups.gc':           'GA',
+      'groups.points':       'Pts',
+      'groups.playedTitle':  'Matches played',
+      'groups.gfTitle':      'Goals for',
+      'groups.gcTitle':      'Goals against',
+      'groups.pointsTitle':  'Predicted points',
+      'groups.empty':        'No groups to show.',
+      'groups.fab':          'View predicted groups',
+      'groups.overlayTitle': 'Predicted groups',
+      'action.close':        'Close',
 
       // ── Actions ───────────────────────────────────────────────────
       'action.invite':          'Invite',
