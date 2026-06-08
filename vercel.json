@@ -13,7 +13,7 @@
       "destination": "/pages/perfil.html"
     },
     {
-      "source": "/partido-detalle",
+      "source": "/pages/partido-detalle",
       "destination": "/pages/partido-detalle.html"
     }
   ],
