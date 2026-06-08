@@ -79,7 +79,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   // Redirect unauthenticated users from home to login
   if (!API.getToken() && page === 'home') {
-    window.location.href = authRelativePath('auth.html');
+    window.location.href = authRelativePath('auth');
     return;
   }
 
@@ -118,14 +118,14 @@ let lastLoadedMatches = [];
 function detectPage() {
   const p = window.location.pathname;
   if (p.includes('partido-detalle'))  return 'partido-detalle';
-  if (p.includes('invitaciones.html')) return 'invitaciones';
-  if (p.includes('invitacion.html'))   return 'invitacion';
-  if (p.includes('invitar.html'))      return 'invitar';
-  if (p.includes('torneo-edit.html')) return 'torneo-edit';
+  if (p.includes('invitaciones'))     return 'invitaciones';
+  if (p.includes('invitacion'))        return 'invitacion';
+  if (p.includes('invitar'))           return 'invitar';
+  if (p.includes('torneo-edit'))       return 'torneo-edit';
   if (p.includes('partidos'))          return 'partidos';
   if (p.includes('predicciones'))      return 'predicciones';
   if (p.includes('clasificacion'))     return 'clasificacion';
-  if (p.includes('torneos.html'))      return 'torneos';
+  if (p.includes('torneos'))           return 'torneos';
   if (p.includes('grupos'))            return 'grupos';
   if (p.includes('auth'))              return 'auth';
   if (p.includes('perfil'))            return 'perfil';
@@ -136,14 +136,14 @@ function updateAuthNav() {
   const user = API.getCurrentUser();
   document.querySelectorAll('[data-auth-link]').forEach(link => {
     link.textContent = user ? user.nombre || user.username : t('nav.signIn');
-    link.href = link.dataset.authHref || 'auth.html';
+    link.href = link.dataset.authHref || 'auth';
   });
 
   document.querySelectorAll('[data-logout]').forEach(btn => {
     btn.classList.toggle('hidden', !user);
     btn.addEventListener('click', () => {
       API.logout();
-      window.location.href = authRelativePath('auth.html');
+      window.location.href = authRelativePath('auth');
     });
   });
 }
@@ -158,7 +158,7 @@ function initAccountMenu() {
     // ⓘ button — always visible, to the left of the hamburger/avatar
     const infoBtnEl = document.createElement('a');
     infoBtnEl.className = 'icon-btn nav-info-btn';
-    infoBtnEl.href = pagePath('puntos.html');
+    infoBtnEl.href = pagePath('puntos');
     infoBtnEl.textContent = 'ⓘ';
     infoBtnEl.title = t('nav.howPoints');
     infoBtnEl.setAttribute('aria-label', t('nav.howPoints'));
@@ -191,7 +191,7 @@ function initAccountMenu() {
         : '';
 
       const profileSection = user ? `
-        <a class="native-side-drawer__profile" href="${pagePath('perfil.html')}">
+        <a class="native-side-drawer__profile" href="${pagePath('perfil')}">
           <div class="native-side-drawer__avatar">${avatarHtml}</div>
           <div>
             <div class="native-side-drawer__name">${escapeHtml(user.nombre || user.username)}</div>
@@ -201,7 +201,7 @@ function initAccountMenu() {
 
       const footerHtml = user
         ? `<button class="native-side-drawer__logout" id="native-drawer-logout">${t('nav.signOut')}</button>`
-        : `<a class="btn btn-primary" style="width:100%;justify-content:center;" href="${authRelativePath('auth.html')}">${t('nav.signIn')}</a>`;
+        : `<a class="btn btn-primary" style="width:100%;justify-content:center;" href="${authRelativePath('auth')}">${t('nav.signIn')}</a>`;
 
       // Backdrop
       const backdrop = document.createElement('div');
@@ -220,10 +220,10 @@ function initAccountMenu() {
         ${profileSection}
         <nav class="native-side-drawer__nav">
           <a href="${homeRelativePath()}">${t('nav.competitions')}</a>
-          <a href="${pagePath('torneos.html')}">${t('nav.friendTournaments')}</a>
-          ${user ? `<a href="${pagePath('perfil.html')}">${t('nav.myAccount')}</a>` : ''}
-          <a href="${pagePath('ajustes.html')}">${t('nav.settings')}</a>
-          <a href="${pagePath('puntos.html')}">${t('nav.howPoints')}</a>
+          <a href="${pagePath('torneos')}">${t('nav.friendTournaments')}</a>
+          ${user ? `<a href="${pagePath('perfil')}">${t('nav.myAccount')}</a>` : ''}
+          <a href="${pagePath('ajustes')}">${t('nav.settings')}</a>
+          <a href="${pagePath('puntos')}">${t('nav.howPoints')}</a>
         </nav>
         <div class="native-side-drawer__footer">
           ${footerHtml}
@@ -241,7 +241,7 @@ function initAccountMenu() {
       backdrop.addEventListener('click', closeDrawer);
       document.getElementById('native-drawer-logout')?.addEventListener('click', () => {
         API.logout();
-        window.location.href = authRelativePath('auth.html');
+        window.location.href = authRelativePath('auth');
       });
 
       return;
@@ -250,7 +250,7 @@ function initAccountMenu() {
     if (!user) {
       // Guest: show a plain text link instead of the avatar circle
       menu.innerHTML = `
-        <a class="account-menu__button account-menu__button--guest" href="${authRelativePath('auth.html')}">${t('nav.signIn')}</a>
+        <a class="account-menu__button account-menu__button--guest" href="${authRelativePath('auth')}">${t('nav.signIn')}</a>
       `;
       navbar.appendChild(infoBtnEl);
       navbar.appendChild(menu);
@@ -266,8 +266,8 @@ function initAccountMenu() {
           <strong>${escapeHtml(user.nombre || user.username)}</strong>
           <small>${t('nav.activeSession')}</small>
         </div>
-        <a href="${authRelativePath('perfil.html')}">${t('nav.myAccount')}</a>
-        <a href="${authRelativePath('ajustes.html')}">${t('nav.settings')}</a>
+        <a href="${authRelativePath('perfil')}">${t('nav.myAccount')}</a>
+        <a href="${authRelativePath('ajustes')}">${t('nav.settings')}</a>
         <button data-menu-logout>${t('nav.signOut')}</button>
       </div>
     `;
@@ -290,7 +290,7 @@ function initAccountMenu() {
   document.querySelectorAll('[data-menu-logout]').forEach(button => {
     button.addEventListener('click', () => {
       API.logout();
-      window.location.href = authRelativePath('auth.html');
+      window.location.href = authRelativePath('auth');
     });
   });
 
@@ -308,8 +308,7 @@ function pagePath(path) {
 }
 
 function homeRelativePath(hash = '') {
-  const base = window.location.pathname.includes('/pages/') ? '../index.html' : 'index.html';
-  return `${base}${hash}`;
+  return `/${hash}`;
 }
 
 /* --------------------------------------------------------
@@ -389,7 +388,7 @@ function safeNextHref(next) {
 function redirectAfterAuth() {
   const params = new URLSearchParams(window.location.search);
   const next = safeNextHref(params.get('next'));
-  window.location.href = next || '../index.html';
+  window.location.href = next || '/';
 }
 
 function initGoogleAuth() {
@@ -541,7 +540,7 @@ function showCompetitionPicker() {
   stopMatchesPolling();
   document.getElementById('competition-picker')?.classList.remove('hidden');
   document.getElementById('competencia-workspace')?.classList.add('hidden');
-  history.replaceState(null, '', 'index.html');
+  history.replaceState(null, '', '/');
 }
 
 async function selectCompetencia(competencia, preferredTab = 'predicciones') {
@@ -576,7 +575,7 @@ async function loadTorneosForCompetencia(competencia = API.getSelectedCompetenci
     const show = !!API.getToken();
     createBtn.style.display = show ? '' : 'none';
     createBtn.classList.toggle('hidden', !show);
-    if (show) createBtn.href = `pages/torneo-edit.html?competenciaId=${encodeURIComponent(competencia.id)}`;
+    if (show) createBtn.href = `pages/torneo-edit?competenciaId=${encodeURIComponent(competencia.id)}`;
   }
 
   if (!API.getToken()) {
@@ -597,7 +596,7 @@ async function loadTorneosForCompetencia(competencia = API.getSelectedCompetenci
       btn.addEventListener('click', () => {
         const torneo = torneos.find(t => t.id === btn.dataset.torneoId);
         API.setSelectedTorneo(torneo);
-        window.location.href = pagePath('clasificacion.html');
+        window.location.href = pagePath('clasificacion');
       });
     });
   } catch (error) {
@@ -613,7 +612,7 @@ function switchHomeTab(tab) {
   document.getElementById('home-tab-predicciones')?.classList.toggle('hidden', next !== 'predicciones');
   document.getElementById('home-tab-torneos')?.classList.toggle('hidden', next !== 'torneos');
   if (!document.getElementById('competencia-workspace')?.classList.contains('hidden')) {
-    history.replaceState(null, '', `index.html#${next}`);
+    history.replaceState(null, '', `/#${next}`);
   }
 }
 
@@ -1092,7 +1091,7 @@ async function initTorneoActionMenu() {
 
   // Rename (navigate to edit page)
   editBtn?.addEventListener('click', () => {
-    window.location.href = `torneo-edit.html?id=${encodeURIComponent(torneo.id)}`;
+    window.location.href = `torneo-edit?id=${encodeURIComponent(torneo.id)}`;
   });
 
   // Invite button (standalone)
@@ -1117,7 +1116,7 @@ async function initTorneoActionMenu() {
     try {
       await API.leaveTorneoDeAmigos(torneo.id);
       API.setSelectedTorneo(null);
-      window.location.href = 'torneos.html';
+      window.location.href = 'torneos';
     } catch (err) {
       alert(err.message || t('alert.leaveTorneoError'));
       leaveBtn.disabled = false;
@@ -1132,7 +1131,7 @@ async function initTorneoActionMenu() {
     try {
       await API.deleteTorneoDeAmigos(torneo.id);
       API.setSelectedTorneo(null);
-      window.location.href = '../index.html#torneos';
+      window.location.href = '/#torneos';
     } catch (err) {
       alert(err.message || t('alert.deleteTorneoError'));
       deleteBtn.disabled = false;
@@ -1148,13 +1147,13 @@ async function initInvitar() {
   const torneoId = params.get('torneo');
 
   if (!API.getToken()) {
-    const next = encodeURIComponent(`invitar.html?torneo=${torneoId}`);
-    window.location.href = `auth.html?next=${next}`;
+    const next = encodeURIComponent(`invitar?torneo=${torneoId}`);
+    window.location.href = `auth?next=${next}`;
     return;
   }
 
   if (!torneoId) {
-    window.location.href = 'torneos.html';
+    window.location.href = 'torneos';
     return;
   }
 
@@ -1162,13 +1161,13 @@ async function initInvitar() {
   try {
     torneo = await API.getTorneoDeAmigos(torneoId);
   } catch {
-    window.location.href = 'torneos.html';
+    window.location.href = 'torneos';
     return;
   }
 
   const user = API.getCurrentUser();
   if (torneo.creadorId !== user?.id) {
-    window.location.href = `clasificacion.html`;
+    window.location.href = 'clasificacion';
     return;
   }
 
@@ -1178,7 +1177,7 @@ async function initInvitar() {
   if (labelEl) labelEl.innerHTML = `<span class="dot"></span>${escapeHtml(competenciaNombre(torneo.competencia) || 'Torneo de amigos')}`;
 
   const backBtn = document.getElementById('invite-back-btn');
-  if (backBtn) backBtn.href = 'clasificacion.html';
+  if (backBtn) backBtn.href = 'clasificacion';
 
   const form = document.getElementById('invite-search-form');
   const input = document.getElementById('invite-identificador');
@@ -1324,8 +1323,8 @@ function labelEstadoInvitacion(estado) {
    -------------------------------------------------------- */
 async function initInvitaciones() {
   if (!API.getToken()) {
-    const next = encodeURIComponent('invitaciones.html');
-    window.location.href = `auth.html?next=${next}`;
+    const next = encodeURIComponent('invitaciones');
+    window.location.href = `auth?next=${next}`;
     return;
   }
   await loadInvitacionesPendientes();
@@ -1525,7 +1524,7 @@ async function initInviteLanding() {
   if (!token) {
     title.textContent = t('torneo.invalidInvite');
     meta.textContent = t('torneo.missingToken');
-    actions.innerHTML = `<a class="btn btn-primary" href="../index.html">${t('action.goHome')}</a>`;
+    actions.innerHTML = `<a class="btn btn-primary" href="/">${t('action.goHome')}</a>`;
     return;
   }
 
@@ -1535,7 +1534,7 @@ async function initInviteLanding() {
   } catch (err) {
     title.textContent = t('torneo.invalidInviteRevoked');
     meta.textContent = err.message;
-    actions.innerHTML = `<a class="btn btn-primary" href="../index.html">${t('action.goHome')}</a>`;
+    actions.innerHTML = `<a class="btn btn-primary" href="/">${t('action.goHome')}</a>`;
     return;
   }
 
@@ -1543,10 +1542,10 @@ async function initInviteLanding() {
   meta.textContent = competenciaNombre(torneo.competencia) || '';
 
   if (!API.getToken()) {
-    const next = encodeURIComponent(`invitacion.html?token=${token}`);
+    const next = encodeURIComponent(`invitacion?token=${token}`);
     actions.innerHTML = `
-      <a class="btn btn-primary" href="auth.html?next=${next}">${t('action.signInToJoin')}</a>
-      <a class="btn btn-outline" href="../index.html">${t('action.seeCompetitions')}</a>
+      <a class="btn btn-primary" href="auth?next=${next}">${t('action.signInToJoin')}</a>
+      <a class="btn btn-outline" href="/">${t('action.seeCompetitions')}</a>
     `;
     return;
   }
@@ -1556,7 +1555,7 @@ async function initInviteLanding() {
     try {
       const result = await API.unirseConInviteToken(token);
       API.setSelectedTorneo(result);
-      window.location.href = 'clasificacion.html';
+      window.location.href = 'clasificacion';
     } catch (err) {
       setInviteLandingFeedback(err.message, 'error');
     }
@@ -1858,7 +1857,7 @@ async function initTorneos() {
       <div class="empty-state">
         <div class="empty-state-icon">!</div>
         <p>${escapeHtml(t('empty.signInForTorneoPage'))}</p>
-        <a href="auth.html?next=torneos.html" class="btn btn-primary" style="margin-top:.75rem">${t('nav.signIn')}</a>
+        <a href="auth?next=torneos" class="btn btn-primary" style="margin-top:.75rem">${t('nav.signIn')}</a>
       </div>
     `;
     return;
@@ -1877,7 +1876,7 @@ async function initTorneos() {
       btn.addEventListener('click', () => {
         const torneo = torneos.find(t => t.id === btn.dataset.torneoId);
         API.setSelectedTorneo(torneo);
-        window.location.href = 'clasificacion.html';
+        window.location.href = 'clasificacion';
       });
     });
   } catch (err) {
@@ -1901,7 +1900,7 @@ async function initTorneoEdit() {
   // Auth already guaranteed by authBlockingPages, but guard just in case
   if (!API.getToken()) {
     const next = encodeURIComponent(window.location.pathname + window.location.search);
-    window.location.href = `auth.html?next=${next}`;
+    window.location.href = `auth?next=${next}`;
     return;
   }
 
@@ -1919,30 +1918,30 @@ async function initTorneoEdit() {
     try {
       torneo = await API.getTorneoDeAmigos(torneoId);
     } catch {
-      window.location.href = 'torneos.html';
+      window.location.href = 'torneos';
       return;
     }
     const user = API.getCurrentUser();
     if (torneo.creadorId !== user?.id) {
-      window.location.href = 'clasificacion.html';
+      window.location.href = 'clasificacion';
       return;
     }
     if (titleEl)    titleEl.textContent = t('action.editTournament');
     if (subtitleEl) subtitleEl.textContent = torneo.competencia?.nombre || t('section.friendTournamentCap');
     if (nameInput)  nameInput.value = torneo.nombre;
     if (deleteBtn)  deleteBtn.classList.remove('hidden');
-    if (backBtn)    backBtn.href = 'clasificacion.html';
+    if (backBtn)    backBtn.href = 'clasificacion';
     API.setSelectedTorneo(torneo);
   } else {
     if (!competenciaId) {
-      window.location.href = '../index.html#torneos';
+      window.location.href = '/#torneos';
       return;
     }
     const stored = API.getSelectedCompetencia();
     if (titleEl)    titleEl.textContent = t('action.createTournament');
     if (subtitleEl) subtitleEl.textContent = stored?.nombre || '';
     if (deleteBtn)  deleteBtn.classList.add('hidden');
-    if (backBtn)    backBtn.href = '../index.html#torneos';
+    if (backBtn)    backBtn.href = '/#torneos';
   }
 
   document.getElementById('torneo-edit-form')?.addEventListener('submit', async (e) => {
@@ -1961,7 +1960,7 @@ async function initTorneoEdit() {
         const nuevo = await API.createTorneoDeAmigos({ nombre, competenciaId });
         API.setSelectedTorneo(nuevo);
       }
-      window.location.href = 'clasificacion.html';
+      window.location.href = 'clasificacion';
     } catch (err) {
       if (feedbackEl) {
         feedbackEl.textContent = err.message;
@@ -1980,7 +1979,7 @@ async function initTorneoEdit() {
     try {
       await API.deleteTorneoDeAmigos(torneoId);
       API.setSelectedTorneo(null);
-      window.location.href = '../index.html#torneos';
+      window.location.href = '/#torneos';
     } catch (err) {
       if (feedbackEl) {
         feedbackEl.textContent = err.message;
@@ -2063,7 +2062,7 @@ async function initPerfil() {
 
   const user = API.getCurrentUser();
   if (!user) {
-    window.location.replace('auth.html');
+    window.location.replace('auth');
     return;
   }
 
@@ -2153,7 +2152,7 @@ async function initPerfil() {
   // Logout
   document.getElementById('perfil-logout-btn')?.addEventListener('click', () => {
     API.logout();
-    window.location.replace('auth.html');
+    window.location.replace('auth');
   });
 
   // Delete account
@@ -2169,7 +2168,7 @@ async function initPerfil() {
     try {
       await API.deleteUsuario(user.id);
       API.logout();
-      window.location.replace('auth.html');
+      window.location.replace('auth');
     } catch (err) {
       showMsg(err.message || 'Error al eliminar la cuenta.', 'error');
       btn.disabled = false;

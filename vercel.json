@@ -4,18 +4,21 @@
       "source": "/api/:path*",
       "destination": "https://once-metros-api-gzhrhka4d4gac3cq.chilecentral-01.azurewebsites.net/api/:path*"
     },
-    {
-      "source": "/privacidad",
-      "destination": "/pages/privacidad.html"
-    },
-    {
-      "source": "/perfil",
-      "destination": "/pages/perfil.html"
-    },
-    {
-      "source": "/pages/partido-detalle",
-      "destination": "/pages/partido-detalle.html"
-    }
+    { "source": "/pages/ajustes",        "destination": "/pages/ajustes.html" },
+    { "source": "/pages/auth",           "destination": "/pages/auth.html" },
+    { "source": "/pages/clasificacion",  "destination": "/pages/clasificacion.html" },
+    { "source": "/pages/grupos",         "destination": "/pages/grupos.html" },
+    { "source": "/pages/invitacion",     "destination": "/pages/invitacion.html" },
+    { "source": "/pages/invitaciones",   "destination": "/pages/invitaciones.html" },
+    { "source": "/pages/invitar",        "destination": "/pages/invitar.html" },
+    { "source": "/pages/partido-detalle","destination": "/pages/partido-detalle.html" },
+    { "source": "/pages/partidos",       "destination": "/pages/partidos.html" },
+    { "source": "/pages/perfil",         "destination": "/pages/perfil.html" },
+    { "source": "/pages/predicciones",   "destination": "/pages/predicciones.html" },
+    { "source": "/pages/privacidad",     "destination": "/pages/privacidad.html" },
+    { "source": "/pages/puntos",         "destination": "/pages/puntos.html" },
+    { "source": "/pages/torneo-edit",    "destination": "/pages/torneo-edit.html" },
+    { "source": "/pages/torneos",        "destination": "/pages/torneos.html" }
   ],
   "headers": [
     {
