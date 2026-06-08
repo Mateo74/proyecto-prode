@@ -11,6 +11,10 @@
     {
       "source": "/perfil",
       "destination": "/pages/perfil.html"
+    },
+    {
+      "source": "/partido-detalle",
+      "destination": "/pages/partido-detalle.html"
     }
   ],
   "headers": [
