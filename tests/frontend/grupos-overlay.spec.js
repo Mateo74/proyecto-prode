@@ -54,14 +54,14 @@ function groupHMatches({ predictH6 = true } = {}) {
   ];
 }
 
-async function setup(page, matches) {
-  await page.addInitScript(() => {
-    localStorage.setItem("once_metros_lang", "es");
+async function setup(page, matches, lang = "es") {
+  await page.addInitScript((l) => {
+    localStorage.setItem("once_metros_lang", l);
     localStorage.setItem(
       "once_metros_selected_competencia",
       JSON.stringify({ id: "comp-wc", nombre: "Copa Mundial FIFA", slug: "copa-mundial-fifa" }),
     );
-  });
+  }, lang);
   await page.route("http://localhost:3000/api/**", async (route) => {
     const request = route.request();
     const url = new URL(request.url());
@@ -70,7 +70,7 @@ async function setup(page, matches) {
       return;
     }
     if (url.pathname === "/api/auth/refresh") {
-      await json(route, { token: "access-token", usuario: { id: "user-1", username: "demo", nombre: "Demo", idioma: "es" } });
+      await json(route, { token: "access-token", usuario: { id: "user-1", username: "demo", nombre: "Demo", idioma: lang } });
       return;
     }
     if (url.pathname === "/api/competencias") {
@@ -90,7 +90,7 @@ async function setup(page, matches) {
 
   await page.goto("/pages/partidos.html");
   await expect(page.locator('.match-card[data-match-id="wc-H-1"]')).toBeVisible();
-  await expect(page.locator('.match-card[data-match-id="wc-H-1"] .badge-group')).toHaveText("Grupo H");
+  await expect(page.locator('.match-card[data-match-id="wc-H-1"] .badge-group')).toHaveText(lang === "en" ? "Group H" : "Grupo H");
 }
 
 const overlay = (page) => page.locator("#grupos-overlay");
@@ -168,4 +168,13 @@ test("adding a new prediction is reflected in the predicted groups", async ({ pa
   await expect(overlayGroupH(page).locator("tbody tr.is-complete")).toHaveCount(4);
   await expect(overlayGroupH(page).locator(".group-table__name").first()).toHaveText("Arabia Saudita");
   await expect(overlayGroupH(page).locator("tbody tr").first().locator(".group-table__pts")).toHaveText("5");
+});
+
+test("localizes World Cup match card teams from team ids", async ({ page }) => {
+  await setup(page, groupHMatches(), "en");
+
+  const firstMatch = page.locator('.match-card[data-match-id="wc-H-1"]');
+  await expect(firstMatch.locator(".team__name")).toHaveText(["Spain", "Cape Verde"]);
+  await expect(firstMatch.locator(".badge-league")).toHaveText("FIFA World Cup");
+  await expect(firstMatch.locator(".badge-group")).toHaveText("Group H");
 });

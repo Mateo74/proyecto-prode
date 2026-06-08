@@ -92,10 +92,12 @@ const Predictions = (() => {
 
   // ─── Dispatcher principal ─────────────────────────────────────────
   function equipo1De(match) {
+    if (typeof localizeTeamName === 'function') return localizeTeamName(match.equipo1Id, match.equipo1 ?? match.equipoLocal);
     if (typeof I18n !== 'undefined' && I18n.getLang() === 'en' && match.equipo1NombreEn) return match.equipo1NombreEn;
     return match.equipo1 ?? match.equipoLocal;
   }
   function equipo2De(match) {
+    if (typeof localizeTeamName === 'function') return localizeTeamName(match.equipo2Id, match.equipo2 ?? match.equipoVisitante);
     if (typeof I18n !== 'undefined' && I18n.getLang() === 'en' && match.equipo2NombreEn) return match.equipo2NombreEn;
     return match.equipo2 ?? match.equipoVisitante;
   }
