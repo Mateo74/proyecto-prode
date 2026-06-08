@@ -14,8 +14,15 @@ async function json(route, body, status = 200) {
 const CREST = {
   "España": "https://crests.test/esp.png",
   "Cabo Verde": "https://crests.test/cpv.png",
-  "Arabia Saudí": "https://crests.test/ksa.png",
+  "Arabia Saudita": "https://crests.test/ksa.png",
   "Uruguay": "https://crests.test/uru.png",
+};
+
+const TEAM_IDS = {
+  "España": "cmpkkdywt0010g8odkh64xc0w",
+  "Cabo Verde": "cmpkkdyx30011g8odivqlsvj4",
+  "Arabia Saudita": "cmpkkdyyt0016g8odoxtqwnkk",
+  "Uruguay": "cmoxxz2qz000wag5qd4b9u7v5",
 };
 
 // Group H round-robin. `predictH6` toggles whether the 6th match starts predicted.
@@ -24,7 +31,9 @@ function groupHMatches({ predictH6 = true } = {}) {
     id,
     competenciaId: "comp-wc",
     liga: "Copa Mundial FIFA",
+    equipo1Id: TEAM_IDS[e1],
     equipo1: e1,
+    equipo2Id: TEAM_IDS[e2],
     equipo2: e2,
     equipo1EscudoUrl: CREST[e1],
     equipo2EscudoUrl: CREST[e2],
@@ -35,13 +44,13 @@ function groupHMatches({ predictH6 = true } = {}) {
   });
   return [
     mk("wc-H-1", "España", "Cabo Verde", 2, 0),
-    mk("wc-H-2", "Arabia Saudí", "Uruguay", 1, 1),
-    mk("wc-H-3", "España", "Arabia Saudí", 0, 1),
+    mk("wc-H-2", "Arabia Saudita", "Uruguay", 1, 1),
+    mk("wc-H-3", "España", "Arabia Saudita", 0, 1),
     mk("wc-H-4", "Cabo Verde", "Uruguay", 3, 1),
     mk("wc-H-5", "España", "Uruguay", 1, 2),
     predictH6
-      ? mk("wc-H-6", "Cabo Verde", "Arabia Saudí", 2, 2)
-      : mk("wc-H-6", "Cabo Verde", "Arabia Saudí", null, null),
+      ? mk("wc-H-6", "Cabo Verde", "Arabia Saudita", 2, 2)
+      : mk("wc-H-6", "Cabo Verde", "Arabia Saudita", null, null),
   ];
 }
 
@@ -105,9 +114,9 @@ function box(page, matchId, side) {
 test("erasing all predictions empties the predicted groups", async ({ page }) => {
   await setup(page, groupHMatches());
 
-  // Initially populated: Arabia Saudí leads Group H with 5 predicted points.
+  // Initially populated: Arabia Saudita leads Group H with 5 predicted points.
   await openOverlay(page);
-  await expect(overlayGroupH(page).locator(".group-table__name").first()).toHaveText("Arabia Saudí");
+  await expect(overlayGroupH(page).locator(".group-table__name").first()).toHaveText("Arabia Saudita");
   await expect(overlayGroupH(page).locator("tbody tr").first().locator(".group-table__pts")).toHaveText("5");
   await expect(overlayGroupH(page).locator("tbody tr.is-complete")).toHaveCount(4);
   await closeOverlay(page);
@@ -129,10 +138,10 @@ test("updating an existing prediction updates the predicted groups", async ({ pa
   await setup(page, groupHMatches());
 
   await openOverlay(page);
-  await expect(overlayGroupH(page).locator(".group-table__name").first()).toHaveText("Arabia Saudí");
+  await expect(overlayGroupH(page).locator(".group-table__name").first()).toHaveText("Arabia Saudita");
   await closeOverlay(page);
 
-  // Flip España 0-1 Arabia Saudí (KSA win) into España 3-0 (España win).
+  // Flip España 0-1 Arabia Saudita (KSA win) into España 3-0 (España win).
   await box(page, "wc-H-3", "equipo1").fill("3");
   await box(page, "wc-H-3", "equipo2").fill("0");
 
@@ -150,13 +159,13 @@ test("adding a new prediction is reflected in the predicted groups", async ({ pa
   await expect(overlayGroupH(page).locator("tbody tr.is-complete")).toHaveCount(2);
   await closeOverlay(page);
 
-  // Add the missing prediction: Cabo Verde 2-2 Arabia Saudí.
+  // Add the missing prediction: Cabo Verde 2-2 Arabia Saudita.
   await box(page, "wc-H-6", "equipo1").fill("2");
   await box(page, "wc-H-6", "equipo2").fill("2");
 
-  // Re-open: all four teams now have 3 games predicted and Arabia Saudí reaches 5 pts.
+  // Re-open: all four teams now have 3 games predicted and Arabia Saudita reaches 5 pts.
   await openOverlay(page);
   await expect(overlayGroupH(page).locator("tbody tr.is-complete")).toHaveCount(4);
-  await expect(overlayGroupH(page).locator(".group-table__name").first()).toHaveText("Arabia Saudí");
+  await expect(overlayGroupH(page).locator(".group-table__name").first()).toHaveText("Arabia Saudita");
   await expect(overlayGroupH(page).locator("tbody tr").first().locator(".group-table__pts")).toHaveText("5");
 });

@@ -38,9 +38,11 @@ const prediccionPayload = registry.register(
   z.object({
     id: z.string(),
     matchId: z.string(),
+    equipo1Id: z.string(),
     equipo1: z.string(),
     equipo1NombreCompleto: z.string().nullable(),
     equipo1Tipo: z.enum(["CLUB", "SELECCION"]),
+    equipo2Id: z.string(),
     equipo2: z.string(),
     equipo2NombreCompleto: z.string().nullable(),
     equipo2Tipo: z.enum(["CLUB", "SELECCION"]),

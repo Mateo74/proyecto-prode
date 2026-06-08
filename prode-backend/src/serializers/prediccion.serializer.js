@@ -12,10 +12,12 @@ function prediccionResponse(prediccion) {
   return {
     id: prediccion.id,
     matchId: prediccion.partidoId,
+    equipo1Id: partido.equipo1Id,
     equipo1: partido.equipo1.nombre,
     equipo1NombreEn: partido.equipo1.nombreEn ?? null,
     equipo1NombreCompleto: partido.equipo1.nombreCompleto,
     equipo1Tipo: partido.equipo1.tipo,
+    equipo2Id: partido.equipo2Id,
     equipo2: partido.equipo2.nombre,
     equipo2NombreEn: partido.equipo2.nombreEn ?? null,
     equipo2NombreCompleto: partido.equipo2.nombreCompleto,

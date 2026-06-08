@@ -16,20 +16,29 @@ async function json(route, body, status = 200) {
   });
 }
 
+const TEAM_IDS = {
+  "España": "cmpkkdywt0010g8odkh64xc0w",
+  "Cabo Verde": "cmpkkdyx30011g8odivqlsvj4",
+  "Arabia Saudita": "cmpkkdyyt0016g8odoxtqwnkk",
+  "Uruguay": "cmoxxz2qz000wag5qd4b9u7v5",
+};
+
 // Full round-robin for Group H with predictions, so the standings are deterministic.
-// Predicted points: Arabia Saudí 5, Cabo Verde 4 (GD 0), Uruguay 4 (GD -1), España 3.
+// Predicted points: Arabia Saudita 5, Cabo Verde 4 (GD 0), Uruguay 4 (GD -1), España 3.
 function groupHMatches() {
   const crest = {
     "España": "https://crests.test/esp.png",
     "Cabo Verde": "https://crests.test/cpv.png",
-    "Arabia Saudí": "https://crests.test/ksa.png",
+    "Arabia Saudita": "https://crests.test/ksa.png",
     "Uruguay": "https://crests.test/uru.png",
   };
   const mk = (id, e1, e2, s1, s2) => ({
     id,
     competenciaId: "comp-wc",
     liga: "Copa Mundial FIFA",
+    equipo1Id: TEAM_IDS[e1],
     equipo1: e1,
+    equipo2Id: TEAM_IDS[e2],
     equipo2: e2,
     equipo1EscudoUrl: crest[e1],
     equipo2EscudoUrl: crest[e2],
@@ -40,11 +49,11 @@ function groupHMatches() {
   });
   return [
     mk("wc-H-1", "España", "Cabo Verde", 2, 0),
-    mk("wc-H-2", "Arabia Saudí", "Uruguay", 1, 1),
-    mk("wc-H-3", "España", "Arabia Saudí", 0, 1),
+    mk("wc-H-2", "Arabia Saudita", "Uruguay", 1, 1),
+    mk("wc-H-3", "España", "Arabia Saudita", 0, 1),
     mk("wc-H-4", "Cabo Verde", "Uruguay", 3, 1),
     mk("wc-H-5", "España", "Uruguay", 1, 2),
-    mk("wc-H-6", "Cabo Verde", "Arabia Saudí", 2, 2),
+    mk("wc-H-6", "Cabo Verde", "Arabia Saudita", 2, 2),
   ];
 }
 
@@ -86,9 +95,9 @@ test("renders predicted World Cup group standings from user predictions", async 
 
   // Teams are sorted by predicted points (desc), then goal difference.
   const names = groupH.locator(".group-table__name");
-  await expect(names).toHaveText(["Arabia Saudí", "Cabo Verde", "Uruguay", "España"]);
+  await expect(names).toHaveText(["Arabia Saudita", "Cabo Verde", "Uruguay", "España"]);
 
-  // Points column for the leader (Arabia Saudí) is 5.
+  // Points column for the leader (Arabia Saudita) is 5.
   const leaderRow = groupH.locator("tbody tr").first();
   await expect(leaderRow.locator(".group-table__pts")).toHaveText("5");
 
