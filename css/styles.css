@@ -1702,6 +1702,8 @@ button { font-family: var(--font); cursor: pointer; }
 
 .footer svg { opacity: 0.3; }
 
+
+
 /* =============================================
    CAMPO — líneas de fondo fijas (body)
    Muy sutiles: opacidad manejada con stroke-opacity
@@ -1713,6 +1715,11 @@ body {
   background-attachment: fixed;
   background-position: center center;
   background-repeat: no-repeat;
+}
+
+/* Hide pitch background on pages where the fixed lines collide with content */
+body.no-pitch-bg {
+  background-image: none;
 }
 
 .page-header {

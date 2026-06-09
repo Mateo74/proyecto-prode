@@ -34,11 +34,12 @@ const requireAuth = asyncRoute(async (req, res, next) => {
 });
 
 const optionalAuth = asyncRoute(async (req, res, next) => {
-  try {
-    await loadUsuario(req);
-  } catch (err) {
-    if (err.status !== 401) throw err;
-  }
+  // loadUsuario returns null silently when no token is provided.
+  // It only throws 401 when a token IS present but invalid or expired.
+  // We propagate that 401 so the client knows to refresh its access token,
+  // preventing the partidos endpoint from returning userPred:null after
+  // token expiry while appearing as a successful 200.
+  await loadUsuario(req);
   next();
 });
 

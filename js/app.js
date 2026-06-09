@@ -250,7 +250,7 @@ function initAccountMenu() {
     if (!user) {
       // Guest: show a plain text link instead of the avatar circle
       menu.innerHTML = `
-        <a class="account-menu__button account-menu__button--guest" href="${authRelativePath('auth')}">${t('nav.signIn')}</a>
+        <a class="account-menu__button--guest" href="${authRelativePath('auth')}">${t('nav.signIn')}</a>
       `;
       navbar.appendChild(infoBtnEl);
       navbar.appendChild(menu);
