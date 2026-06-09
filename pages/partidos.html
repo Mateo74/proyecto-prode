@@ -41,7 +41,12 @@
         <button class="filter-chip" data-group="estado" data-value="finalizado" data-i18n="filter.finished">Finalizados</button>
         <a class="icon-btn filters-bar__info" href="puntos" data-i18n-aria="nav.howPoints" data-i18n-title="nav.howPoints" aria-label="Cómo se calculan los puntos" title="Cómo se calculan los puntos">ⓘ</a>
       </div>
+      <div id="standings-toggle" class="view-toggle hidden">
+        <button class="view-toggle__btn active" type="button" data-results-view="matches" data-i18n="view.matches">Partidos</button>
+        <button class="view-toggle__btn" type="button" data-results-view="standings" data-i18n="view.standings">Posiciones</button>
+      </div>
       <div id="matches-list" class="matches-grid"></div>
+      <div id="standings-view" class="hidden"></div>
     </section>
   </main>
 

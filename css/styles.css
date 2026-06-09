@@ -1164,16 +1164,18 @@ button { font-family: var(--font); cursor: pointer; }
 /* meta row */
 .match-card__meta {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   gap: 0.4rem;
-  margin-bottom: 0.875rem;
+  margin-bottom: 0.4rem;
 }
 
 .match-card__time {
+  display: block;
   font-size: 0.6875rem;
   font-weight: 600;
   color: var(--text-3);
-  margin-left: auto;
+  margin-bottom: 0.875rem;
 }
 
 /* teams + score row */
@@ -2583,6 +2585,39 @@ img.team__badge-img {
 }
 
 /* =============================================
+   VIEW TOGGLE — Partidos / Posiciones
+   ============================================= */
+.view-toggle {
+  display: flex;
+  gap: 0.2rem;
+  background: var(--bg-3);
+  border-radius: var(--radius);
+  padding: 3px;
+  margin-bottom: 1.25rem;
+}
+
+.view-toggle__btn {
+  flex: 1;
+  padding: 0.5rem;
+  border-radius: var(--radius-sm);
+  border: none;
+  background: transparent;
+  color: var(--text-3);
+  font-size: 0.8125rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all var(--t);
+}
+
+.view-toggle__btn.active { background: var(--bg-2); color: var(--text); }
+
+.standings-view__head {
+  display: flex;
+  align-items: center;
+  margin-bottom: 1rem;
+}
+
+/* =============================================
    GRUPOS — tablas de posiciones predichas
    ============================================= */
 .groups-grid {
@@ -2687,43 +2722,37 @@ img.team__badge-img {
   right: 1.75rem;
   bottom: 4.75rem;
   z-index: 8000;
-  width: 80px;
-  height: 80px;
-  border-radius: 50%;
+  height: auto;
+  padding: 0.5rem 1.1rem;
+  border-radius: 999px;
   border: none;
   background: var(--primary);
   color: #06210f;
-  display: flex;
+  display: inline-flex;
   align-items: center;
   justify-content: center;
+  gap: 0.4rem;
+  font-size: 1.5rem;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+  white-space: nowrap;
   cursor: pointer;
-  box-shadow: 0 18px 40px rgba(0,0,0,0.5), 0 0 0 7px var(--primary-glow);
+  box-shadow: 0 12px 28px rgba(0,0,0,0.45), 0 0 0 4px var(--primary-glow);
   transition: transform var(--t) var(--ease), box-shadow var(--t);
 }
 
-.grupos-fab svg {
-  width: 40px;
-  height: 40px;
-}
-
 .grupos-fab:hover {
-  transform: translateY(-2px) scale(1.05);
-  box-shadow: 0 22px 46px rgba(0,0,0,0.55), 0 0 0 8px var(--primary-glow);
+  transform: translateY(-2px) scale(1.04);
+  box-shadow: 0 16px 34px rgba(0,0,0,0.5), 0 0 0 5px var(--primary-glow);
 }
 
-.grupos-fab:active { transform: scale(0.97); }
+.grupos-fab:active { transform: scale(0.98); }
 
 /* Sobre la barra inferior cuando aparece en mobile */
 @media (max-width: 700px) {
   .grupos-fab {
     right: 1rem;
     bottom: calc(82px + env(safe-area-inset-bottom, 0px));
-    width: 72px;
-    height: 72px;
-  }
-  .grupos-fab svg {
-    width: 36px;
-    height: 36px;
   }
 }
 

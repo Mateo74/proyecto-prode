@@ -7,28 +7,31 @@
  */
 
 /**
- * Renderiza las tablas de grupos ordenadas por puntos predichos.
+ * Renderiza las tablas de grupos ordenadas por puntos (desc).
  *
  * @param {Object.<string, Array.<Array>>} groups
- *   Diccionario { "A": [ [teamId, teamName, games played, goals scored, goals conceded, predicted points, crestUrl?], ...4 filas ], ... }.
+ *   Diccionario { "A": [ [teamId, teamName, games played, goals scored, goals conceded, points, crestUrl?], ...4 filas ], ... }.
+ * @param {Object} [options] Opciones de renderizado.
+ * @param {string} [options.pointsTitle] Tooltip de la columna de puntos.
  * @returns {string} HTML de un grid adaptativo de group-tables.
  */
-function renderGroupsGrid(groups) {
+function renderGroupsGrid(groups, options = {}) {
   const letters = Object.keys(groups || {}).sort();
   if (!letters.length) return emptyState(t('groups.empty'));
 
   const cards = letters
-    .map(letter => `<div class="groups-grid__cell">${renderGroupTable(letter, groups[letter])}</div>`)
+    .map(letter => `<div class="groups-grid__cell">${renderGroupTable(letter, groups[letter], options)}</div>`)
     .join('');
 
   return `<div class="groups-grid">${cards}</div>`;
 }
 
 /**
- * Renderiza la tabla de un grupo ordenada por puntos predichos (desc).
+ * Renderiza la tabla de un grupo ordenada por puntos (desc).
  * Desempate: diferencia de gol y luego goles a favor.
  */
-function renderGroupTable(letter, teams = []) {
+function renderGroupTable(letter, teams = [], options = {}) {
+  const pointsTitle = options.pointsTitle || t('groups.pointsTitle');
   const sorted = [...teams].sort((a, b) => {
     const byPoints = (b[5] ?? 0) - (a[5] ?? 0);
     if (byPoints !== 0) return byPoints;
@@ -63,7 +66,7 @@ function renderGroupTable(letter, teams = []) {
             <th title="${t('groups.playedTitle')}">${t('groups.played')}</th>
             <th title="${t('groups.gfTitle')}">${t('groups.gf')}</th>
             <th title="${t('groups.gcTitle')}">${t('groups.gc')}</th>
-            <th title="${t('groups.pointsTitle')}">${t('groups.points')}</th>
+            <th title="${pointsTitle}">${t('groups.points')}</th>
           </tr>
         </thead>
         <tbody>${body}</tbody>
@@ -100,20 +103,22 @@ function teamToGroupFromDefinition(groupsDef = {}) {
 
 function teamIdFromMatch(match, side) {
   const id = side === 1 ? match.equipo1Id : match.equipo2Id;
-  if (id) return id;
+  const teams = typeof WORLD_CUP_2026_TEAMS !== 'undefined' ? WORLD_CUP_2026_TEAMS : {};
+  // Trust the backend id only when it is a known World Cup team id.
+  if (id && teams[id]) return id;
 
-  // Compatibility path for older mocked tests/data that still pass names only.
+  // Fallback: resolve by name. Covers locally-seeded databases whose team ids
+  // differ from the official ones, and older mocked data that passes names only.
   const name = side === 1 ? match.equipo1 : match.equipo2;
   const nameEn = side === 1 ? match.equipo1NombreEn : match.equipo2NombreEn;
   const normalized = normalizeTeamName(name);
   const normalizedEn = normalizeTeamName(nameEn);
-  const teams = typeof WORLD_CUP_2026_TEAMS !== 'undefined' ? WORLD_CUP_2026_TEAMS : {};
   for (const [teamId, team] of Object.entries(teams)) {
     if (normalizeTeamName(team.nombre) === normalized || normalizeTeamName(team.nombreEn) === normalizedEn) {
       return teamId;
     }
   }
-  return null;
+  return id || null;
 }
 
 function groupLetterForMatch(match, groupsDef = WORLD_CUP_2026_GROUPS) {
@@ -125,18 +130,20 @@ function groupLetterForMatch(match, groupsDef = WORLD_CUP_2026_GROUPS) {
 }
 
 /**
- * Construye las posiciones predichas de cada grupo a partir de los partidos del
- * backend y las predicciones del usuario (Win=3, Draw=1, Lose=0).
+ * Núcleo compartido para construir tablas de grupos a partir de partidos.
+ * Acumula PJ/GF/GC/Pts (Win=3, Draw=1, Lose=0) usando los marcadores que
+ * devuelva `getScores(match)` (predicción del usuario o resultado real).
  *
- * Solo cuentan los partidos de fase de grupos: ambos equipos deben pertenecer al
- * mismo grupo y existir una predicción del usuario para ese partido.
+ * Solo cuentan los partidos de fase de grupos: ambos equipos deben pertenecer
+ * al mismo grupo y `getScores` debe devolver marcadores válidos.
  *
- * @param {Array}  matches       Partidos del backend (con userPred, equipo1/2, escudos).
- * @param {Object} groupsDef     { "A": [teamId,...4], ... } composición oficial.
- * @param {Object} [crestByName] Mapa teamId -> escudoUrl.
+ * @param {Array}    matches       Partidos del backend (con equipo1Id/equipo2Id, escudos).
+ * @param {Object}   groupsDef     { "A": [teamId,...4], ... } composición oficial.
+ * @param {Function} getScores     (match) -> { s1, s2 } | null.
+ * @param {Object}   [crestByName] Mapa teamId -> escudoUrl.
  * @returns {Object} { "A": [ [teamId, nombre, pj, gf, gc, pts, crestUrl], ...4 ], ... }
  */
-function buildPredictedGroups(matches = [], groupsDef = {}, crestByName = {}) {
+function buildGroupsFromScores(matches = [], groupsDef = {}, getScores, crestByName = {}) {
   const teamToGroup = {};
   const stats = {};
   for (const [letter, teamIds] of Object.entries(groupsDef)) {
@@ -160,8 +167,8 @@ function buildPredictedGroups(matches = [], groupsDef = {}, crestByName = {}) {
     rememberCrest(id1, m.equipo1EscudoUrl);
     rememberCrest(id2, m.equipo2EscudoUrl);
 
-    const pred = m.userPred;
-    if (!pred || pred.scoreEquipo1 == null || pred.scoreEquipo2 == null) continue;
+    const scores = getScores(m);
+    if (!scores || scores.s1 == null || scores.s2 == null) continue;
 
     const grupo = teamToGroup[id1];
     if (!grupo || grupo !== teamToGroup[id2]) continue;
@@ -170,8 +177,8 @@ function buildPredictedGroups(matches = [], groupsDef = {}, crestByName = {}) {
     const row2 = stats[grupo][id2];
     if (!row1 || !row2) continue;
 
-    const s1 = Number(pred.scoreEquipo1);
-    const s2 = Number(pred.scoreEquipo2);
+    const s1 = Number(scores.s1);
+    const s2 = Number(scores.s2);
     row1.pj++; row2.pj++;
     row1.gf += s1; row1.gc += s2;
     row2.gf += s2; row2.gc += s1;
@@ -188,6 +195,30 @@ function buildPredictedGroups(matches = [], groupsDef = {}, crestByName = {}) {
     });
   }
   return out;
+}
+
+/**
+ * Construye las posiciones predichas de cada grupo a partir de las predicciones
+ * del usuario (Win=3, Draw=1, Lose=0).
+ */
+function buildPredictedGroups(matches = [], groupsDef = {}, crestByName = {}) {
+  return buildGroupsFromScores(matches, groupsDef, (m) => {
+    const pred = m.userPred;
+    if (!pred || pred.scoreEquipo1 == null || pred.scoreEquipo2 == null) return null;
+    return { s1: pred.scoreEquipo1, s2: pred.scoreEquipo2 };
+  }, crestByName);
+}
+
+/**
+ * Construye las posiciones reales de cada grupo a partir de los resultados de
+ * los partidos (Win=3, Draw=1, Lose=0). Cuenta cualquier partido con marcador
+ * real cargado (finalizado o en vivo).
+ */
+function buildActualGroups(matches = [], groupsDef = {}, crestByName = {}) {
+  return buildGroupsFromScores(matches, groupsDef, (m) => {
+    if (m.scoreEquipo1 == null || m.scoreEquipo2 == null) return null;
+    return { s1: m.scoreEquipo1, s2: m.scoreEquipo2 };
+  }, crestByName);
 }
 
 async function initGrupos() {

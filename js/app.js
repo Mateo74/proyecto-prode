@@ -115,6 +115,78 @@ let matchesPollingId = null;
 // con el estado vivo de Predictions, evitando leer datos del DOM o repetir fetch.
 let lastLoadedMatches = [];
 
+// Vista activa bajo los filtros En vivo / Finalizados: 'matches' | 'standings'.
+let resultsView = 'matches';
+// Cache del HTML de la tabla de posiciones reales. Se invalida en cada
+// loadPartidos() para no recalcular al alternar entre Partidos y Posiciones.
+let actualStandingsHtml = null;
+
+const STANDINGS_FILTERS = ['en-vivo', 'finalizado'];
+
+function activeEstadoFilter() {
+  const active = document.querySelector('.filter-chip[data-group="estado"].active');
+  return active?.dataset.value || '';
+}
+
+/** Conecta los botones Partidos / Posiciones (una sola vez por página). */
+function initResultsViewToggle() {
+  document.querySelectorAll('[data-results-view]').forEach(btn => {
+    btn.addEventListener('click', () => setResultsView(btn.dataset.resultsView));
+  });
+}
+
+/** Muestra/oculta el toggle de Posiciones según el filtro y la competencia. */
+function updateStandingsAvailability() {
+  const toggle = document.getElementById('standings-toggle');
+  if (!toggle) return;
+
+  const comp = API.getSelectedCompetencia();
+  const isMundial = comp && comp.slug === WORLD_CUP_2026_SLUG;
+  const applicable = isMundial && STANDINGS_FILTERS.includes(activeEstadoFilter());
+
+  toggle.classList.toggle('hidden', !applicable);
+  if (!applicable) {
+    resultsView = 'matches';
+  }
+  setResultsView(resultsView);
+}
+
+/** Alterna entre la lista de partidos y la tabla de posiciones reales. */
+function setResultsView(view) {
+  resultsView = view === 'standings' ? 'standings' : 'matches';
+
+  document.querySelectorAll('[data-results-view]').forEach(btn => {
+    btn.classList.toggle('active', btn.dataset.resultsView === resultsView);
+  });
+
+  const matchesEl = document.getElementById('matches-list');
+  const standingsEl = document.getElementById('standings-view');
+  if (matchesEl) matchesEl.classList.toggle('hidden', resultsView === 'standings');
+  if (standingsEl) standingsEl.classList.toggle('hidden', resultsView !== 'standings');
+
+  if (resultsView === 'standings') renderActualStandings();
+}
+
+/**
+ * Renderiza la tabla de posiciones reales reutilizando los partidos cacheados.
+ * El resultado se memoriza en actualStandingsHtml y solo se recalcula cuando
+ * loadPartidos() trae datos nuevos (no al alternar de vista).
+ */
+function renderActualStandings() {
+  const el = document.getElementById('standings-view');
+  if (!el || typeof buildActualGroups !== 'function') return;
+
+  if (actualStandingsHtml === null) {
+    const groups = buildActualGroups(lastLoadedMatches, WORLD_CUP_2026_GROUPS);
+    actualStandingsHtml = `
+      <div class="standings-view__head">
+        <span class="badge badge-group">${t('groups.standingsTitle')}</span>
+      </div>
+      ${renderGroupsGrid(groups, { pointsTitle: t('groups.pointsTitleReal') })}`;
+  }
+  el.innerHTML = actualStandingsHtml;
+}
+
 function detectPage() {
   const p = window.location.pathname;
   if (p.includes('partido-detalle'))  return 'partido-detalle';
@@ -498,6 +570,7 @@ function initHome() {
     if (!competencia) return;
     selectCompetencia(competencia, window.location.hash.replace('#', ''));
   });
+  initResultsViewToggle();
 }
 
 async function loadCompetencias() {
@@ -663,6 +736,7 @@ function initPartidos() {
     });
   });
 
+  initResultsViewToggle();
   setupGroupsOverlay();
 }
 
@@ -698,24 +772,26 @@ async function loadPartidos({ quiet = false } = {}) {
   try {
     const matches = await API.getMatches({ competenciaId: competencia.id, estado });
     lastLoadedMatches = matches;
+    actualStandingsHtml = null;
     el.innerHTML = '';
     if (!matches.length) {
       el.innerHTML = emptyState(t('empty.noMatches'));
-      return;
-    }
-    matches.forEach(m => {
-      const card = Predictions.createMatchCard(m);
-      card.addEventListener('click', e => {
-        if (e.target.tagName === 'INPUT') return;
-        const torneo = API.getSelectedTorneo();
-        const dest = pagePath('partido-detalle');
-        const params = new URLSearchParams({ partidoId: m.id });
-        if (torneo) params.set('torneoId', torneo.id);
-        else if (m.competenciaId) params.set('competenciaId', m.competenciaId);
-        window.location.href = `${dest}?${params}`;
+    } else {
+      matches.forEach(m => {
+        const card = Predictions.createMatchCard(m);
+        card.addEventListener('click', e => {
+          if (e.target.tagName === 'INPUT') return;
+          const torneo = API.getSelectedTorneo();
+          const dest = pagePath('partido-detalle');
+          const params = new URLSearchParams({ partidoId: m.id });
+          if (torneo) params.set('torneoId', torneo.id);
+          else if (m.competenciaId) params.set('competenciaId', m.competenciaId);
+          window.location.href = `${dest}?${params}`;
+        });
+        el.appendChild(card);
       });
-      el.appendChild(card);
-    });
+    }
+    updateStandingsAvailability();
   } catch (error) {
     el.innerHTML = errorState(error.message);
   }
@@ -2252,17 +2328,9 @@ function setupGroupsOverlay() {
   fab.id = 'grupos-fab';
   fab.className = 'grupos-fab';
   fab.type = 'button';
-  fab.setAttribute('aria-label', t('groups.fab'));
-  fab.title = t('groups.fab');
-  fab.innerHTML = `
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-      <rect x="9" y="4" width="6" height="16" rx="1.5"></rect>
-      <rect x="3" y="10" width="6" height="10" rx="1.5"></rect>
-      <rect x="15" y="13" width="6" height="7" rx="1.5"></rect>
-      <path d="M10.7 8.2h2.6"></path>
-      <path d="M5 13.7h2"></path>
-      <path d="M17 16.2h2"></path>
-    </svg>`;
+  fab.setAttribute('aria-label', t('groups.predictedFab'));
+  fab.title = t('groups.predictedFab');
+  fab.textContent = t('groups.predictedFab');
   document.body.appendChild(fab);
 
   const overlay = document.createElement('div');

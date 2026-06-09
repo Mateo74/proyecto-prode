@@ -56,7 +56,12 @@
             <button class="filter-chip" data-group="estado" data-value="en-vivo" data-i18n="filter.live">En vivo</button>
             <button class="filter-chip" data-group="estado" data-value="finalizado" data-i18n="filter.finished">Finalizados</button>
           </div>
+          <div id="standings-toggle" class="view-toggle hidden">
+            <button class="view-toggle__btn active" type="button" data-results-view="matches" data-i18n="view.matches">Partidos</button>
+            <button class="view-toggle__btn" type="button" data-results-view="standings" data-i18n="view.standings">Posiciones</button>
+          </div>
           <div id="matches-list" class="matches-grid"></div>
+          <div id="standings-view" class="hidden"></div>
         </div>
 
         <div id="home-tab-torneos" class="tab-content hidden">

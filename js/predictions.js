@@ -170,8 +170,8 @@ const Predictions = (() => {
     card.innerHTML = `
       <div class="match-card__meta">
         ${metaBadges(match, `<span class="badge badge-soon">${t('badge.upcoming')}</span>`)}
-        <span class="match-card__time">${fecha}</span>
       </div>
+      <div class="match-card__time">${fecha}</div>
 
       <div class="match-card__body">
         <div class="team">
@@ -356,8 +356,8 @@ const Predictions = (() => {
     card.innerHTML = `
       <div class="match-card__meta">
         ${metaBadges(match, `<span class="badge badge-done">${t('badge.finished')}</span>`)}
-        <span class="match-card__time">${fecha}</span>
       </div>
+      <div class="match-card__time">${fecha}</div>
 
       <div class="match-card__body">
         <div class="team">

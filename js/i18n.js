@@ -110,7 +110,12 @@ const I18n = (() => {
       'groups.pointsTitle':  'Puntos predichos',
       'groups.empty':        'No hay grupos para mostrar.',
       'groups.fab':          'Ver grupos predichos',
+      'groups.predictedFab': 'Grupos predichos',
       'groups.overlayTitle': 'Grupos predichos',
+      'groups.standingsTitle':'Posiciones de grupos',
+      'groups.pointsTitleReal':'Puntos',
+      'view.matches':        'Partidos',
+      'view.standings':      'Posiciones',
       'action.close':        'Cerrar',
 
       // ── Actions ───────────────────────────────────────────────────
@@ -387,7 +392,12 @@ const I18n = (() => {
       'groups.pointsTitle':  'Predicted points',
       'groups.empty':        'No groups to show.',
       'groups.fab':          'View predicted groups',
+      'groups.predictedFab': 'Predicted Groups',
       'groups.overlayTitle': 'Predicted groups',
+      'groups.standingsTitle':'Group standings',
+      'groups.pointsTitleReal':'Points',
+      'view.matches':        'Matches',
+      'view.standings':      'Standings',
       'action.close':        'Close',
 
       // ── Actions ───────────────────────────────────────────────────
