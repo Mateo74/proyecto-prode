@@ -56,6 +56,7 @@ model Usuario {
   invitacionesRecibidas Invitacion[]    @relation("InvitacionesRecibidas")
   invitacionesEnviadas Invitacion[]     @relation("InvitacionesEnviadas")
   refreshTokens        RefreshToken[]
+  expoTokens           ExpoToken[]
 
   @@index([hinchaDeEquipoId])
   @@index([email])
@@ -195,5 +196,16 @@ model Prediccion {
   usuario                    Usuario   @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
 
   @@unique([partidoId, usuarioId])
+  @@index([usuarioId])
+}
+
+model ExpoToken {
+  id        String   @id @default(cuid())
+  usuarioId String
+  token     String
+  createdAt DateTime @default(now())
+  usuario   Usuario  @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
+
+  @@unique([usuarioId, token])
   @@index([usuarioId])
 }

@@ -10,6 +10,7 @@ const partidosRoutes = require("./partidos.routes");
 const prediccionesRoutes = require("./predicciones.routes");
 const invitacionesRoutes = require("./invitaciones.routes");
 const invitesRoutes = require("./invites.routes");
+const pushRoutes = require("./push.routes");
 
 const { buildSpec } = require("../openapi/spec");
 const env = require("../config/env");
@@ -27,6 +28,7 @@ router.use("/partidos", partidosRoutes);
 router.use("/predicciones", prediccionesRoutes);
 router.use("/invitaciones", invitacionesRoutes);
 router.use("/invites", invitesRoutes);
+router.use("/push", pushRoutes);
 
 // Only expose API docs in non-production environments
 if (env.NODE_ENV !== "production") {

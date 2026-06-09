@@ -1,4 +1,5 @@
 import { StatusBar } from "expo-status-bar";
+import * as Notifications from "expo-notifications";
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
@@ -16,7 +17,7 @@ import {
 } from "react-native";
 import { WebView, WebViewNavigation } from "react-native-webview";
 
-import { FRONTEND_URL } from "./src/config";
+import { FRONTEND_URL, API_BASE_URL } from "./src/config";
 import LoginScreen, { AuthCredentials } from "./src/LoginScreen";
 
 type LoginResolver = { resolve: () => void; reject: (e: Error) => void };
@@ -26,9 +27,53 @@ type WebViewMessage = {
   requestId?: string;
   text?: string;
   title?: string;
+  token?: string;
   type: string;
   url?: string;
 };
+
+// Set foreground notification behaviour (show alert + badge + sound while app is open)
+Notifications.setNotificationHandler({
+  handleNotification: async () => ({
+    shouldShowAlert: true,
+    shouldPlaySound: true,
+    shouldSetBadge: false,
+  }),
+});
+
+/**
+ * Requests notification permission and registers the Expo push token with the
+ * backend. Called once after the user successfully logs in.
+ * `getAuthToken` is a callback that returns the current JWT access token.
+ */
+async function registerForPushNotifications(getAuthToken: () => string | null): Promise<void> {
+  try {
+    const { status: existingStatus } = await Notifications.getPermissionsAsync();
+    let finalStatus = existingStatus;
+    if (existingStatus !== "granted") {
+      const { status } = await Notifications.requestPermissionsAsync();
+      finalStatus = status;
+    }
+    if (finalStatus !== "granted") return;
+
+    const tokenData = await Notifications.getExpoPushTokenAsync();
+    const token = tokenData.data;
+
+    const accessToken = getAuthToken();
+    if (!accessToken) return;
+
+    await fetch(`${API_BASE_URL}/push/register`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${accessToken}`,
+      },
+      body: JSON.stringify({ token }),
+    });
+  } catch {
+    // Non-critical — notifications simply won't work if this fails
+  }
+}
 
 export default function App() {
   const [isLoading, setIsLoading] = useState(true);
@@ -163,7 +208,14 @@ export default function App() {
       loginResolverRef.current = null;
       // Navigate the WebView to the main page so auth.html is no longer shown
       webViewRef.current?.injectJavaScript(`window.location.href = '${FRONTEND_URL}'; true;`);
+      // Request the access token from the web app so we can register for push notifications
+      webViewRef.current?.injectJavaScript(
+        `window.ReactNativeWebView.postMessage(JSON.stringify({type:'TOKEN_FOR_PUSH',token:API.getToken()||''}));true;`
+      );
       // setShowLogin will be cleared by onNavigationStateChange when URL changes
+    } else if (data.type === "TOKEN_FOR_PUSH") {
+      const token = data.token ?? "";
+      if (token) registerForPushNotifications(() => token);
     } else if (data.type === "LOGIN_ERROR") {
       loginResolverRef.current?.reject(new Error(data.message || "Error al iniciar sesión"));
       loginResolverRef.current = null;

@@ -111,7 +111,6 @@
             </div>
           </div>
         </div>
-      </div>
     </section>
   </main>
 
@@ -123,9 +122,6 @@
   </nav>
 
   <script src="../js/i18n.js"></script>
-  <script src="../js/config.js"></script>
-  <script src="../js/api.js"></script>
-  <script src="../js/app.js"></script>
   <script>
     (function () {
       const lang = I18n.getLang();
@@ -133,6 +129,7 @@
       document.getElementById('lang-en').classList.toggle('active', lang === 'en');
 
       document.querySelectorAll('.lang-option-btn').forEach(btn => {
+        if (!btn.dataset.lang) return;
         btn.addEventListener('click', async () => {
           const newLang = btn.dataset.lang;
           // Persist to DB if logged in (best-effort; localStorage is the source of truth)

@@ -1,4 +1,5 @@
 export const FRONTEND_URL = "https://www.oncemetros.com";
+export const API_BASE_URL = "https://www.oncemetros.com/api";
 
 // Same web client ID used by the deployed web app and the backend to verify Google tokens.
 export const GOOGLE_WEB_CLIENT_ID =

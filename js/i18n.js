@@ -252,8 +252,8 @@ const I18n = (() => {
       'profile.username':           'Usuario',
 
       // ── Settings page ─────────────────────────────────────────────
-      'settings.language':         'Idioma',
-      'settings.languageDesc':     'Eligí el idioma de la aplicación.',
+      'settings.language':              'Idioma',
+      'settings.languageDesc':          'Eligí el idioma de la aplicación.',
       'section.settings':          'Configuración',
       'page.settings':             'Ajustes',
       'profile.nombre':             'Nombre',
@@ -529,8 +529,8 @@ const I18n = (() => {
       'profile.username':           'Username',
 
       // ── Settings page ─────────────────────────────────────────────
-      'settings.language':         'Language',
-      'settings.languageDesc':     'Choose the app language.',
+      'settings.language':              'Language',
+      'settings.languageDesc':          'Choose the app language.',
       'section.settings':          'Settings',
       'page.settings':             'Settings',
       'profile.nombre':             'First name',
