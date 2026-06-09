@@ -514,12 +514,19 @@ async function loadCompetencias() {
       return;
     }
 
+    // PROTOTYPE: hide the notification-test competencia from everyone except whitelisted accounts
+    const NOTIF_TEST_COMP_ID = 'cmq77rlak0000uw5q54z76uju';
+    const NOTIF_TEST_WHITELIST = ['mateomarenco74@gmail.com', 'pruebita'];
+    const me = API.getCurrentUser();
+    const canSeeNotifTest = me && (NOTIF_TEST_WHITELIST.includes(me.email) || NOTIF_TEST_WHITELIST.includes(me.username));
+    const visibleCompetencias = competencias.filter(c => c.id !== NOTIF_TEST_COMP_ID || canSeeNotifTest);
+
     const selected = API.getSelectedCompetencia();
-    const active = competencias.find(c => c.id === selected?.id);
-    listEl.innerHTML = competencias.map(c => renderCompetenciaCard(c, c.id === active?.id)).join('');
+    const active = visibleCompetencias.find(c => c.id === selected?.id);
+    listEl.innerHTML = visibleCompetencias.map(c => renderCompetenciaCard(c, c.id === active?.id)).join('');
     listEl.querySelectorAll('[data-competencia-id]').forEach(btn => {
       btn.addEventListener('click', () => {
-        const competencia = competencias.find(c => c.id === btn.dataset.competenciaId);
+        const competencia = visibleCompetencias.find(c => c.id === btn.dataset.competenciaId);
         selectCompetencia(competencia);
       });
     });
