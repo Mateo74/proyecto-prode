@@ -679,6 +679,8 @@ function initPartidos() {
       loadPartidos();
     });
   });
+
+  setupGroupsOverlay();
 }
 
 function startMatchesPolling() {
