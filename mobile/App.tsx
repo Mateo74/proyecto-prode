@@ -180,7 +180,8 @@ export default function App() {
   // Show native login when WebView navigates to auth.html
   const onNavigationStateChange = useCallback((state: WebViewNavigation) => {
     currentUrlRef.current = state.url;
-    const isAuthPage = state.url.includes("auth.html");
+    // Vercel serves /pages/auth via a rewrite (URL stays without .html)
+    const isAuthPage = state.url.includes("/pages/auth");
     setShowLogin(isAuthPage);
     if (!isAuthPage) {
       loginResolverRef.current?.resolve();

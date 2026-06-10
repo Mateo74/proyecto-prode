@@ -144,11 +144,24 @@
 
       document.getElementById('settings-save-btn').addEventListener('click', async () => {
         const feedback = document.getElementById('settings-feedback');
-        // Persist to DB if logged in (best-effort; localStorage is the source of truth)
+        const btn = document.getElementById('settings-save-btn');
+        btn.disabled = true;
+        feedback.classList.add('hidden');
+        // Persist to DB — required so restoreSession() doesn't overwrite localStorage
         const user = API.getCurrentUser();
         if (user) {
-          try { await API.updateIdioma(user.id, pendingLang); } catch {}
+          try {
+            await API.updateIdioma(user.id, pendingLang);
+          } catch (err) {
+            feedback.textContent = err.message || 'Error al guardar';
+            feedback.className = 'form-feedback error';
+            btn.disabled = false;
+            return;
+          }
         }
+        feedback.textContent = I18n.t('feedback.changesSaved');
+        feedback.className = 'form-feedback success';
+        btn.disabled = false;
         I18n.setLang(pendingLang); // saves to localStorage + reloads
       });
     })();

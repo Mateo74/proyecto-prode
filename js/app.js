@@ -57,7 +57,8 @@ document.addEventListener('DOMContentLoaded', async () => {
   const sessionPromise = API.restoreSession().then(user => {
     // Sync language from the user's persisted idioma preference (only if it
     // differs from what's currently stored, to avoid an infinite reload loop).
-    if (user?.idioma) {
+    // Skip on auth page so the user can change language freely before logging in.
+    if (user?.idioma && page !== 'auth') {
       const stored = localStorage.getItem('once_metros_lang');
       if (stored !== user.idioma) {
         localStorage.setItem('once_metros_lang', user.idioma);
@@ -560,7 +561,6 @@ async function selectCompetencia(competencia, preferredTab = 'predicciones') {
   await loadPartidos();
   startMatchesPolling();
   await loadTorneosForCompetencia(competencia);
-  setupGroupsOverlay();
 }
 
 function renderCompetenciaCard(competencia, active) {
@@ -621,6 +621,12 @@ function switchHomeTab(tab) {
   if (!document.getElementById('competencia-workspace')?.classList.contains('hidden')) {
     history.replaceState(null, '', `/#${next}`);
   }
+  if (next === 'torneos') {
+    document.getElementById('grupos-fab')?.remove();
+    document.getElementById('grupos-overlay')?.remove();
+  } else {
+    setupGroupsOverlay();
+  }
 }
 
 function renderTorneoCard(torneo, active) {
@@ -673,8 +679,6 @@ function initPartidos() {
       loadPartidos();
     });
   });
-
-  setupGroupsOverlay();
 }
 
 function startMatchesPolling() {
@@ -867,6 +871,13 @@ function switchClasifTab(tab) {
       loadMisPrediccionesEnTorneo();
     }
   }
+  // Show groups overlay FAB only on the predictions tab (Mundial only)
+  if (tab === 'predicciones') {
+    setupGroupsOverlay();
+  } else {
+    document.getElementById('grupos-fab')?.remove();
+    document.getElementById('grupos-overlay')?.remove();
+  }
 }
 
 async function loadMisPrediccionesEnTorneo() {
@@ -886,6 +897,7 @@ async function loadMisPrediccionesEnTorneo() {
   try {
     // Show upcoming matches for this competition so the user can make predictions
     const matches = await API.getMatches({ competenciaId, estado: 'proximo' });
+    lastLoadedMatches = matches;
     el.innerHTML = '';
     if (!matches.length) {
       el.innerHTML = emptyState(t('empty.noUpcoming'));
@@ -2253,9 +2265,19 @@ function matchesWithLivePredictions() {
  */
 function setupGroupsOverlay() {
   if (typeof WORLD_CUP_2026_GROUPS === 'undefined') return;
-  if (!document.getElementById('matches-list')) return;
 
-  const comp = API.getSelectedCompetencia();
+  // Works on both the home predictions page (#matches-list) and the
+  // clasificacion predictions tab (#mis-predicciones-list)
+  const hasMatchList = document.getElementById('matches-list') || document.getElementById('mis-predicciones-list');
+  if (!hasMatchList) return;
+
+  // On home page: use the selected competencia.
+  // On clasificacion page: use only the torneo's embedded competencia (never the global
+  // selectedCompetencia which may belong to a different page's context).
+  const onClasific = !!document.getElementById('mis-predicciones-list');
+  const comp = onClasific
+    ? API.getSelectedTorneo()?.competencia
+    : API.getSelectedCompetencia();
   const isMundial = comp && comp.slug === WORLD_CUP_2026_SLUG;
 
   const existingFab = document.getElementById('grupos-fab');

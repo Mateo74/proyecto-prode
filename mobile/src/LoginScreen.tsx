@@ -255,12 +255,12 @@ export default function LoginScreen({ onSubmit, lang = "en" }: Props) {
               returnKeyType="done"
               editable={!loading}
               onSubmitEditing={() =>
-                handleSubmit({ type: "login", identificador, password })
+                handleSubmit({ type: "login", identificador: identificador.trim(), password })
               }
             />
             <Pressable
               style={[styles.submitBtn, loading && styles.btnDisabled]}
-              onPress={() => handleSubmit({ type: "login", identificador, password })}
+              onPress={() => handleSubmit({ type: "login", identificador: identificador.trim(), password })}
               disabled={loading}
             >
               {loading ? (
