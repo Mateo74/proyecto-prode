@@ -1,11 +1,13 @@
 {
+  "redirects": [
+    { "source": "/pages/auth", "destination": "/pages/auth.html", "permanent": false }
+  ],
   "rewrites": [
     {
       "source": "/api/:path*",
       "destination": "https://once-metros-api-gzhrhka4d4gac3cq.chilecentral-01.azurewebsites.net/api/:path*"
     },
     { "source": "/pages/ajustes",        "destination": "/pages/ajustes.html" },
-    { "source": "/pages/auth",           "destination": "/pages/auth.html" },
     { "source": "/pages/clasificacion",  "destination": "/pages/clasificacion.html" },
     { "source": "/pages/grupos",         "destination": "/pages/grupos.html" },
     { "source": "/pages/invitacion",     "destination": "/pages/invitacion.html" },
