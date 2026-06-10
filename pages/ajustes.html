@@ -111,6 +111,9 @@
             </div>
           </div>
         </div>
+
+        <button id="settings-save-btn" class="btn btn-primary" style="width:100%;margin-top:0.5rem" data-i18n="action.save">Guardar</button>
+        <div id="settings-feedback" class="form-feedback hidden"></div>
     </section>
   </main>
 
@@ -122,23 +125,31 @@
   </nav>
 
   <script src="../js/i18n.js"></script>
+  <script src="../js/api.js"></script>
   <script>
     (function () {
       const lang = I18n.getLang();
       document.getElementById('lang-es').classList.toggle('active', lang === 'es');
       document.getElementById('lang-en').classList.toggle('active', lang === 'en');
 
+      let pendingLang = lang;
+
       document.querySelectorAll('.lang-option-btn').forEach(btn => {
         if (!btn.dataset.lang) return;
-        btn.addEventListener('click', async () => {
-          const newLang = btn.dataset.lang;
-          // Persist to DB if logged in (best-effort; localStorage is the source of truth)
-          const user = API.getCurrentUser();
-          if (user) {
-            try { await API.updateIdioma(user.id, newLang); } catch {}
-          }
-          I18n.setLang(newLang);
+        btn.addEventListener('click', () => {
+          pendingLang = btn.dataset.lang;
+          document.querySelectorAll('.lang-option-btn').forEach(b => b.classList.toggle('active', b.dataset.lang === pendingLang));
         });
+      });
+
+      document.getElementById('settings-save-btn').addEventListener('click', async () => {
+        const feedback = document.getElementById('settings-feedback');
+        // Persist to DB if logged in (best-effort; localStorage is the source of truth)
+        const user = API.getCurrentUser();
+        if (user) {
+          try { await API.updateIdioma(user.id, pendingLang); } catch {}
+        }
+        I18n.setLang(pendingLang); // saves to localStorage + reloads
       });
     })();
   </script>

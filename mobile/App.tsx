@@ -46,7 +46,7 @@ Notifications.setNotificationHandler({
  * backend. Called once after the user successfully logs in.
  * `getAuthToken` is a callback that returns the current JWT access token.
  */
-async function registerForPushNotifications(getAuthToken: () => string | null): Promise<void> {
+async function registerForPushNotifications(webViewRef: React.RefObject<WebView>): Promise<void> {
   try {
     const { status: existingStatus } = await Notifications.getPermissionsAsync();
     let finalStatus = existingStatus;
@@ -57,19 +57,16 @@ async function registerForPushNotifications(getAuthToken: () => string | null): 
     if (finalStatus !== "granted") return;
 
     const tokenData = await Notifications.getExpoPushTokenAsync();
-    const token = tokenData.data;
+    const expoToken = tokenData.data;
 
-    const accessToken = getAuthToken();
-    if (!accessToken) return;
-
-    await fetch(`${API_BASE_URL}/push/register`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${accessToken}`,
-      },
-      body: JSON.stringify({ token }),
-    });
+    // Delegate the API call to the WebView so it uses the existing session
+    // (including cookie-based token refresh) rather than a potentially stale JWT snapshot.
+    webViewRef.current?.injectJavaScript(
+      `(async function(){try{` +
+      `await fetch('/api/push/register',{method:'POST',headers:{'Content-Type':'application/json'},` +
+      `body:JSON.stringify({token:${JSON.stringify(expoToken)}})});` +
+      `}catch(e){}})();true;`
+    );
   } catch {
     // Non-critical — notifications simply won't work if this fails
   }
@@ -208,14 +205,12 @@ export default function App() {
       loginResolverRef.current = null;
       // Navigate the WebView to the main page so auth.html is no longer shown
       webViewRef.current?.injectJavaScript(`window.location.href = '${FRONTEND_URL}'; true;`);
-      // Request the access token from the web app so we can register for push notifications
-      webViewRef.current?.injectJavaScript(
-        `window.ReactNativeWebView.postMessage(JSON.stringify({type:'TOKEN_FOR_PUSH',token:API.getToken()||''}));true;`
-      );
+      // Register for push notifications now that the user is logged in
+      registerForPushNotifications(webViewRef);
       // setShowLogin will be cleared by onNavigationStateChange when URL changes
     } else if (data.type === "TOKEN_FOR_PUSH") {
-      const token = data.token ?? "";
-      if (token) registerForPushNotifications(() => token);
+      // Legacy message — no longer used but kept to avoid errors from old builds
+      void 0;
     } else if (data.type === "LOGIN_ERROR") {
       loginResolverRef.current?.reject(new Error(data.message || "Error al iniciar sesión"));
       loginResolverRef.current = null;
@@ -305,6 +300,9 @@ export default function App() {
                   `(function(){var l=localStorage.getItem('once_metros_lang');` +
                   `if(l)window.ReactNativeWebView.postMessage(JSON.stringify({type:'LANG',lang:l}));})();true;`
                 );
+                // If already logged in (e.g. app installed while session exists), request
+                // push token registration without waiting for a new login.
+                registerForPushNotifications(webViewRef);
               }}
               // onLoadEnd as fallback
               onLoadEnd={finishLoading}

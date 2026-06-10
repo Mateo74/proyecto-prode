@@ -628,8 +628,12 @@ function renderTorneoCard(torneo, active) {
   const miembros = torneo.esGlobal
     ? (n === 1 ? `👤 ${t('members.one')}` : `👥 ${t('members.many', { n })}`)
     : (n === 1 ? `👤 ${t('members.one')}` : `👥 ${t('members.many', { n })}`);
+  const bgStyle = torneo.imagen
+    ? ` style="background-image:linear-gradient(to right,rgba(0,0,0,0.78) 0%,rgba(0,0,0,0.48) 100%),url(${CSS.escape(torneo.imagen)})"`
+    : '';
+  const hasBg = torneo.imagen ? ' has-bg' : '';
   return `
-    <button class="tournament-card ${active ? 'active' : ''}" data-torneo-id="${torneo.id}">
+    <button class="tournament-card ${active ? 'active' : ''}${hasBg}" data-torneo-id="${torneo.id}"${bgStyle}>
       <span>
         <strong>${escapeHtml(torneoNombre(torneo))}</strong>
         ${torneo.esGlobal ? '' : `<small>${escapeHtml(competenciaNombre(torneo.competencia) || '')}</small>`}
@@ -1545,7 +1549,9 @@ async function initInviteLanding() {
     return;
   }
 
-  title.textContent = t('torneo.joinTitle', { name: torneoNombre(torneo) });
+  const joinTitle = t('torneo.joinTitle', { name: torneoNombre(torneo) });
+  title.textContent = joinTitle;
+  document.getElementById('page-title').textContent = `${joinTitle} | Once Metros`;
   meta.textContent = competenciaNombre(torneo.competencia) || '';
 
   if (!API.getToken()) {
@@ -1581,6 +1587,7 @@ function setInviteLandingFeedback(msg, type) {
 async function loadSelectedTorneoHeader() {
   const title = document.getElementById('torneo-title');
   const subtitle = document.getElementById('torneo-subtitle');
+  const pageHeaderEl = document.querySelector('.page-header');
   const selected = API.getSelectedTorneo();
   if (!selected) return;
   try {
@@ -1588,6 +1595,10 @@ async function loadSelectedTorneoHeader() {
     API.setSelectedTorneo(torneo);
     if (title) title.textContent = torneoNombre(torneo);
     if (subtitle) subtitle.textContent = competenciaNombre(torneo.competencia) || t('section.friendTournamentCap');
+    if (pageHeaderEl && torneo.imagen) {
+      pageHeaderEl.style.backgroundImage = `linear-gradient(to bottom,rgba(0,0,0,0.55) 0%,rgba(0,0,0,0.75) 100%),url(${CSS.escape(torneo.imagen)})`;
+      pageHeaderEl.classList.add('has-bg');
+    }
   } catch {
     if (title) title.textContent = torneoNombre(selected) || t('section.friendTournamentCap');
   }

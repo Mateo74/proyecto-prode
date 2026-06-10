@@ -2313,6 +2313,37 @@ img.team__badge-img {
 }
 
 /* =============================================
+   TOURNAMENT CARD — image-as-background variant
+   ============================================= */
+.tournament-card.has-bg {
+  background-size: cover;
+  background-position: center;
+  color: #fff;
+}
+.tournament-card.has-bg small,
+.tournament-card.has-bg .tournament-card__meta {
+  color: rgba(255,255,255,0.75);
+}
+
+/* =============================================
+   PAGE-HEADER — image-as-background variant
+   ============================================= */
+.page-header.has-bg {
+  background-size: cover;
+  background-position: center top;
+  border-bottom-color: transparent;
+}
+.page-header.has-bg .page-title,
+.page-header.has-bg .section-label,
+.page-header.has-bg .dot,
+.page-header.has-bg .icon-btn {
+  color: #fff;
+}
+.page-header.has-bg .icon-btn {
+  background: rgba(0,0,0,0.35);
+}
+
+/* =============================================
    USER PREDICTIONS DRAWER (bottom sheet)
    ============================================= */
 .user-preds-overlay {

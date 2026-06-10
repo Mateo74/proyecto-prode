@@ -26,7 +26,7 @@ const I18n = (() => {
       'nav.activeSession':       'Sesión activa',
       'nav.back':                'Volver',
       'nav.backToCompetitions':  'Volver a competencias',
-      'nav.howPoints':           'Cómo se calculan los puntos',
+      'nav.howPoints':           'Reglas',
       'nav.settings':            'Ajustes',
 
       // ── Section labels ─────────────────────────────────────────────
@@ -304,7 +304,7 @@ const I18n = (() => {
       'nav.activeSession':       'Active session',
       'nav.back':                'Back',
       'nav.backToCompetitions':  'Back to competitions',
-      'nav.howPoints':           'How points are calculated',
+      'nav.howPoints':           'Rules',
       'nav.settings':            'Settings',
 
       // ── Section labels ─────────────────────────────────────────────
