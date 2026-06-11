@@ -39,13 +39,13 @@ function makeUsuario({ id = "u-1", idioma = "es", tokens = ["ExponentPushToken[t
   };
 }
 
-function makePrisma({ partidos = [], torneos = [], predicciones = [] } = {}) {
+function makePrisma({ partidos = [], usuarios = [], predicciones = [] } = {}) {
   return {
     partido: {
       findMany: async () => partidos,
     },
-    torneoDeAmigos: {
-      findMany: async () => torneos,
+    usuario: {
+      findMany: async () => usuarios,
     },
     prediccion: {
       findMany: async () => predicciones,
@@ -74,7 +74,7 @@ test("findUsersToNotify: returns empty when no users have tokens", async () => {
 
   const prisma = makePrisma({
     partidos: [makePartido()],
-    torneos: [{ competenciaId: "comp-1", usuarios: [makeUsuario({ tokens: [] })] }],
+    usuarios: [makeUsuario({ tokens: [] })],
   });
   mockProjectModule("src/config/prisma.js", { prisma });
 
@@ -90,7 +90,7 @@ test("findUsersToNotify: returns one aggregated entry for user with one unpredic
   const usuario = makeUsuario({ id: "u-1" });
   const prisma = makePrisma({
     partidos: [makePartido({ id: "p-1", hoursUntil: 23.8 })],
-    torneos: [{ competenciaId: "comp-1", usuarios: [usuario] }],
+    usuarios: [usuario],
     predicciones: [],
   });
   mockProjectModule("src/config/prisma.js", { prisma });
@@ -118,7 +118,7 @@ test("findUsersToNotify: aggregates multiple matches into one entry per window",
       makePartido({ id: "p-2", hoursUntil: 23.9 }),  // 24h window
       makePartido({ id: "p-3", hoursUntil: 1.9  }),  // 2h window [1h43min, 2h2min]
     ],
-    torneos: [{ competenciaId: "comp-1", usuarios: [usuario] }],
+    usuarios: [usuario],
     predicciones: [],
   });
   mockProjectModule("src/config/prisma.js", { prisma });
@@ -143,7 +143,7 @@ test("findUsersToNotify: classifies match 1.9h away as 2h reminder", async () =>
   const usuario = makeUsuario();
   const prisma = makePrisma({
     partidos: [makePartido({ hoursUntil: 1.9 })],  // 1h54min: inside 2h window [1h43min, 2h2min]
-    torneos: [{ competenciaId: "comp-1", usuarios: [usuario] }],
+    usuarios: [usuario],
   });
   mockProjectModule("src/config/prisma.js", { prisma });
 
@@ -160,7 +160,7 @@ test("findUsersToNotify: excludes user who already predicted", async () => {
   const usuario = makeUsuario({ id: "u-1" });
   const prisma = makePrisma({
     partidos: [makePartido({ id: "p-1" })],
-    torneos: [{ competenciaId: "comp-1", usuarios: [usuario] }],
+    usuarios: [usuario],
     predicciones: [{ usuarioId: "u-1", partidoId: "p-1" }],
   });
   mockProjectModule("src/config/prisma.js", { prisma });
@@ -178,7 +178,7 @@ test("findUsersToNotify: only notifies user missing prediction, skips one with i
   const u2 = makeUsuario({ id: "u-2", tokens: ["ExponentPushToken[ep2]"] });
   const prisma = makePrisma({
     partidos: [makePartido({ id: "p-1" })],
-    torneos: [{ competenciaId: "comp-1", usuarios: [u1, u2] }],
+    usuarios: [u1, u2],
     predicciones: [{ usuarioId: "u-2", partidoId: "p-1" }],
   });
   mockProjectModule("src/config/prisma.js", { prisma });
@@ -200,7 +200,7 @@ test("findUsersToNotify: partial prediction leaves remaining matches in entry", 
       makePartido({ id: "p-1", hoursUntil: 23.8 }),  // 24h window
       makePartido({ id: "p-2", hoursUntil: 23.9 }),  // 24h window
     ],
-    torneos: [{ competenciaId: "comp-1", usuarios: [usuario] }],
+    usuarios: [usuario],
     predicciones: [{ usuarioId: "u-1", partidoId: "p-1" }], // predicted p-1 only
   });
   mockProjectModule("src/config/prisma.js", { prisma });
@@ -220,7 +220,7 @@ test("findUsersToNotify: skips match already in sentSet for same window", async 
   const usuario = makeUsuario({ id: "u-1" });
   const prisma = makePrisma({
     partidos: [makePartido({ id: "p-1", hoursUntil: 23.8 })],
-    torneos: [{ competenciaId: "comp-1", usuarios: [usuario] }],
+    usuarios: [usuario],
     predicciones: [],
   });
   mockProjectModule("src/config/prisma.js", { prisma });
@@ -352,7 +352,7 @@ test("sendMatchReminders: sends one notification per user-window and updates sen
   const usuario = makeUsuario({ id: "u-1" });
   const prisma = makePrisma({
     partidos: [makePartido({ id: "p-1" })],
-    torneos: [{ competenciaId: "comp-1", usuarios: [usuario] }],
+    usuarios: [usuario],
   });
   mockProjectModule("src/config/prisma.js", { prisma });
   mockProjectModule("src/services/push.service.js", {
@@ -379,7 +379,7 @@ test("sendMatchReminders: deletes expired tokens", async () => {
   const prisma = {
     ...makePrisma({
       partidos: [makePartido()],
-      torneos: [{ competenciaId: "comp-1", usuarios: [usuario] }],
+      usuarios: [usuario],
     }),
     expoToken: {
       deleteMany: async ({ where }) => { deletedTokenIds = where.id.in; },

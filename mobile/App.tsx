@@ -59,11 +59,14 @@ async function registerForPushNotifications(webViewRef: React.RefObject<WebView>
     const tokenData = await Notifications.getExpoPushTokenAsync();
     const expoToken = tokenData.data;
 
-    // Delegate the API call to the WebView so it uses the existing session
-    // (including cookie-based token refresh) rather than a potentially stale JWT snapshot.
+    // Delegate the API call to the WebView, reading the access token from
+    // the web app's in-memory API module so the Bearer header is included.
     webViewRef.current?.injectJavaScript(
       `(async function(){try{` +
-      `await fetch('/api/push/register',{method:'POST',headers:{'Content-Type':'application/json'},` +
+      `var tok=typeof API!=='undefined'&&API.getToken?API.getToken():null;` +
+      `if(!tok)return;` +
+      `await fetch('/api/push/register',{method:'POST',` +
+      `headers:{'Content-Type':'application/json','Authorization':'Bearer '+tok},` +
       `body:JSON.stringify({token:${JSON.stringify(expoToken)}})});` +
       `}catch(e){}})();true;`
     );

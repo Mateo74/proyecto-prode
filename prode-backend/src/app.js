@@ -15,6 +15,10 @@ const {
 function createApp() {
   const app = express();
 
+  // Trust the first proxy (Vercel edge / Azure Front Door) so that
+  // express-rate-limit and req.ip use the real client IP from X-Forwarded-For.
+  app.set("trust proxy", 1);
+
   app.use(helmet());
   app.use(cors(buildCorsOptions(env.CORS_ORIGINS)));
   app.use(cookieParser());

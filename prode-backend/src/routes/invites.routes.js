@@ -34,21 +34,22 @@ router.get(
       ? `${compNombre}: Predict results and compete with your friends.`
       : `${compNombre}: Predecí resultados y competí con tus amigos.`;
     const redirectUrl = `${env.FRONTEND_BASE_URL}/pages/invitacion.html?token=${encodeURIComponent(token)}`;
+    const esc = (s) => s.replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
     res.setHeader('Content-Type', 'text/html; charset=utf-8');
     res.send(`<!DOCTYPE html><html><head>
 <meta charset="utf-8">
-<title>${title}</title>
+<title>${esc(title)}</title>
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="Once Metros">
-<meta property="og:title" content="${title}">
-<meta property="og:description" content="${description}">
+<meta property="og:title" content="${esc(title)}">
+<meta property="og:description" content="${esc(description)}">
 <meta property="og:image" content="https://www.oncemetros.com/assets/cancha.jpg">
-<meta property="og:url" content="${redirectUrl}">
+<meta property="og:url" content="${esc(redirectUrl)}">
 <meta name="twitter:card" content="summary_large_image">
-<meta name="twitter:title" content="${title}">
-<meta name="twitter:description" content="${description}">
+<meta name="twitter:title" content="${esc(title)}">
+<meta name="twitter:description" content="${esc(description)}">
 <meta name="twitter:image" content="https://www.oncemetros.com/assets/cancha.jpg">
-<meta http-equiv="refresh" content="0;url=${redirectUrl}">
+<meta http-equiv="refresh" content="0;url=${esc(redirectUrl)}">
 </head><body><script>window.location.replace(${JSON.stringify(redirectUrl)});</script></body></html>`);
   }),
 );

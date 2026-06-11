@@ -16,10 +16,10 @@ const WINDOW_MS = CHECK_INTERVAL_MS + JITTER_MS;
  * for that window aggregated together.
  *
  * Conditions:
+ *  - match belongs to a visible competencia
  *  - match kicks off in the 2h or 24h window (each window = CHECK_INTERVAL_MS + jitter)
- *  - user is a member of a non-global friends torneo for that competencia
- *  - user has not yet made a prediction for that match
  *  - user has at least one Expo push token
+ *  - user has not yet made a prediction for that match
  *  - the (userId, partidoId, horasAntes) key is not in sentSet (in-memory dedup)
  *
  * Returns an array of: { userId, tokens, idioma, horasAntes, partidos[] }
@@ -40,6 +40,7 @@ async function findUsersToNotify(now = new Date(), sentSet = new Set()) {
         { fecha: { gte: dayFrom,     lte: dayTo } },
       ],
       estado: { in: ["FUTURO", "PROGRAMADO"] },
+      competencia: { visible: true },
     },
     select: {
       id: true,
@@ -52,8 +53,6 @@ async function findUsersToNotify(now = new Date(), sentSet = new Set()) {
   });
 
   if (!partidos.length) return [];
-
-  const competenciaIds = [...new Set(partidos.map((p) => p.competenciaId))];
 
   // Pre-classify each match into its reminder window.
   // A match is in the 2h window if its fecha is at or before the 2h upper bound.
@@ -70,51 +69,26 @@ async function findUsersToNotify(now = new Date(), sentSet = new Set()) {
     };
   }
 
-  // Non-global active torneos with members who have Expo tokens
-  const torneos = await prisma.torneoDeAmigos.findMany({
-    where: {
-      esGlobal: false,
-      activo: true,
-      competenciaId: { in: competenciaIds },
-    },
+  // All users who have at least one Expo push token
+  const usuarios = await prisma.usuario.findMany({
+    where: { expoTokens: { some: {} } },
     select: {
-      competenciaId: true,
-      usuarios: {
-        select: {
-          id: true,
-          idioma: true,
-          expoTokens: { select: { id: true, token: true } },
-        },
-      },
+      id: true,
+      idioma: true,
+      expoTokens: { select: { id: true, token: true } },
     },
   });
 
-  // Build userMap: userId → { tokens, idioma, candidates: [partidoInfo entries] }
-  // Candidates are all matches the user *could* need to predict (deduped by match id)
+  // Build userMap: every user gets every upcoming match as a candidate
+  const allCandidates = Object.values(partidoInfo);
   const userMap = new Map();
-  for (const torneo of torneos) {
-    const matchesForComp = partidos
-      .filter((p) => p.competenciaId === torneo.competenciaId)
-      .map((p) => partidoInfo[p.id]);
-
-    for (const usuario of torneo.usuarios) {
-      if (!usuario.expoTokens.length) continue;
-      if (!userMap.has(usuario.id)) {
-        userMap.set(usuario.id, {
-          tokens: usuario.expoTokens,
-          idioma: usuario.idioma,
-          candidateIds: new Set(),
-          candidates: [],
-        });
-      }
-      const entry = userMap.get(usuario.id);
-      for (const info of matchesForComp) {
-        if (!entry.candidateIds.has(info.partidoId)) {
-          entry.candidateIds.add(info.partidoId);
-          entry.candidates.push(info);
-        }
-      }
-    }
+  for (const usuario of usuarios) {
+    if (!usuario.expoTokens.length) continue;
+    userMap.set(usuario.id, {
+      tokens: usuario.expoTokens,
+      idioma: usuario.idioma,
+      candidates: allCandidates,
+    });
   }
 
   if (!userMap.size) return [];
