@@ -1470,7 +1470,15 @@ async function initPartidoDetalle() {
   const partidoId  = params.get('partidoId');
   const competenciaId = params.get('competenciaId');
 
-  document.getElementById('back-btn')?.addEventListener('click', () => history.back());
+  document.getElementById('back-btn')?.addEventListener('click', () => {
+    // When we have a torneoId context, always go back to the torneo (clasificacion),
+    // not history.back() which could be the invite landing page.
+    if (torneoId) {
+      window.location.href = pagePath('clasificacion');
+    } else {
+      history.back();
+    }
+  });
 
   const cardContainer = document.getElementById('match-card-container');
   const rankingList   = document.getElementById('match-ranking-list');
@@ -1634,9 +1642,31 @@ async function initPartidoDetalle() {
   // Don't show podium on match detail page — just the flat ranked list with pred scores
   if (podiumEl) podiumEl.innerHTML = '';
   const positions = computePositions(ranked);
-  rankingList.innerHTML = ranked.length
-    ? ranked.map((r, i) => renderRankRow(r, positions[i], matchSubLine)).join('')
-    : '';
+
+  const PAGE = 50;
+  let shown = PAGE;
+
+  function renderMatchRankPage() {
+    rankingList.innerHTML = ranked.length
+      ? ranked.slice(0, shown).map((r, i) => renderRankRow(r, positions[i], matchSubLine)).join('')
+      : '';
+
+    document.getElementById('match-ranking-load-more')?.remove();
+    if (shown < ranked.length) {
+      const btn = document.createElement('button');
+      btn.id = 'match-ranking-load-more';
+      btn.className = 'btn btn-outline btn-sm';
+      btn.style.cssText = 'display:block;margin:1rem auto';
+      btn.textContent = t('action.loadMore');
+      btn.addEventListener('click', () => {
+        shown = Math.min(shown + PAGE, ranked.length);
+        renderMatchRankPage();
+      });
+      rankingList.insertAdjacentElement('afterend', btn);
+    }
+  }
+
+  renderMatchRankPage();
 }
 
 async function initInviteLanding() {

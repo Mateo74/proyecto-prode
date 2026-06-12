@@ -872,6 +872,14 @@ button { font-family: var(--font); cursor: pointer; }
 .filter-chip:hover  { background: var(--bg-3); color: var(--text-2); }
 .filter-chip.active { background: var(--primary-dim); border-color: rgba(0,200,83,0.35); color: var(--primary); }
 
+.filter-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin-bottom: 1.5rem;
+  margin-top: 0.25rem;
+}
+
 /* =============================================
    HOME WORKSPACE
    ============================================= */
