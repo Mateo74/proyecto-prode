@@ -1,6 +1,10 @@
 {
   "redirects": [
-    { "source": "/pages/auth", "destination": "/pages/auth.html", "permanent": false }
+    { "source": "/pages/auth", "destination": "/pages/auth.html", "permanent": false },
+    { "source": "/privacy", "destination": "/pages/privacidad.html", "permanent": false },
+    { "source": "/privacidad", "destination": "/pages/privacidad.html", "permanent": false },
+    { "source": "/delete-account", "destination": "/pages/perfil.html", "permanent": false },
+    { "source": "/eliminar-cuenta", "destination": "/pages/perfil.html", "permanent": false }
   ],
   "rewrites": [
     {

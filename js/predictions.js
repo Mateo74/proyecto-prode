@@ -112,7 +112,15 @@ const Predictions = (() => {
   function scoreLabel(value) { return value == null ? '-' : value; }
   function minuteLabel(match) {
     if (match.estado === 'finalizado') return t('match.final');
-    if (match.estado === 'en-vivo') return match.minutoActual ? `${match.minutoActual}'` : t('match.live');
+    if (match.estado === 'en-vivo') {
+      const m = match.minutoActual;
+      if (!m) return t('match.live');
+      if (m === 48) return `45+3'`; // half-time / between-halves buffer
+      if (m > 47 && m < 63) return `45+3'`; // still in half-time window
+      if (m > 45 && m < 48) return `45+${m - 45}'`; // first-half stoppage
+      if (m > 90) return `90+${m - 90}'`; // second-half stoppage
+      return `${m}'`;
+    }
     if (match.estado === 'suspendido') return t('badge.suspended');
     if (match.estado === 'cancelado') return t('badge.cancelled');
     return '';

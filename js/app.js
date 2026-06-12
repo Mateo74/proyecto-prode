@@ -882,7 +882,7 @@ function switchClasifTab(tab) {
   }
 }
 
-async function loadMisPrediccionesEnTorneo() {
+async function loadMisPrediccionesEnTorneo(estado = '') {
   const el = document.getElementById('mis-predicciones-list');
   if (!el) return;
   const torneo = API.getSelectedTorneo();
@@ -896,9 +896,52 @@ async function loadMisPrediccionesEnTorneo() {
   }
   showSkeleton(el, 4);
   const competenciaId = torneo.competenciaId || torneo.competencia?.id;
+
+  // Build filter chips if not yet present
+  const tab = document.getElementById('clasif-tab-predicciones');
+  if (tab && !tab.querySelector('.pred-filters')) {
+    const filtersDiv = document.createElement('div');
+    filtersDiv.className = 'pred-filters filter-chips';
+    const chips = [
+      { value: 'proximo', label: t('filter.upcoming') },
+      { value: 'en-vivo', label: t('filter.live') },
+      { value: 'finalizado', label: t('filter.finished') },
+      { value: '', label: t('filter.all') },
+    ];
+    chips.forEach(({ value, label }) => {
+      const btn = document.createElement('button');
+      btn.className = 'filter-chip' + (value === estado ? ' active' : '');
+      btn.dataset.estadoPred = value;
+      btn.textContent = label;
+      btn.addEventListener('click', () => {
+        tab.querySelectorAll('.filter-chip').forEach(c => c.classList.remove('active'));
+        btn.classList.add('active');
+        loadMisPrediccionesEnTorneo(btn.dataset.estadoPred);
+      });
+      filtersDiv.appendChild(btn);
+    });
+    const section = tab.querySelector('.section');
+    section?.insertBefore(filtersDiv, section.firstChild);
+  } else if (tab) {
+    // Sync active chip with current estado
+    tab.querySelectorAll('.filter-chip').forEach(c =>
+      c.classList.toggle('active', c.dataset.estadoPred === estado)
+    );
+  }
+
   try {
-    // Show upcoming matches for this competition so the user can make predictions
-    const matches = await API.getMatches({ competenciaId, estado: 'proximo' });
+    // Map filter value: 'proximo' → API estado 'proximo'; 'en-vivo' → 'en-vivo';
+    // 'finalizado' → 'finalizado'; '' → fetch upcoming+live together
+    const apiEstado = estado === '' ? 'proximo' : estado;
+    let matches = await API.getMatches({ competenciaId, estado: apiEstado });
+    // For 'all' (empty), also fetch live and merge
+    if (estado === '') {
+      try {
+        const live = await API.getMatches({ competenciaId, estado: 'en-vivo' });
+        const existingIds = new Set(matches.map(m => m.id));
+        live.forEach(m => { if (!existingIds.has(m.id)) matches.push(m); });
+      } catch { /* ignore */ }
+    }
     lastLoadedMatches = matches;
     el.innerHTML = '';
     if (!matches.length) {
@@ -1480,14 +1523,38 @@ async function initPartidoDetalle() {
 
   const { partido, entries, torneo: torneoData } = data;
 
-  // Update page title with competition name + torneo name
-  if (torneoData) {
+  // Update page title with match teams
+  if (partido) {
+    const team1 = partido.equipo1 || '';
+    const team2 = partido.equipo2 || '';
+    if (team1 && team2) {
+      document.title = `${team1} ${t('match.vs')} ${team2} | Once Metros`;
+    } else if (torneoData) {
+      document.title = `${torneoNombre(torneoData)} | Once Metros`;
+    }
+  } else if (torneoData) {
     document.title = `${torneoNombre(torneoData)} | Once Metros`;
   }
 
   // Match card
   cardContainer && (cardContainer.innerHTML = '');
   if (cardContainer) cardContainer.appendChild(Predictions.createMatchCard(partido));
+
+  // Dev utility: call window.__matchInviteLink() from the browser console to get
+  // a shareable invite link for the current match+torneo (not exposed in the UI).
+  window.__matchInviteLink = async () => {
+    try {
+      let { token } = await API.getInviteLink(torneoId);
+      if (!token) ({ token } = await API.generarInviteLink(torneoId));
+      if (!token) { console.warn('No invite token available'); return; }
+      const url = `${window.location.origin}/pages/invitacion?token=${encodeURIComponent(token)}&partidoId=${encodeURIComponent(partidoId)}`;
+      console.log('%cMatch invite link:', 'font-weight:bold', url);
+      await navigator.clipboard.writeText(url).catch(() => {});
+      return url;
+    } catch (err) {
+      console.error('__matchInviteLink failed', err);
+    }
+  };
 
   const podiumEl   = document.getElementById('match-podium');
   if (!rankingList) return;
@@ -1503,18 +1570,44 @@ async function initPartidoDetalle() {
                  partido.estado === 'en-vivo' ||
                  partido.estado === 'finalizado';
 
+  // When match is live, calculate provisional points based on current score
+  const liveScore = partido.estado === 'en-vivo'
+    ? { g1: partido.golesEquipo1 ?? null, g2: partido.golesEquipo2 ?? null }
+    : null;
+
+  function calcProvisionalPoints(pred) {
+    if (!pred || liveScore?.g1 == null || liveScore?.g2 == null) return null;
+    const p1 = pred.golesEquipo1, p2 = pred.golesEquipo2;
+    if (p1 == null || p2 == null) return null;
+    const r1 = liveScore.g1, r2 = liveScore.g2;
+    const predResult = Math.sign(p1 - p2);
+    const realResult = Math.sign(r1 - r2);
+    if (predResult !== realResult) return 0;
+    if (p1 === r1 && p2 === r2) return Math.max(3, p1 + p2);
+    if (p1 - p2 === r1 - r2) return 2;
+    return 1;
+  }
+
   // Build ranking array. Before kick-off: alphabetical, no pts shown. After: sorted by pts.
   const ranked = entries
-    .map(e => ({
-      usuarioId:  e.usuario.id,
-      nombre:     e.usuario.nombre || e.usuario.username,
-      fotoPerfil: e.usuario.fotoPerfil || null,
-      puntos:     locked ? (e.prediccion?.puntos ?? null) : null,
-      aciertos:   0,
-      exactos:    0,
-      predScore:  e.prediccion ? `${e.prediccion.golesEquipo1}-${e.prediccion.golesEquipo2}` : null,
-      hasPred:    !!e.prediccion,
-    }))
+    .map(e => {
+      let puntos = null;
+      if (locked) {
+        puntos = partido.estado === 'en-vivo'
+          ? calcProvisionalPoints(e.prediccion)
+          : (e.prediccion?.puntos ?? null);
+      }
+      return {
+        usuarioId:  e.usuario.id,
+        nombre:     e.usuario.nombre || e.usuario.username,
+        fotoPerfil: e.usuario.fotoPerfil || null,
+        puntos,
+        aciertos:   0,
+        exactos:    0,
+        predScore:  e.prediccion ? `${e.prediccion.golesEquipo1}-${e.prediccion.golesEquipo2}` : null,
+        hasPred:    !!e.prediccion,
+      };
+    })
     .sort((a, b) => {
       if (!locked) return (a.nombre || '').localeCompare(b.nombre || '');
       if (a.puntos === null && b.puntos === null) return 0;
@@ -1523,25 +1616,33 @@ async function initPartidoDetalle() {
       return b.puntos - a.puntos;
     });
 
-  const positions = computePositions(ranked);
-
-  // Notice shown above the list before kick-off
+  // Notice shown above the list before kick-off or during live
   const noticeEl = document.getElementById('match-ranking-notice');
-  if (noticeEl) noticeEl.classList.toggle('hidden', locked);
+  if (noticeEl) {
+    if (partido.estado === 'en-vivo') {
+      noticeEl.textContent = t('match.liveScoresNotice');
+      noticeEl.classList.remove('hidden');
+    } else {
+      noticeEl.classList.toggle('hidden', locked);
+    }
+  }
 
   const matchSubLine = r => locked
     ? (r.hasPred ? escapeHtml(r.predScore) : `<span style="color:var(--text-3)">${t('match.noPred')}</span>`)
     : `<span style="color:var(--text-3)">${t('match.predsHidden')}</span>`;
 
-  renderRankingInto(podiumEl, rankingList, ranked, positions, {
-    subLineFn: matchSubLine,
-    clickable: false,
-  });
+  // Don't show podium on match detail page — just the flat ranked list with pred scores
+  if (podiumEl) podiumEl.innerHTML = '';
+  const positions = computePositions(ranked);
+  rankingList.innerHTML = ranked.length
+    ? ranked.map((r, i) => renderRankRow(r, positions[i], matchSubLine)).join('')
+    : '';
 }
 
 async function initInviteLanding() {
   const params = new URLSearchParams(window.location.search);
   const token = params.get('token');
+  const partidoId = params.get('partidoId'); // optional: redirect to match after joining
   const title = document.getElementById('invite-landing-title');
   const meta = document.getElementById('invite-landing-meta');
   const actions = document.getElementById('invite-landing-actions');
@@ -1569,7 +1670,9 @@ async function initInviteLanding() {
   meta.textContent = competenciaNombre(torneo.competencia) || '';
 
   if (!API.getToken()) {
-    const next = encodeURIComponent(`invitacion?token=${token}`);
+    const nextParams = new URLSearchParams({ token });
+    if (partidoId) nextParams.set('partidoId', partidoId);
+    const next = encodeURIComponent(`invitacion?${nextParams}`);
     actions.innerHTML = `
       <a class="btn btn-primary" href="auth?next=${next}">${t('action.signInToJoin')}</a>
       <a class="btn btn-outline" href="/">${t('action.seeCompetitions')}</a>
@@ -1582,7 +1685,11 @@ async function initInviteLanding() {
     try {
       const result = await API.unirseConInviteToken(token);
       API.setSelectedTorneo(result);
-      window.location.href = 'clasificacion';
+      if (partidoId) {
+        window.location.href = `partido-detalle?torneoId=${encodeURIComponent(result.id)}&partidoId=${encodeURIComponent(partidoId)}`;
+      } else {
+        window.location.href = 'clasificacion';
+      }
     } catch (err) {
       setInviteLandingFeedback(err.message, 'error');
     }
@@ -1647,7 +1754,7 @@ async function loadLeaderboard() {
   }
 
   try {
-    const ranking = await API.getLeaderboard();
+    const ranking = await API.getLeaderboard({ limit: 9999 });
     const positions = computePositions(ranking);
 
     if (!ranking.length) {
@@ -1656,7 +1763,30 @@ async function loadLeaderboard() {
       return;
     }
 
-    renderRankingInto(podiumEl, rankingEl, ranking, positions);
+    const PAGE = 50;
+    let shown = PAGE;
+
+    function renderPage() {
+      renderRankingInto(podiumEl, rankingEl, ranking.slice(0, shown), positions.slice(0, shown));
+
+      // Remove old load-more button if present
+      document.getElementById('ranking-load-more')?.remove();
+
+      if (shown < ranking.length) {
+        const btn = document.createElement('button');
+        btn.id = 'ranking-load-more';
+        btn.className = 'btn btn-outline btn-sm';
+        btn.style.cssText = 'display:block;margin:1rem auto';
+        btn.textContent = t('action.loadMore');
+        btn.addEventListener('click', () => {
+          shown = Math.min(shown + PAGE, ranking.length);
+          renderPage();
+        });
+        rankingEl.insertAdjacentElement('afterend', btn);
+      }
+    }
+
+    renderPage();
 
   } catch (error) {
     if (podiumEl) podiumEl.innerHTML = '';
@@ -2320,10 +2450,42 @@ function setupGroupsOverlay() {
     </div>`;
   document.body.appendChild(overlay);
 
-  const open = () => {
-    const groups = buildPredictedGroups(matchesWithLivePredictions(), WORLD_CUP_2026_GROUPS);
-    document.getElementById('grupos-overlay-body').innerHTML = renderGroupsGrid(groups);
+  const open = async () => {
+    const body = document.getElementById('grupos-overlay-body');
+    body.innerHTML = '<p style="padding:1rem;text-align:center">…</p>';
     overlay.classList.add('grupos-overlay--visible');
+
+    // Fetch ALL matches for this competencia (all states) so the groups table
+    // is correct regardless of which filter tab is currently active
+    let allMatches = lastLoadedMatches || [];
+    try {
+      const [upcoming, live, finished] = await Promise.all([
+        API.getMatches({ competenciaId: comp.id, estado: 'proximo' }).catch(() => []),
+        API.getMatches({ competenciaId: comp.id, estado: 'en-vivo' }).catch(() => []),
+        API.getMatches({ competenciaId: comp.id, estado: 'finalizado' }).catch(() => []),
+      ]);
+      // Merge, dedup by id
+      const seen = new Set();
+      allMatches = [...upcoming, ...live, ...finished].filter(m => {
+        if (seen.has(m.id)) return false;
+        seen.add(m.id);
+        return true;
+      });
+    } catch { /* use lastLoadedMatches as fallback */ }
+
+    const enriched = allMatches.map(match => {
+      const livePred = Predictions.getCurrentScores(match.id);
+      let userPred = match.userPred || null;
+      if (livePred) {
+        userPred = (livePred.equipo1 != null && livePred.equipo2 != null)
+          ? { scoreEquipo1: livePred.equipo1, scoreEquipo2: livePred.equipo2 }
+          : null;
+      }
+      return { ...match, userPred };
+    });
+
+    const groups = buildPredictedGroups(enriched, WORLD_CUP_2026_GROUPS);
+    body.innerHTML = renderGroupsGrid(groups);
   };
   const close = () => overlay.classList.remove('grupos-overlay--visible');
 

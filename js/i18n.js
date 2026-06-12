@@ -150,6 +150,9 @@ const I18n = (() => {
       'action.processing':      'Procesando...',
       'action.changePhoto':     'Cambiar foto',
       'action.moreOptions':     'Más opciones',
+      'action.loadMore':        'Mostrar más',
+      'match.liveScoresNotice': 'Los puntajes son provisorios mientras el partido está en vivo.',
+      'match.vs':               'vs',
 
       // ── Auth form ──────────────────────────────────────────────────
       'auth.or':                  'o',
@@ -168,8 +171,8 @@ const I18n = (() => {
       'empty.noCompetitions':    'No hay competencias disponibles.',
       'empty.noMatches':         'No hay partidos para este filtro.',
       'empty.chooseCompetition': 'Elegí una competencia para ver partidos.',
-      'empty.noUpcoming':        'No hay partidos próximos en esta competencia.',
-      'empty.noUpcomingTorneo':  'No hay partidos próximos para esta competencia.',
+      'empty.noUpcoming':        'No hay partidos en esta competencia.',
+      'empty.noUpcomingTorneo':  'No hay partidos para esta competencia.',
       'empty.signInForTorneos':  'Iniciá sesión para ver los Torneos de Amigos.',
       'empty.noTorneosForComp':  'Todavía no sos parte de ningún Torneo de Amigos para esta competencia.',
       'empty.noTorneos':         '¡Todavía no sos parte de ningún Torneo de Amigos. Creá uno o pedí una invitación!',
@@ -427,6 +430,9 @@ const I18n = (() => {
       'action.processing':      'Processing...',
       'action.changePhoto':     'Change photo',
       'action.moreOptions':     'More options',
+      'action.loadMore':        'Load more',
+      'match.liveScoresNotice': 'Scores are provisional while the match is live.',
+      'match.vs':               'vs',
 
       // ── Auth form ──────────────────────────────────────────────────
       'auth.or':                  'or',
@@ -445,8 +451,8 @@ const I18n = (() => {
       'empty.noCompetitions':    'No competitions available.',
       'empty.noMatches':         'No matches for this filter.',
       'empty.chooseCompetition': 'Choose a competition to see matches.',
-      'empty.noUpcoming':        'No upcoming matches in this competition.',
-      'empty.noUpcomingTorneo':  'No upcoming matches for this competition.',
+      'empty.noUpcoming':        'No matches in this competition.',
+      'empty.noUpcomingTorneo':  'No matches for this competition.',
       'empty.signInForTorneos':  'Sign in to see Friends Tournaments.',
       'empty.noTorneosForComp':  "You're not part of any Friends Tournament for this competition yet.",
       'empty.noTorneos':         "You're not part of any Friends Tournament yet. Create one or request an invite!",

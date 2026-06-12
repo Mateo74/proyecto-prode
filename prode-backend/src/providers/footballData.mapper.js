@@ -25,6 +25,13 @@ function tipoEquipoDeCompetencia(competitionCode) {
  * The football-data.org free tier does not expose a live minute field,
  * so we calculate elapsed time from the real start (or scheduled start).
  * Pass fechaInicioReal when available so delayed matches are handled correctly.
+ *
+ * Logic:
+ *  - Minutes 0-45:   first half, raw elapsed
+ *  - Minutes 45-48:  first-half stoppage (cap raw at 45+3)
+ *  - Minutes 48-63:  half-time + second half warm-up → show 45+3 until 2nd half starts
+ *  - Minutes 63-108: second half (subtract 63 min offset to start at 46')
+ *  - Minutes 108+:   second-half stoppage (cap at 90+3); beyond that → ET / final
  */
 function deriveMinute(status, kickoffDate, now = new Date()) {
   if (status === "PAUSED") return 45;
@@ -33,8 +40,24 @@ function deriveMinute(status, kickoffDate, now = new Date()) {
   const started = new Date(kickoffDate).getTime();
   if (Number.isNaN(started)) return null;
 
-  const elapsed = Math.max(1, Math.floor((now.getTime() - started) / 60000) + 1);
-  return Math.min(elapsed, 120);
+  const raw = Math.max(0, Math.floor((now.getTime() - started) / 60000));
+
+  // First half: 0-45 minutes (show +1 because "minute 35" starts after 34m elapsed)
+  if (raw < 45) return raw + 1;
+
+  // First-half stoppage window (raw 45-47): show 45+N
+  if (raw <= 47) return raw; // caller/display converts: raw-45 → 45+N (here: 45,46,47)
+
+  // Half-time window (approx 15 min) + start of 2nd half warm-up
+  // raw 48-62: show 48 as a neutral "between halves" value (display shows 45+3)
+  if (raw < 63) return 48;
+
+  // Second half: raw 63 maps to minute 46, raw 107 maps to minute 90
+  const secondHalf = raw - 63 + 46;
+  if (secondHalf <= 90) return secondHalf;
+
+  // Second-half stoppage: cap at 95 (90+5)
+  return Math.min(secondHalf, 95);
 }
 
 /**
