@@ -98,22 +98,59 @@ function teamToGroupFromDefinition(groupsDef = {}) {
   return out;
 }
 
-function teamIdFromMatch(match, side) {
-  const id = side === 1 ? match.equipo1Id : match.equipo2Id;
-  if (id) return id;
-
-  // Compatibility path for older mocked tests/data that still pass names only.
-  const name = side === 1 ? match.equipo1 : match.equipo2;
-  const nameEn = side === 1 ? match.equipo1NombreEn : match.equipo2NombreEn;
-  const normalized = normalizeTeamName(name);
-  const normalizedEn = normalizeTeamName(nameEn);
+/**
+ * Índice normalizado nombre -> teamId canónico, construido una sola vez desde
+ * WORLD_CUP_2026_TEAMS. Incluye alias para fuentes de datos cuyos nombres
+ * difieren del mapa canónico (p. ej. el seed local: "Catar"/"Qatar",
+ * "RD Congo"/"Congo RD", "República Checa"/"Chequia", etc.).
+ */
+let _nameToCanonicalIdIndex = null;
+function nameToCanonicalIdIndex() {
+  if (_nameToCanonicalIdIndex) return _nameToCanonicalIdIndex;
+  const idx = {};
   const teams = typeof WORLD_CUP_2026_TEAMS !== 'undefined' ? WORLD_CUP_2026_TEAMS : {};
   for (const [teamId, team] of Object.entries(teams)) {
-    if (normalizeTeamName(team.nombre) === normalized || normalizeTeamName(team.nombreEn) === normalizedEn) {
-      return teamId;
-    }
+    idx[normalizeTeamName(team.nombre)] = teamId;
+    if (team.nombreEn) idx[normalizeTeamName(team.nombreEn)] = teamId;
   }
-  return null;
+  const aliases = {
+    'arabia saudi': 'Arabia Saudita',
+    'bosnia y herzegovina': 'Bosnia-H.',
+    'catar': 'Qatar',
+    'curazao': 'Curaçao',
+    'estados unidos': 'EE. UU.',
+    'rd congo': 'Congo RD',
+    'republica checa': 'Chequia',
+  };
+  for (const [variant, canonical] of Object.entries(aliases)) {
+    const teamId = idx[normalizeTeamName(canonical)];
+    if (teamId) idx[normalizeTeamName(variant)] = teamId;
+  }
+  return (_nameToCanonicalIdIndex = idx);
+}
+
+/** Resuelve el teamId canónico a partir del nombre (ES o EN). Devuelve null si no se reconoce. */
+function canonicalTeamIdByName(name, nameEn) {
+  const idx = nameToCanonicalIdIndex();
+  return idx[normalizeTeamName(name)] || idx[normalizeTeamName(nameEn)] || null;
+}
+
+/**
+ * Devuelve el teamId canónico de un lado del partido.
+ *
+ * Producción: los partidos ya traen el id real del Mundial -> se usa tal cual.
+ * Local / otras fuentes: el id puede no ser un id conocido del Mundial (el seed
+ * genera cuids propios), así que se cae a resolver por nombre normalizado para
+ * que tanto el agrupado como la tabla de posiciones funcionen igual.
+ */
+function teamIdFromMatch(match, side) {
+  const id = side === 1 ? match.equipo1Id : match.equipo2Id;
+  const teams = typeof WORLD_CUP_2026_TEAMS !== 'undefined' ? WORLD_CUP_2026_TEAMS : {};
+  if (id && teams[id]) return id; // id real del Mundial: ruta de producción
+
+  const name = side === 1 ? match.equipo1 : match.equipo2;
+  const nameEn = side === 1 ? match.equipo1NombreEn : match.equipo2NombreEn;
+  return canonicalTeamIdByName(name, nameEn) || id || null;
 }
 
 function groupLetterForMatch(match, groupsDef = WORLD_CUP_2026_GROUPS) {
@@ -122,6 +159,25 @@ function groupLetterForMatch(match, groupsDef = WORLD_CUP_2026_GROUPS) {
   const g1 = teamToGroup[teamIdFromMatch(match, 1)];
   const g2 = teamToGroup[teamIdFromMatch(match, 2)];
   return g1 && g1 === g2 ? g1 : null;
+}
+
+/**
+ * Divide los partidos por grupo oficial.
+ *
+ * @param {Array}  matches    Partidos del backend.
+ * @param {Object} groupsDef  { "A": [teamId,...], ... } composición oficial.
+ * @returns {Object.<string, Array>} { "A": [partidos...], ... } una entrada por
+ *   cada grupo (vacía si no hay partidos). Los partidos cuyos equipos no forman
+ *   un grupo válido se descartan.
+ */
+function splitMatchesByGroup(matches = [], groupsDef = WORLD_CUP_2026_GROUPS) {
+  const out = {};
+  for (const letter of Object.keys(groupsDef || {})) out[letter] = [];
+  for (const match of matches) {
+    const letter = groupLetterForMatch(match, groupsDef);
+    if (letter && out[letter]) out[letter].push(match);
+  }
+  return out;
 }
 
 /**

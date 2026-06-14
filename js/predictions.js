@@ -165,7 +165,9 @@ const Predictions = (() => {
     card.dataset.matchId = match.id;
     const initialEquipo1 = match.userPred?.scoreEquipo1 ?? null;
     const initialEquipo2 = match.userPred?.scoreEquipo2 ?? null;
-    const hasSavedPrediction = Boolean(match.userPred);
+    const has1 = initialEquipo1 != null;
+    const has2 = initialEquipo2 != null;
+    const hasSavedPrediction = has1 && has2;
     const editable = match.prediccionEditable !== false;
     if (hasSavedPrediction) card.classList.add('pred-saved');
     if (!editable) card.classList.add('is-locked');
@@ -188,16 +190,16 @@ const Predictions = (() => {
         </div>
 
         <div class="score-input">
-          <input class="score-box${hasSavedPrediction ? ' has-value' : ''}"
+          <input class="score-box${has1 ? ' has-value' : ''}"
                  type="text" inputmode="numeric" enterkeyhint="next"
-                 value="${hasSavedPrediction ? initialEquipo1 : ''}"
+                 value="${has1 ? initialEquipo1 : ''}"
                  placeholder="-" data-side="equipo1"
                  ${editable ? '' : 'disabled'}
                  autocomplete="off" spellcheck="false">
           <div class="score-sep">:</div>
-          <input class="score-box${hasSavedPrediction ? ' has-value' : ''}"
+          <input class="score-box${has2 ? ' has-value' : ''}"
                  type="text" inputmode="numeric" enterkeyhint="done"
-                 value="${hasSavedPrediction ? initialEquipo2 : ''}"
+                 value="${has2 ? initialEquipo2 : ''}"
                  placeholder="-" data-side="equipo2"
                  ${editable ? '' : 'disabled'}
                  autocomplete="off" spellcheck="false">
@@ -256,6 +258,7 @@ const Predictions = (() => {
         } else {
           card.classList.remove('pred-saved', 'just-saved');
         }
+        emitPredictionChange(match.id);
       });
     });
 
@@ -271,6 +274,14 @@ const Predictions = (() => {
       next.focus();
       next.select();
     }
+  }
+
+  /**
+   * Notifica que el marcador en memoria de un partido cambió. La vista de
+   * predicciones por grupo escucha este evento para refrescar la tabla en vivo.
+   */
+  function emitPredictionChange(matchId) {
+    document.dispatchEvent(new CustomEvent('prediction:change', { detail: { matchId } }));
   }
 
   /** Save automatically once both scores for a match are filled. */

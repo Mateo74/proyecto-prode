@@ -63,6 +63,7 @@ const I18n = (() => {
       'tab.standings':         'Posiciones',
       'tab.myPredictions':     'Mis predicciones',
       'tab.predictions':       'Predicciones',
+      'tab.matches':           'Partidos',
       'tab.friendTournaments': 'Torneos de Amigos',
 
       // ── Filters ───────────────────────────────────────────────────
@@ -111,6 +112,8 @@ const I18n = (() => {
       'groups.empty':        'No hay grupos para mostrar.',
       'groups.fab':          'Ver grupos predichos',
       'groups.overlayTitle': 'Grupos predichos',
+      'groups.prevGroup':    'Grupo anterior',
+      'groups.nextGroup':    'Grupo siguiente',
       'action.close':        'Cerrar',
 
       // ── Actions ───────────────────────────────────────────────────
@@ -343,6 +346,7 @@ const I18n = (() => {
       'tab.standings':         'Standings',
       'tab.myPredictions':     'My predictions',
       'tab.predictions':       'Predictions',
+      'tab.matches':           'Matches',
       'tab.friendTournaments': 'Friends Tournaments',
 
       // ── Filters ───────────────────────────────────────────────────
@@ -391,6 +395,8 @@ const I18n = (() => {
       'groups.empty':        'No groups to show.',
       'groups.fab':          'View predicted groups',
       'groups.overlayTitle': 'Predicted groups',
+      'groups.prevGroup':    'Previous group',
+      'groups.nextGroup':    'Next group',
       'action.close':        'Close',
 
       // ── Actions ───────────────────────────────────────────────────

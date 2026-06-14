@@ -116,6 +116,12 @@ let matchesPollingId = null;
 // con el estado vivo de Predictions, evitando leer datos del DOM o repetir fetch.
 let lastLoadedMatches = [];
 
+// Estado de la pestaña "Predicciones" de partidos.html: todos los partidos de la
+// competencia (todos los estados) y el índice del grupo visible en el carrusel.
+let predictionsViewMatches = [];
+let currentGroupIndex = 0;
+let predictionsViewWired = false;
+
 function detectPage() {
   const p = window.location.pathname;
   if (p.includes('partido-detalle'))  return 'partido-detalle';
@@ -499,6 +505,8 @@ function initHome() {
     if (!competencia) return;
     selectCompetencia(competencia, window.location.hash.replace('#', ''));
   });
+
+  setupPredictionsView();
 }
 
 async function loadCompetencias() {
@@ -622,9 +630,11 @@ function switchHomeTab(tab) {
     history.replaceState(null, '', `/#${next}`);
   }
   if (next === 'torneos') {
+    stopMatchesPolling();
     document.getElementById('grupos-fab')?.remove();
     document.getElementById('grupos-overlay')?.remove();
   } else {
+    if (!isPredictionsViewActive()) startMatchesPolling();
     setupGroupsOverlay();
   }
 }
@@ -681,6 +691,7 @@ function initPartidos() {
   });
 
   setupGroupsOverlay();
+  setupPredictionsView();
 }
 
 function startMatchesPolling() {
@@ -698,8 +709,11 @@ async function loadPartidos({ quiet = false } = {}) {
   const el = document.getElementById('matches-list');
   if (!el) return;
 
-  // Don't re-render while the user is actively filling in a prediction
+  // Don't re-render while the user is actively filling in a prediction, nor
+  // while the per-group Predictions tab is open (it shares match cards and
+  // in-memory scores with #matches-list).
   if (quiet && el.querySelector('.score-box:focus')) return;
+  if (quiet && isPredictionsViewActive()) return;
 
   const competencia = API.getSelectedCompetencia();
   if (!competencia) {
@@ -722,20 +736,206 @@ async function loadPartidos({ quiet = false } = {}) {
     }
     matches.forEach(m => {
       const card = Predictions.createMatchCard(m);
-      card.addEventListener('click', e => {
-        if (e.target.tagName === 'INPUT') return;
-        const torneo = API.getSelectedTorneo();
-        const dest = pagePath('partido-detalle');
-        const params = new URLSearchParams({ partidoId: m.id });
-        if (torneo) params.set('torneoId', torneo.id);
-        else if (m.competenciaId) params.set('competenciaId', m.competenciaId);
-        window.location.href = `${dest}?${params}`;
-      });
+      attachMatchCardNavigation(card, m);
       el.appendChild(card);
     });
   } catch (error) {
     el.innerHTML = errorState(error.message);
   }
+}
+
+/**
+ * Hace que un click en la tarjeta (fuera de los inputs de marcador) abra el
+ * detalle del partido, donde se ven las predicciones del resto. Compartido por
+ * la lista de partidos y la vista de predicciones por grupo.
+ */
+function attachMatchCardNavigation(card, match) {
+  card.addEventListener('click', e => {
+    if (e.target.tagName === 'INPUT') return;
+    const torneo = API.getSelectedTorneo();
+    const dest = pagePath('partido-detalle');
+    const params = new URLSearchParams({ partidoId: match.id });
+    if (torneo) params.set('torneoId', torneo.id);
+    else if (match.competenciaId) params.set('competenciaId', match.competenciaId);
+    window.location.href = `${dest}?${params}`;
+  });
+}
+
+/* --------------------------------------------------------
+   PARTIDOS · PESTAÑA "PREDICCIONES" (tabla por grupo + carrusel)
+   -------------------------------------------------------- */
+
+/** Letras de grupo oficiales en orden (A…L). */
+function groupLetters() {
+  return typeof WORLD_CUP_2026_GROUPS !== 'undefined'
+    ? Object.keys(WORLD_CUP_2026_GROUPS).sort()
+    : [];
+}
+
+function currentGroupLetter() {
+  const letters = groupLetters();
+  return letters[currentGroupIndex] || letters[0] || null;
+}
+
+/** True cuando la vista "Predicciones" por grupo está visible (en index.html
+ *  vive anidada dentro del tab de inicio "Predicciones", por eso comprobamos
+ *  también que ningún ancestro esté oculto vía offsetParent). */
+function isPredictionsViewActive() {
+  const pane = document.getElementById('view-predictions');
+  return !!pane && !pane.classList.contains('hidden') && pane.offsetParent !== null;
+}
+
+/**
+ * Cablea (una vez por carga) la pestaña de vistas (Partidos | Predicciones), el
+ * carrusel de grupos y el listener que refresca la tabla en vivo al editar.
+ */
+function setupPredictionsView() {
+  const tabs = document.getElementById('partidos-view-tabs');
+  if (!tabs || predictionsViewWired) return;
+  predictionsViewWired = true;
+
+  tabs.querySelectorAll('.view-tab').forEach(btn => {
+    btn.addEventListener('click', () => switchPartidosView(btn.dataset.view));
+  });
+
+  document.querySelector('.group-carousel__prev')?.addEventListener('click', () => stepGroup(-1));
+  document.querySelector('.group-carousel__next')?.addEventListener('click', () => stepGroup(1));
+
+  // Edición de cualquier marcador → si pertenece al grupo visible, refrescar la
+  // tabla de posiciones con animación.
+  document.addEventListener('prediction:change', event => {
+    if (!isPredictionsViewActive()) return;
+    const matchId = event.detail?.matchId;
+    const match = predictionsViewMatches.find(m => m.id === matchId);
+    if (!match || groupLetterForMatch(match) !== currentGroupLetter()) return;
+    renderGroupStandings(currentGroupLetter());
+  });
+}
+
+function switchPartidosView(view) {
+  const next = view === 'predictions' ? 'predictions' : 'matches';
+  document.querySelectorAll('#partidos-view-tabs .view-tab').forEach(btn =>
+    btn.classList.toggle('active', btn.dataset.view === next)
+  );
+  document.getElementById('view-matches')?.classList.toggle('hidden', next !== 'matches');
+  document.getElementById('view-predictions')?.classList.toggle('hidden', next !== 'predictions');
+
+  // The floating groups button is redundant here (its standings are inline now),
+  // so hide it on the Predictions tab and bring it back on the Matches tab.
+  document.getElementById('grupos-fab')?.classList.toggle('hidden', next === 'predictions');
+  if (next === 'predictions') document.getElementById('grupos-overlay')?.classList.remove('grupos-overlay--visible');
+
+  if (next === 'predictions') {
+    stopMatchesPolling();
+    loadPredictionsView();
+  } else {
+    startMatchesPolling();
+  }
+}
+
+/** Avanza el carrusel con wrap (tras la última letra vuelve a la primera). */
+function stepGroup(delta) {
+  const letters = groupLetters();
+  if (!letters.length) return;
+  currentGroupIndex = (currentGroupIndex + delta + letters.length) % letters.length;
+  renderCurrentGroup({ animateSwitch: true });
+}
+
+async function loadPredictionsView() {
+  const standings = document.getElementById('group-standings');
+  const matchesEl = document.getElementById('group-matches');
+  if (!standings || !matchesEl) return;
+
+  const competencia = API.getSelectedCompetencia();
+  if (!competencia) {
+    standings.innerHTML = emptyState(t('empty.chooseCompetition'));
+    matchesEl.innerHTML = '';
+    return;
+  }
+
+  showSkeleton(standings, 1);
+  matchesEl.innerHTML = '';
+
+  try {
+    // Necesitamos todos los partidos del grupo, sin importar el filtro de estado.
+    const [upcoming, live, finished] = await Promise.all([
+      API.getMatches({ competenciaId: competencia.id, estado: 'proximo' }).catch(() => []),
+      API.getMatches({ competenciaId: competencia.id, estado: 'en-vivo' }).catch(() => []),
+      API.getMatches({ competenciaId: competencia.id, estado: 'finalizado' }).catch(() => []),
+    ]);
+    const seen = new Set();
+    predictionsViewMatches = [...upcoming, ...live, ...finished].filter(m => {
+      if (seen.has(m.id)) return false;
+      seen.add(m.id);
+      return true;
+    });
+    renderCurrentGroup();
+  } catch (error) {
+    standings.innerHTML = errorState(error.message);
+  }
+}
+
+/**
+ * Enriquece los partidos con el marcador vivo en memoria (Predictions). Esto
+ * hace que las ediciones persistan al moverse por el carrusel: aunque las
+ * tarjetas se recreen, el marcador escrito se relee del estado de Predictions.
+ */
+function enrichWithLiveScores(matches) {
+  return matches.map(match => {
+    const live = Predictions.getCurrentScores(match.id);
+    if (!live) return match;
+    return {
+      ...match,
+      userPred: { ...(match.userPred || {}), scoreEquipo1: live.equipo1, scoreEquipo2: live.equipo2 },
+    };
+  });
+}
+
+function renderCurrentGroup({ animateSwitch = false } = {}) {
+  const letter = currentGroupLetter();
+  const label = document.getElementById('group-carousel-label');
+  if (label && letter) label.textContent = t('groups.title', { letter });
+  renderGroupStandings(letter, { flash: false });
+  renderGroupMatches(letter, { animateSwitch });
+}
+
+/** Pinta la tabla de posiciones del grupo (mitad izquierda) con animación. */
+function renderGroupStandings(letter, { flash = true } = {}) {
+  const el = document.getElementById('group-standings');
+  if (!el || !letter) return;
+  const enriched = enrichWithLiveScores(predictionsViewMatches);
+  const groups = buildPredictedGroups(enriched, WORLD_CUP_2026_GROUPS);
+  el.innerHTML = renderGroupTable(letter, groups[letter] || []);
+
+  // Reinicia la animación quitando y re-aplicando la clase tras un reflow.
+  el.classList.remove('group-standings--flash');
+  void el.offsetWidth;
+  if (flash) el.classList.add('group-standings--flash');
+}
+
+/** Pinta las tarjetas de partido del grupo (mitad derecha). */
+function renderGroupMatches(letter, { animateSwitch = false } = {}) {
+  const el = document.getElementById('group-matches');
+  if (!el || !letter) return;
+  const enriched = enrichWithLiveScores(predictionsViewMatches);
+  const byGroup = splitMatchesByGroup(enriched, WORLD_CUP_2026_GROUPS);
+  const matches = byGroup[letter] || [];
+
+  el.innerHTML = '';
+  el.classList.toggle('predictions-split__matches--switch', animateSwitch);
+  if (animateSwitch) void el.offsetWidth;
+
+  if (!matches.length) {
+    el.innerHTML = emptyState(t('empty.noMatches'));
+    return;
+  }
+  matches
+    .sort((a, b) => new Date(a.fecha) - new Date(b.fecha))
+    .forEach(m => {
+      const card = Predictions.createMatchCard(m);
+      attachMatchCardNavigation(card, m);
+      el.appendChild(card);
+    });
 }
 
 /* --------------------------------------------------------
