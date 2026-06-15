@@ -1556,8 +1556,12 @@ async function initPartidoDetalle() {
   // Update page title with match teams
   if (partido) {
     const lang = (typeof I18n !== 'undefined') ? I18n.getLang() : 'es';
-    const team1 = (lang === 'en' && partido.equipo1NombreEn) ? partido.equipo1NombreEn : (partido.equipo1 || '');
-    const team2 = (lang === 'en' && partido.equipo2NombreEn) ? partido.equipo2NombreEn : (partido.equipo2 || '');
+    const team1 = (typeof localizeTeamName === 'function')
+      ? localizeTeamName(partido.equipo1Id, partido.equipo1 || '')
+      : (lang === 'en' && partido.equipo1NombreEn) ? partido.equipo1NombreEn : (partido.equipo1 || '');
+    const team2 = (typeof localizeTeamName === 'function')
+      ? localizeTeamName(partido.equipo2Id, partido.equipo2 || '')
+      : (lang === 'en' && partido.equipo2NombreEn) ? partido.equipo2NombreEn : (partido.equipo2 || '');
     if (team1 && team2) {
       const title = `${team1} ${t('match.vs')} ${team2}`;
       document.title = `${title} | Once Metros`;
