@@ -122,7 +122,11 @@ const API = (() => {
       await doRefresh();
       return getCurrentUser();
     } catch {
-      clearSession();
+      // doRefresh already calls clearSession() on a definitive 401.
+      // For transient errors (network down, 5xx, rate-limit) do NOT clear the
+      // session — the refresh token is still valid and will work once the
+      // network recovers. Clearing here was the cause of random logouts when
+      // the phone unlocked with no immediate network or when WebView reloaded.
       return null;
     }
   }

@@ -125,6 +125,7 @@
   </nav>
 
   <script src="../js/i18n.js"></script>
+  <script src="../js/config.js"></script>
   <script src="../js/api.js"></script>
   <script>
     (function () {
@@ -148,10 +149,10 @@
         btn.disabled = true;
         feedback.classList.add('hidden');
         // Persist to DB — required so restoreSession() doesn't overwrite localStorage
-        const user = API.getCurrentUser();
-        if (user) {
+        // Only call if the user has an active session (token in memory).
+        if (API.getToken()) {
           try {
-            await API.updateIdioma(user.id, pendingLang);
+            await API.updateIdioma(API.getCurrentUser().id, pendingLang);
           } catch (err) {
             feedback.textContent = err.message || 'Error al guardar';
             feedback.className = 'form-feedback error';

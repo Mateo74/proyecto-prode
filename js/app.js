@@ -713,7 +713,22 @@ async function loadPartidos({ quiet = false } = {}) {
   if (!quiet) showSkeleton(el, 4);
 
   try {
-    const matches = await API.getMatches({ competenciaId: competencia.id, estado });
+    const fetchEstado = estado === 'proximo' ? 'proximo' : estado;
+    let matches = await API.getMatches({ competenciaId: competencia.id, estado: fetchEstado });
+    // Always include live games alongside upcoming ones
+    if (estado === 'proximo' || estado === '') {
+      try {
+        const live = await API.getMatches({ competenciaId: competencia.id, estado: 'en-vivo' });
+        const existingIds = new Set(matches.map(m => m.id));
+        live.forEach(m => { if (!existingIds.has(m.id)) matches.push(m); });
+      } catch { /* ignore */ }
+    }
+    // Sort: upcoming+live chronologically asc; finished most-recent-first
+    if (estado === 'finalizado') {
+      matches.sort((a, b) => new Date(b.fecha) - new Date(a.fecha));
+    } else {
+      matches.sort((a, b) => new Date(a.fecha) - new Date(b.fecha));
+    }
     lastLoadedMatches = matches;
     el.innerHTML = '';
     if (!matches.length) {
@@ -930,17 +945,23 @@ async function loadMisPrediccionesEnTorneo(estado = '') {
   }
 
   try {
-    // Map filter value: 'proximo' → API estado 'proximo'; 'en-vivo' → 'en-vivo';
-    // 'finalizado' → 'finalizado'; '' → fetch upcoming+live together
-    const apiEstado = estado === '' ? 'proximo' : estado;
+    // For 'proximo' filter, also fetch live matches and merge them in.
+    // For 'all' (''), fetch proximo + live. Other filters pass through directly.
+    const apiEstado = (estado === '' || estado === 'proximo') ? 'proximo' : estado;
     let matches = await API.getMatches({ competenciaId, estado: apiEstado });
-    // For 'all' (empty), also fetch live and merge
-    if (estado === '') {
+    // Merge in live games for 'proximo' and 'all' filters
+    if (estado === '' || estado === 'proximo') {
       try {
         const live = await API.getMatches({ competenciaId, estado: 'en-vivo' });
         const existingIds = new Set(matches.map(m => m.id));
         live.forEach(m => { if (!existingIds.has(m.id)) matches.push(m); });
       } catch { /* ignore */ }
+    }
+    // Sort: upcoming+live chronologically asc; finished most-recent-first
+    if (estado === 'finalizado') {
+      matches.sort((a, b) => new Date(b.fecha) - new Date(a.fecha));
+    } else {
+      matches.sort((a, b) => new Date(a.fecha) - new Date(b.fecha));
     }
     lastLoadedMatches = matches;
     el.innerHTML = '';
@@ -953,7 +974,7 @@ async function loadMisPrediccionesEnTorneo(estado = '') {
       card.addEventListener('click', e => {
         if (e.target.tagName === 'INPUT') return;
         const dest = pagePath('partido-detalle');
-        window.location.href = `${dest}?torneoId=${encodeURIComponent(torneo.id)}&partidoId=${encodeURIComponent(m.id)}`;
+        window.location.href = `${dest}?torneoId=${encodeURIComponent(torneo.id)}&partidoId=${encodeURIComponent(m.id)}&from=clasificacion`;
       });
       el.appendChild(card);
     });
@@ -1471,9 +1492,10 @@ async function initPartidoDetalle() {
   const competenciaId = params.get('competenciaId');
 
   document.getElementById('back-btn')?.addEventListener('click', () => {
-    // When we have a torneoId context, always go back to the torneo (clasificacion),
-    // not history.back() which could be the invite landing page.
-    if (torneoId) {
+    // Only go back to clasificacion when we explicitly arrived from there.
+    // If torneoId is present but from=clasificacion is not set (e.g. opened
+    // from the home predictions page), just use history.back().
+    if (torneoId && params.get('from') === 'clasificacion') {
       window.location.href = pagePath('clasificacion');
     } else {
       history.back();
@@ -1533,10 +1555,14 @@ async function initPartidoDetalle() {
 
   // Update page title with match teams
   if (partido) {
-    const team1 = partido.equipo1 || '';
-    const team2 = partido.equipo2 || '';
+    const lang = (typeof I18n !== 'undefined') ? I18n.getLang() : 'es';
+    const team1 = (lang === 'en' && partido.equipo1NombreEn) ? partido.equipo1NombreEn : (partido.equipo1 || '');
+    const team2 = (lang === 'en' && partido.equipo2NombreEn) ? partido.equipo2NombreEn : (partido.equipo2 || '');
     if (team1 && team2) {
-      document.title = `${team1} ${t('match.vs')} ${team2} | Once Metros`;
+      const title = `${team1} ${t('match.vs')} ${team2}`;
+      document.title = `${title} | Once Metros`;
+      const pageTitleEl = document.getElementById('match-page-title');
+      if (pageTitleEl) pageTitleEl.textContent = title;
     } else if (torneoData) {
       document.title = `${torneoNombre(torneoData)} | Once Metros`;
     }
@@ -1580,7 +1606,7 @@ async function initPartidoDetalle() {
 
   // When match is live, calculate provisional points based on current score
   const liveScore = partido.estado === 'en-vivo'
-    ? { g1: partido.golesEquipo1 ?? null, g2: partido.golesEquipo2 ?? null }
+    ? { g1: partido.scoreEquipo1 ?? null, g2: partido.scoreEquipo2 ?? null }
     : null;
 
   function calcProvisionalPoints(pred) {

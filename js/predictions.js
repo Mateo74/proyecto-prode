@@ -428,10 +428,13 @@ const Predictions = (() => {
 
   function predictionSummary(match) {
     if (!match.userPred) return '';
+    const pred = match.userPred;
     return `
       <div class="match-feedback pending">
-        <span class="match-feedback__label">Tu predicción:</span>
-        <span class="match-feedback__score">${predScore1De(match.userPred)}–${predScore2De(match.userPred)}</span>
+        <span class="match-feedback__pred">
+          <strong class="match-feedback__pred-score">${predScore1De(pred)}–${predScore2De(pred)}</strong>
+          <span class="match-feedback__pred-label">${t('pred.label')}</span>
+        </span>
       </div>
     `;
   }
