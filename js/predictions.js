@@ -115,8 +115,7 @@ const Predictions = (() => {
     if (match.estado === 'en-vivo') {
       const m = match.minutoActual;
       if (!m) return t('match.live');
-      if (m === 48) return `45+3'`; // half-time / between-halves buffer
-      if (m > 47 && m < 63) return `45+3'`; // still in half-time window
+      if (m >= 48 && m < 63) return t('match.halfTimeShort'); // half-time / between-halves buffer
       if (m > 45 && m < 48) return `45+${m - 45}'`; // first-half stoppage
       if (m > 90) return `90+${m - 90}'`; // second-half stoppage
       return `${m}'`;

@@ -54,6 +54,7 @@ const I18n = (() => {
       'page.invitations':   'Invitaciones',
       'page.invite':        'Invitar',
       'page.loadingInvite': 'Cargando invitación...',
+  'match.halfTimeShort':'ET',
 
       // ── Tabs ──────────────────────────────────────────────────────
       'tab.signIn':            'Ingresar',
@@ -334,6 +335,7 @@ const I18n = (() => {
       'page.invitations':   'Invitations',
       'page.invite':        'Invite',
       'page.loadingInvite': 'Loading invitation...',
+  'match.halfTimeShort':'HT',
 
       // ── Tabs ──────────────────────────────────────────────────────
       'tab.signIn':            'Sign in',

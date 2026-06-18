@@ -69,7 +69,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   });
 
   // Pages that must know auth state before rendering anything
-  const authBlockingPages = ['home', 'auth', 'invitacion', 'torneo-edit', 'partido-detalle', 'grupos'];
+  const authBlockingPages = ['home', 'auth', 'invitacion', 'torneo-edit', 'partido-detalle', 'grupos', 'torneos'];
 
   if (authBlockingPages.includes(page)) {
     await sessionPromise;
@@ -1492,9 +1492,8 @@ async function initPartidoDetalle() {
   const competenciaId = params.get('competenciaId');
 
   document.getElementById('back-btn')?.addEventListener('click', () => {
-    // Only go back to clasificacion when we explicitly arrived from there.
-    // If torneoId is present but from=clasificacion is not set (e.g. opened
-    // from the home predictions page), just use history.back().
+    // Only go to clasificacion when we explicitly arrived from there.
+    // Otherwise just use history.back() to preserve the correct back flow.
     if (torneoId && params.get('from') === 'clasificacion') {
       window.location.href = pagePath('clasificacion');
     } else {
@@ -1677,8 +1676,16 @@ async function initPartidoDetalle() {
   let shown = PAGE;
 
   function renderMatchRankPage() {
+    const currentUser = API.getCurrentUser();
     rankingList.innerHTML = ranked.length
-      ? ranked.slice(0, shown).map((r, i) => renderRankRow(r, positions[i], matchSubLine)).join('')
+      ? ranked.slice(0, shown).map((r, i) => {
+        const row = renderRankRow(r, positions[i], matchSubLine);
+        // Mark current user for highlighting
+        if (currentUser?.id === r.usuarioId) {
+          return row.replace('class="ranking-row"', 'class="ranking-row ranking-row--current-user"');
+        }
+        return row;
+      }).join('')
       : '';
 
     document.getElementById('match-ranking-load-more')?.remove();
@@ -1694,6 +1701,17 @@ async function initPartidoDetalle() {
       });
       rankingList.insertAdjacentElement('afterend', btn);
     }
+  }
+
+  if (!rankingList.dataset.userClickBound) {
+    rankingList.addEventListener('click', e => {
+      const row = e.target.closest('[data-user-id]');
+      if (!row) return;
+      const userId = row.dataset.userId;
+      const userName = row.dataset.userName;
+      if (userId) openUserPredsDrawer(userId, userName, torneoId);
+    });
+    rankingList.dataset.userClickBound = 'true';
   }
 
   renderMatchRankPage();
@@ -1928,6 +1946,8 @@ function renderRankRow(r, pos, subLineFn) {
  * @param {{ subLineFn?: (r: object) => string, clickable?: boolean }} opts
  */
 function renderRankingInto(podiumEl, rankingEl, ranked, positions, { subLineFn, clickable = true } = {}) {
+  const currentUser = API.getCurrentUser();
+  
   if (podiumEl) {
     const top    = ranked.slice(0, 3);
     const order  = [top[1], top[0], top[2]];
@@ -1935,7 +1955,7 @@ function renderRankingInto(podiumEl, rankingEl, ranked, positions, { subLineFn, 
     const mCls   = ['medal medal-2', 'medal medal-1', 'medal medal-3'];
     const pCls   = ['podium-item--2', 'podium-item--1', 'podium-item--3'];
     podiumEl.innerHTML = order.map((r, i) => r ? `
-      <div class="podium-item ${pCls[i]}"${clickable ? ` data-user-id="${escapeHtml(r.usuarioId || '')}" data-user-name="${escapeHtml(r.nombre)}"` : ''}>
+      <div class="podium-item ${pCls[i]}${currentUser?.id === r.usuarioId ? ' podium-item--current-user' : ''}"${clickable ? ` data-user-id="${escapeHtml(r.usuarioId || '')}" data-user-name="${escapeHtml(r.nombre)}"` : ''}>
         <span class="${mCls[i]}">${topPos[i] ?? i + 1}</span>
         <div class="podium-avatar">${fotoImg(r.fotoPerfil, r.nombre)}</div>
         <div class="podium-name">${escapeHtml(r.nombre)}</div>
@@ -1946,7 +1966,14 @@ function renderRankingInto(podiumEl, rankingEl, ranked, positions, { subLineFn, 
 
   const rest = ranked.slice(3);
   rankingEl.innerHTML = rest.length
-    ? rest.map((r, i) => renderRankRow(r, positions[i + 3], subLineFn)).join('')
+    ? rest.map((r, i) => {
+      const row = renderRankRow(r, positions[i + 3], subLineFn);
+      // Mark current user for highlighting
+      if (currentUser?.id === r.usuarioId) {
+        return row.replace('class="ranking-row"', 'class="ranking-row ranking-row--current-user"');
+      }
+      return row;
+    }).join('')
     : '';
 
   if (clickable) {
@@ -1983,7 +2010,7 @@ function renderSelectedContext() {
 /* --------------------------------------------------------
    USER PREDICTIONS DRAWER
    -------------------------------------------------------- */
-function openUserPredsDrawer(userId, userName) {
+function openUserPredsDrawer(userId, userName, torneoIdOverride = null) {
   const overlay = document.getElementById('user-preds-overlay');
   const drawer = document.getElementById('user-preds-drawer');
   const nameEl = document.getElementById('user-preds-name');
@@ -1999,13 +2026,16 @@ function openUserPredsDrawer(userId, userName) {
 
   showSkeleton(listEl, 4);
 
-  const torneo = API.getSelectedTorneo();
-  if (!torneo?.id) {
+  const torneoFromSelection = API.getSelectedTorneo();
+  const torneoFromUrl = new URLSearchParams(window.location.search).get('torneoId');
+  const torneoIdResolved = torneoIdOverride || torneoFromSelection?.id || torneoFromUrl;
+
+  if (!torneoIdResolved) {
     listEl.innerHTML = emptyState(t('empty.tournamentNotFound'));
     return;
   }
 
-  API.getPrediccionesUsuarioEnTorneo(torneo.id, userId)
+  API.getPrediccionesUsuarioEnTorneo(torneoIdResolved, userId)
     .then(partidos => {
       if (!partidos.length) {
         listEl.innerHTML = emptyState(t('empty.noClosedMatches'));
@@ -2068,10 +2098,10 @@ async function initTorneos() {
   const feedbackEl = document.getElementById('torneos-feedback');
   if (!listEl) return;
 
-  // If restoreSession on page load failed (e.g. rotated token race),
-  // try once more before giving up.
-  if (!API.getToken() && API.getCurrentUser()) {
-    await API.restoreSession();
+  // On fast back-navigation the initial restore may still be in flight.
+  // Try once more before deciding the user is logged out.
+  if (!API.getToken()) {
+    try { await API.restoreSession(); } catch { /* keep fallback below */ }
   }
 
   if (!API.getToken()) {
