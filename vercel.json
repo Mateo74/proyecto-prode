@@ -3,8 +3,10 @@
     { "source": "/pages/auth", "destination": "/pages/auth.html", "permanent": false },
     { "source": "/privacy", "destination": "/pages/privacidad.html", "permanent": false },
     { "source": "/privacidad", "destination": "/pages/privacidad.html", "permanent": false },
-    { "source": "/delete-account", "destination": "/pages/perfil.html", "permanent": false },
-    { "source": "/eliminar-cuenta", "destination": "/pages/perfil.html", "permanent": false }
+    { "source": "/delete-account", "destination": "/pages/delete-account.html", "permanent": false },
+    { "source": "/delete-account/", "destination": "/pages/delete-account.html", "permanent": false },
+    { "source": "/eliminar-cuenta", "destination": "/pages/delete-account.html", "permanent": false },
+    { "source": "/eliminar-cuenta/", "destination": "/pages/delete-account.html", "permanent": false }
   ],
   "rewrites": [
     {
@@ -20,6 +22,7 @@
     { "source": "/pages/partido-detalle","destination": "/pages/partido-detalle.html" },
     { "source": "/pages/partidos",       "destination": "/pages/partidos.html" },
     { "source": "/pages/perfil",         "destination": "/pages/perfil.html" },
+    { "source": "/pages/delete-account", "destination": "/pages/delete-account.html" },
     { "source": "/pages/predicciones",   "destination": "/pages/predicciones.html" },
     { "source": "/pages/privacidad",     "destination": "/pages/privacidad.html" },
     { "source": "/pages/puntos",         "destination": "/pages/puntos.html" },
