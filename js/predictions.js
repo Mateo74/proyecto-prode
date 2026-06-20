@@ -114,10 +114,21 @@ const Predictions = (() => {
     if (match.estado === 'finalizado') return t('match.final');
     if (match.estado === 'en-vivo') {
       const m = match.minutoActual;
+      const phase = Number(match.relojFase ?? 0);
       if (!m) return t('match.live');
-      if (m >= 48 && m < 63) return t('match.halfTimeShort'); // half-time / between-halves buffer
-      if (m > 45 && m < 48) return `45+${m - 45}'`; // first-half stoppage
-      if (m > 90) return `90+${m - 90}'`; // second-half stoppage
+
+      // Paused states are explicit in the backend clock FSM.
+      if (phase === 2) return t('match.halfTimeShort');
+      if (phase === 4) return t('match.end90Short');
+      if (phase === 6) return t('match.extraHalfTimeShort');
+      if (phase === 8) return t('match.final'); // penalty shootout / ended extra-time window
+
+      // Running states: show stoppage-time by segment without fixed 3/5 minute assumptions.
+      if (phase === 1 && m > 45) return `45+${m - 45}'`;
+      if (phase === 3 && m > 90) return `90+${m - 90}'`;
+      if (phase === 5 && m > 105) return `105+${m - 105}'`;
+      if (phase === 7 && m > 120) return `120+${m - 120}'`;
+
       return `${m}'`;
     }
     if (match.estado === 'suspendido') return t('badge.suspended');

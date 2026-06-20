@@ -152,6 +152,7 @@ model Partido {
   golesEquipo1         Int?
   golesEquipo2         Int?
   minutoActual         Int?
+  relojFase            Int            @default(0)
   fechaInicioReal      DateTime?
   ultimaSyncExterna    DateTime?
   ultimaActualizacionEstado DateTime?

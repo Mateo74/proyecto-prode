@@ -50,6 +50,7 @@ const partidoPayload = registry.register(
     scoreEquipo1: z.number().nullable(),
     scoreEquipo2: z.number().nullable(),
     minutoActual: z.number().nullable(),
+    relojFase: z.number().int().nullable().optional(),
     fechaInicioReal: z.string().datetime().or(z.date()).nullable(),
     ultimaSyncExterna: z.string().datetime().or(z.date()).nullable(),
     ultimaActualizacion: z.string().datetime().or(z.date()).nullable(),

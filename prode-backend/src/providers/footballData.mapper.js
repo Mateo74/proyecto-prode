@@ -21,10 +21,11 @@ function tipoEquipoDeCompetencia(competitionCode) {
 }
 
 /**
- * Derive the current match minute from the actual kickoff time.
- * The football-data.org free tier does not expose a live minute field,
- * so we calculate elapsed time from the real start (or scheduled start).
- * Pass fechaInicioReal when available so delayed matches are handled correctly.
+ * Derive a rough current minute from kickoff time.
+ *
+ * NOTE: The authoritative match clock now lives in externalMatchSync.service,
+ * where we model LIVE/PAUSED transitions and persist relojFase + minute.
+ * This helper remains as a fallback for mapping DTOs before persistence.
  *
  * Logic:
  *  - Minutes 0-45:   first half, raw elapsed

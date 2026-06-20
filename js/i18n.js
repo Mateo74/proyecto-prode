@@ -55,6 +55,8 @@ const I18n = (() => {
       'page.invite':        'Invitar',
       'page.loadingInvite': 'Cargando invitación...',
   'match.halfTimeShort':'ET',
+  'match.end90Short':'PR',
+  'match.extraHalfTimeShort':'DP',
 
       // ── Tabs ──────────────────────────────────────────────────────
       'tab.signIn':            'Ingresar',
@@ -336,6 +338,8 @@ const I18n = (() => {
       'page.invite':        'Invite',
       'page.loadingInvite': 'Loading invitation...',
   'match.halfTimeShort':'HT',
+  'match.end90Short':'ET',
+  'match.extraHalfTimeShort':'BT',
 
       // ── Tabs ──────────────────────────────────────────────────────
       'tab.signIn':            'Sign in',

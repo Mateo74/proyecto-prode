@@ -58,6 +58,7 @@ function partidoResponse(partido, userPrediccion) {
     scoreEquipo1: partido.golesEquipo1,
     scoreEquipo2: partido.golesEquipo2,
     minutoActual: partido.minutoActual,
+    relojFase: partido.relojFase,
     fechaInicioReal: partido.fechaInicioReal,
     ultimaSyncExterna: partido.ultimaSyncExterna,
     ultimaActualizacion: partido.ultimaActualizacionEstado || partido.fechaActualizacion,
