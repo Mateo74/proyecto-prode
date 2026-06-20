@@ -1589,7 +1589,8 @@ async function initPartidoDetalle() {
       let { token } = await API.getInviteLink(torneoId);
       if (!token) ({ token } = await API.generarInviteLink(torneoId));
       if (!token) { console.warn('No invite token available'); return; }
-      const url = `${window.location.origin}/pages/invitacion?token=${encodeURIComponent(token)}&partidoId=${encodeURIComponent(partidoId)}`;
+      const lang = (typeof I18n !== 'undefined') ? I18n.getLang() : 'es';
+      const url = `${window.location.origin}/api/invites/${encodeURIComponent(token)}/og-preview?lang=${encodeURIComponent(lang)}&partidoId=${encodeURIComponent(partidoId)}`;
       console.log('%cMatch invite link:', 'font-weight:bold', url);
       await navigator.clipboard.writeText(url).catch(() => {});
       return url;

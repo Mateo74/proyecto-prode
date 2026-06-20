@@ -17,11 +17,17 @@ router.get(
   asyncRoute(async (req, res) => {
     const token = req.params.token;
     const lang = (req.query.lang === 'en') ? 'en' : 'es';
+    const partidoId = req.query.partidoId ? String(req.query.partidoId) : null;
+    const inviteLandingUrl = new URL(`${env.FRONTEND_BASE_URL}/pages/invitacion.html`);
+    inviteLandingUrl.searchParams.set('token', token);
+    inviteLandingUrl.searchParams.set('lang', lang);
+    if (partidoId) inviteLandingUrl.searchParams.set('partidoId', partidoId);
+    const redirectUrl = inviteLandingUrl.toString();
     let torneo;
     try {
       torneo = await require("../services/torneos.service").getByInviteToken(token);
     } catch {
-      return res.redirect(`${env.FRONTEND_BASE_URL}/pages/invitacion.html?token=${encodeURIComponent(token)}`);
+      return res.redirect(redirectUrl);
     }
     const torneoNombre = torneo.nombre || 'Once Metros';
     const compNombre = lang === 'en'
@@ -33,7 +39,6 @@ router.get(
     const description = lang === 'en'
       ? `${compNombre}: Predict results and compete with your friends.`
       : `${compNombre}: Predecí resultados y competí con tus amigos.`;
-    const redirectUrl = `${env.FRONTEND_BASE_URL}/pages/invitacion.html?token=${encodeURIComponent(token)}`;
     const esc = (s) => s.replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
     res.setHeader('Content-Type', 'text/html; charset=utf-8');
     res.send(`<!DOCTYPE html><html><head>
