@@ -1494,7 +1494,12 @@ async function initPartidoDetalle() {
   document.getElementById('back-btn')?.addEventListener('click', () => {
     // Only go to clasificacion when we explicitly arrived from there.
     // Otherwise just use history.back() to preserve the correct back flow.
-    if (torneoId && params.get('from') === 'clasificacion') {
+    const from = params.get('from');
+    if (torneoId && (from === 'clasificacion' || from === 'invite')) {
+      // In invite flow, ensure at least the torneo id is selected before navigating.
+      if (from === 'invite' && !API.getSelectedTorneo()) {
+        API.setSelectedTorneo({ id: torneoId });
+      }
       window.location.href = pagePath('clasificacion');
     } else {
       history.back();
@@ -1764,7 +1769,7 @@ async function initInviteLanding() {
       const result = await API.unirseConInviteToken(token);
       API.setSelectedTorneo(result);
       if (partidoId) {
-        window.location.href = `partido-detalle?torneoId=${encodeURIComponent(result.id)}&partidoId=${encodeURIComponent(partidoId)}`;
+        window.location.href = `partido-detalle?torneoId=${encodeURIComponent(result.id)}&partidoId=${encodeURIComponent(partidoId)}&from=invite`;
       } else {
         window.location.href = 'clasificacion';
       }
