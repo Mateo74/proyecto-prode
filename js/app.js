@@ -116,6 +116,14 @@ let matchesPollingId = null;
 // con el estado vivo de Predictions, evitando leer datos del DOM o repetir fetch.
 let lastLoadedMatches = [];
 
+// Estado de la pestaña "Grupos": todos los partidos de la competencia (todos los
+// estados) y el índice del grupo visible en el carrusel.
+let predictionsViewMatches = [];
+let currentGroupIndex = 0;
+let currentStageIndex = 0;
+let predictionsViewWired = false;
+let groupsPollingId = null;
+
 function detectPage() {
   const p = window.location.pathname;
   if (p.includes('partido-detalle'))  return 'partido-detalle';
@@ -499,6 +507,8 @@ function initHome() {
     if (!competencia) return;
     selectCompetencia(competencia, window.location.hash.replace('#', ''));
   });
+
+  setupPredictionsView();
 }
 
 async function loadCompetencias() {
@@ -533,7 +543,7 @@ async function loadCompetencias() {
     });
 
     if (active && !new URLSearchParams(window.location.search).has('reset') && window.location.hash) {
-      selectCompetencia(active, window.location.hash.replace('#', '') || 'predicciones');
+      selectCompetencia(active, window.location.hash.replace('#', ''));
     } else {
       API.setSelectedCompetencia(null);
       showCompetitionPicker();
@@ -546,20 +556,28 @@ async function loadCompetencias() {
 
 function showCompetitionPicker() {
   stopMatchesPolling();
+  stopGroupsPolling();
   document.getElementById('competition-picker')?.classList.remove('hidden');
   document.getElementById('competencia-workspace')?.classList.add('hidden');
   history.replaceState(null, '', '/');
 }
 
-async function selectCompetencia(competencia, preferredTab = 'predicciones') {
+async function selectCompetencia(competencia, preferredTab = '') {
   if (!competencia) return;
   API.setSelectedCompetencia(competencia);
   document.getElementById('competition-picker')?.classList.add('hidden');
   document.getElementById('competencia-workspace')?.classList.remove('hidden');
   setText('competencia-title', competenciaNombre(competencia));
-  switchHomeTab(preferredTab === 'torneos' ? 'torneos' : 'predicciones');
+
+  // The "Grupos" view only applies to the World Cup; hide its tab otherwise.
+  const isMundial = competencia.slug === WORLD_CUP_2026_SLUG;
+  document.querySelector('[data-home-tab="grupos"]')?.classList.toggle('hidden', !isMundial);
+
+  let tab = HOME_TABS.includes(preferredTab) ? preferredTab : (isMundial ? 'grupos' : 'partidos');
+  if (tab === 'grupos' && !isMundial) tab = 'partidos';
+  switchHomeTab(tab);
+
   await loadPartidos();
-  startMatchesPolling();
   await loadTorneosForCompetencia(competencia);
 }
 
@@ -611,21 +629,30 @@ async function loadTorneosForCompetencia(competencia = API.getSelectedCompetenci
   }
 }
 
+const HOME_TABS = ['grupos', 'partidos', 'torneos'];
+
 function switchHomeTab(tab) {
-  const next = tab === 'torneos' ? 'torneos' : 'predicciones';
+  const next = HOME_TABS.includes(tab) ? tab : 'grupos';
   document.querySelectorAll('[data-home-tab]').forEach(btn => {
     btn.classList.toggle('active', btn.dataset.homeTab === next);
   });
-  document.getElementById('home-tab-predicciones')?.classList.toggle('hidden', next !== 'predicciones');
+  document.getElementById('home-tab-grupos')?.classList.toggle('hidden', next !== 'grupos');
+  document.getElementById('home-tab-partidos')?.classList.toggle('hidden', next !== 'partidos');
   document.getElementById('home-tab-torneos')?.classList.toggle('hidden', next !== 'torneos');
   if (!document.getElementById('competencia-workspace')?.classList.contains('hidden')) {
     history.replaceState(null, '', `/#${next}`);
   }
-  if (next === 'torneos') {
-    document.getElementById('grupos-fab')?.remove();
-    document.getElementById('grupos-overlay')?.remove();
+
+  // Matches polling only while the match list is visible.
+  if (next === 'partidos') startMatchesPolling();
+  else stopMatchesPolling();
+
+  // Render + live-poll the group standings only while the Grupos tab is visible.
+  if (next === 'grupos') {
+    loadPredictionsView();
+    startGroupsPolling();
   } else {
-    setupGroupsOverlay();
+    stopGroupsPolling();
   }
 }
 
@@ -698,8 +725,9 @@ async function loadPartidos({ quiet = false } = {}) {
   const el = document.getElementById('matches-list');
   if (!el) return;
 
-  // Don't re-render while the user is actively filling in a prediction
+  // Don't re-render while the user is actively filling in a prediction.
   if (quiet && el.querySelector('.score-box:focus')) return;
+  if (quiet && isGroupsTabActive()) return;
 
   const competencia = API.getSelectedCompetencia();
   if (!competencia) {
@@ -737,20 +765,249 @@ async function loadPartidos({ quiet = false } = {}) {
     }
     matches.forEach(m => {
       const card = Predictions.createMatchCard(m);
-      card.addEventListener('click', e => {
-        if (e.target.tagName === 'INPUT') return;
-        const torneo = API.getSelectedTorneo();
-        const dest = pagePath('partido-detalle');
-        const params = new URLSearchParams({ partidoId: m.id });
-        if (torneo) params.set('torneoId', torneo.id);
-        else if (m.competenciaId) params.set('competenciaId', m.competenciaId);
-        window.location.href = `${dest}?${params}`;
-      });
+      attachMatchCardNavigation(card, m);
       el.appendChild(card);
     });
   } catch (error) {
     el.innerHTML = errorState(error.message);
   }
+}
+
+/**
+ * Hace que un click en la tarjeta (fuera de los inputs de marcador) abra el
+ * detalle del partido, donde se ven las predicciones del resto. Compartido por
+ * la lista de partidos y la vista de predicciones por grupo.
+ */
+function attachMatchCardNavigation(card, match) {
+  card.addEventListener('click', e => {
+    if (e.target.tagName === 'INPUT') return;
+    const torneo = API.getSelectedTorneo();
+    const dest = pagePath('partido-detalle');
+    const params = new URLSearchParams({ partidoId: match.id });
+    if (torneo) params.set('torneoId', torneo.id);
+    else if (match.competenciaId) params.set('competenciaId', match.competenciaId);
+    window.location.href = `${dest}?${params}`;
+  });
+}
+
+/* --------------------------------------------------------
+   PARTIDOS · PESTAÑA "PREDICCIONES" (tabla por grupo + carrusel)
+   -------------------------------------------------------- */
+
+/** Letras de grupo oficiales en orden (A…L). */
+function groupLetters() {
+  return typeof WORLD_CUP_2026_GROUPS !== 'undefined'
+    ? Object.keys(WORLD_CUP_2026_GROUPS).sort()
+    : [];
+}
+
+function currentGroupLetter() {
+  const letters = groupLetters();
+  return letters[currentGroupIndex] || letters[0] || null;
+}
+
+/** True cuando la pestaña "Grupos" del workspace está visible. */
+function isGroupsTabActive() {
+  const pane = document.getElementById('home-tab-grupos');
+  return !!pane && !pane.classList.contains('hidden') && pane.offsetParent !== null;
+}
+
+/**
+ * Cablea (una vez por carga) el carrusel de grupos y el listener que refresca la
+ * tabla de posiciones en vivo cuando se edita una predicción del grupo visible.
+ */
+function setupPredictionsView() {
+  if (predictionsViewWired) return;
+  const prev = document.querySelector('.group-carousel__prev');
+  const next = document.querySelector('.group-carousel__next');
+  if (!prev && !next && !document.getElementById('group-standings')) return;
+  predictionsViewWired = true;
+
+  prev?.addEventListener('click', () => stepGroup(-1));
+  next?.addEventListener('click', () => stepGroup(1));
+
+  // Carrusel de etapas (Fase de grupos → R32 → … → Final), encima del de grupos.
+  document.querySelector('.stage-carousel__prev')?.addEventListener('click', () => stepStage(-1));
+  document.querySelector('.stage-carousel__next')?.addEventListener('click', () => stepStage(1));
+
+  // Editar una predicción solo cambia la columna de puntos predichos (el orden
+  // y los stats reales no dependen de la predicción), así que refrescamos la
+  // tabla sin animación.
+  document.addEventListener('prediction:change', event => {
+    if (!isGroupsTabActive() || !isGroupStageActive()) return;
+    const matchId = event.detail?.matchId;
+    const match = predictionsViewMatches.find(m => m.id === matchId);
+    if (!match || groupLetterForMatch(match) !== currentGroupLetter()) return;
+    renderGroupStandings(currentGroupLetter());
+  });
+}
+
+/** Etapa visible del carrusel superior (group | r32 | r16 | qf | sf | final). */
+function currentStage() {
+  return (typeof KO !== 'undefined' ? KO.STAGES : ['group'])[currentStageIndex] || 'group';
+}
+function isGroupStageActive() {
+  return currentStage() === 'group';
+}
+
+/** Avanza el carrusel de etapas con wrap. */
+function stepStage(delta) {
+  const stages = typeof KO !== 'undefined' ? KO.STAGES : ['group'];
+  currentStageIndex = (currentStageIndex + delta + stages.length) % stages.length;
+  renderCurrentStage();
+}
+
+/** Muestra la etapa actual: fase de grupos (carrusel + tabla) o una llave. */
+function renderCurrentStage() {
+  const stage = currentStage();
+  const label = document.getElementById('stage-carousel-label');
+  if (label && typeof KO !== 'undefined') label.textContent = KO.stageLabel(stage);
+
+  const isGroup = stage === 'group';
+  document.getElementById('stage-group')?.classList.toggle('hidden', !isGroup);
+  const koEl = document.getElementById('stage-knockout');
+  koEl?.classList.toggle('hidden', isGroup);
+
+  if (isGroup) {
+    renderCurrentGroup();
+  } else if (koEl && typeof KO !== 'undefined') {
+    koEl.innerHTML = '';
+    koEl.appendChild(KO.renderStage(stage, predictionsViewMatches));
+  }
+}
+
+/** Avanza el carrusel con wrap (tras la última letra vuelve a la primera). */
+function stepGroup(delta) {
+  const letters = groupLetters();
+  if (!letters.length) return;
+  currentGroupIndex = (currentGroupIndex + delta + letters.length) % letters.length;
+  renderCurrentGroup({ animateSwitch: true });
+}
+
+async function loadPredictionsView() {
+  const standings = document.getElementById('group-standings');
+  const matchesEl = document.getElementById('group-matches');
+  if (!standings || !matchesEl) return;
+
+  const competencia = API.getSelectedCompetencia();
+  if (!competencia) {
+    standings.innerHTML = emptyState(t('empty.chooseCompetition'));
+    matchesEl.innerHTML = '';
+    return;
+  }
+  if (typeof KO !== 'undefined') KO.setCompetencia(competencia.id);
+
+  showSkeleton(standings, 1);
+  matchesEl.innerHTML = '';
+
+  try {
+    predictionsViewMatches = await fetchGroupsMatches(competencia.id);
+    renderCurrentStage();
+  } catch (error) {
+    standings.innerHTML = errorState(error.message);
+  }
+}
+
+/**
+ * Trae todos los partidos de la competencia (todos los estados) y los deduplica.
+ * Los partidos en vivo van primero para que el marcador real más fresco gane.
+ */
+async function fetchGroupsMatches(competenciaId) {
+  const [upcoming, live, finished] = await Promise.all([
+    API.getMatches({ competenciaId, estado: 'proximo' }).catch(() => []),
+    API.getMatches({ competenciaId, estado: 'en-vivo' }).catch(() => []),
+    API.getMatches({ competenciaId, estado: 'finalizado' }).catch(() => []),
+  ]);
+  const seen = new Set();
+  return [...live, ...finished, ...upcoming].filter(m => {
+    if (seen.has(m.id)) return false;
+    seen.add(m.id);
+    return true;
+  });
+}
+
+function startGroupsPolling() {
+  stopGroupsPolling();
+  groupsPollingId = setInterval(refreshGroupsLive, 30000);
+}
+
+function stopGroupsPolling() {
+  if (!groupsPollingId) return;
+  clearInterval(groupsPollingId);
+  groupsPollingId = null;
+}
+
+/** Refresca los resultados en vivo sin interrumpir una edición. */
+async function refreshGroupsLive() {
+  if (!isGroupsTabActive()) return;
+  if (document.querySelector('#home-tab-grupos input:focus')) return;
+  const competencia = API.getSelectedCompetencia();
+  if (!competencia) return;
+  try {
+    predictionsViewMatches = await fetchGroupsMatches(competencia.id);
+    renderCurrentStage();
+  } catch { /* conserva el snapshot anterior */ }
+}
+
+/**
+ * Enriquece los partidos con la predicción en memoria del usuario (Predictions).
+ * Así las ediciones persisten al moverse por el carrusel y al refrescar en vivo:
+ * aunque las tarjetas se recreen, la predicción escrita se relee del estado.
+ * No toca el marcador real del partido (scoreEquipo1/2), solo userPred.
+ */
+function enrichWithUserPredictions(matches) {
+  return matches.map(match => {
+    const live = Predictions.getCurrentScores(match.id);
+    if (!live) return match;
+    return {
+      ...match,
+      userPred: { ...(match.userPred || {}), scoreEquipo1: live.equipo1, scoreEquipo2: live.equipo2 },
+    };
+  });
+}
+
+function renderCurrentGroup({ animateSwitch = false } = {}) {
+  const letter = currentGroupLetter();
+  const label = document.getElementById('group-carousel-label');
+  if (label && letter) label.textContent = t('groups.title', { letter });
+  renderGroupStandings(letter);
+  renderGroupMatches(letter, { animateSwitch });
+}
+
+/** Pinta la tabla de posiciones reales del grupo. El carrusel actúa de
+ *  encabezado, así que la tabla se renderiza sin su fila de título. Ordena por
+ *  resultados reales (finalizados + en vivo); los puntos predichos van aparte. */
+function renderGroupStandings(letter) {
+  const el = document.getElementById('group-standings');
+  if (!el || !letter) return;
+  const enriched = enrichWithUserPredictions(predictionsViewMatches);
+  const groups = buildGroupStandings(enriched, WORLD_CUP_2026_GROUPS);
+  el.innerHTML = renderGroupStandingsTable(letter, groups[letter] || []);
+}
+
+/** Pinta las tarjetas de partido del grupo (debajo de la tabla). */
+function renderGroupMatches(letter, { animateSwitch = false } = {}) {
+  const el = document.getElementById('group-matches');
+  if (!el || !letter) return;
+  const enriched = enrichWithUserPredictions(predictionsViewMatches);
+  const byGroup = splitMatchesByGroup(enriched, WORLD_CUP_2026_GROUPS);
+  const matches = byGroup[letter] || [];
+
+  el.innerHTML = '';
+  el.classList.toggle('predictions-split__matches--switch', animateSwitch);
+  if (animateSwitch) void el.offsetWidth;
+
+  if (!matches.length) {
+    el.innerHTML = emptyState(t('empty.noMatches'));
+    return;
+  }
+  matches
+    .sort((a, b) => new Date(a.fecha) - new Date(b.fecha))
+    .forEach(m => {
+      const card = Predictions.createMatchCard(m);
+      attachMatchCardNavigation(card, m);
+      el.appendChild(card);
+    });
 }
 
 /* --------------------------------------------------------
