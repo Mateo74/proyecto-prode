@@ -11,7 +11,15 @@
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.oncemetros.mobile",
-      "associatedDomains": ["applinks:www.oncemetros.com", "applinks:oncemetros.com"]
+      "associatedDomains": [
+        "applinks:www.oncemetros.com",
+        "applinks:oncemetros.com",
+        "applinks:www.oncemetros.com",
+        "applinks:oncemetros.com"
+      ],
+      "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false
+      }
     },
     "android": {
       "package": "com.oncemetros.mobile",
@@ -32,7 +40,10 @@
               "pathPrefix": "/pages/invitacion.html"
             }
           ],
-          "category": ["BROWSABLE", "DEFAULT"]
+          "category": [
+            "BROWSABLE",
+            "DEFAULT"
+          ]
         }
       ],
       "adaptiveIcon": {
