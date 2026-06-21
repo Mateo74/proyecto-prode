@@ -27,8 +27,11 @@ function renderGroupsGrid(groups) {
 /**
  * Renderiza la tabla de un grupo ordenada por puntos predichos (desc).
  * Desempate: diferencia de gol y luego goles a favor.
+ *
+ * @param {boolean} [opts.showTitle=true] Incluye la fila de título "Grupo X".
+ *   Se desactiva cuando el carrusel ya actúa como encabezado del grupo.
  */
-function renderGroupTable(letter, teams = []) {
+function renderGroupTable(letter, teams = [], { showTitle = true } = {}) {
   const sorted = [...teams].sort((a, b) => {
     const byPoints = (b[5] ?? 0) - (a[5] ?? 0);
     if (byPoints !== 0) return byPoints;
@@ -54,10 +57,14 @@ function renderGroupTable(letter, teams = []) {
         </tr>`;
   }).join('');
 
+  const titleRow = showTitle
+    ? `<tr><th colspan="5" class="group-table__title">${t('groups.title', { letter })}</th></tr>`
+    : '';
+
   return `
       <table class="group-table">
         <thead>
-          <tr><th colspan="5" class="group-table__title">${t('groups.title', { letter })}</th></tr>
+          ${titleRow}
           <tr>
             <th class="group-table__team">${t('groups.team')}</th>
             <th title="${t('groups.playedTitle')}">${t('groups.played')}</th>

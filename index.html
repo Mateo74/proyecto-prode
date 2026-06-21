@@ -51,13 +51,15 @@
         </div>
 
         <div id="home-tab-grupos" class="tab-content">
-          <div class="group-carousel">
-            <button class="group-carousel__nav group-carousel__prev" type="button" data-i18n-aria="groups.prevGroup" aria-label="Grupo anterior">‹</button>
-            <div class="group-carousel__label" id="group-carousel-label"></div>
-            <button class="group-carousel__nav group-carousel__next" type="button" data-i18n-aria="groups.nextGroup" aria-label="Grupo siguiente">›</button>
-          </div>
           <div class="predictions-split">
-            <div class="predictions-split__pane predictions-split__standings" id="group-standings"></div>
+            <div class="predictions-split__pane predictions-split__standings">
+              <div class="group-carousel">
+                <button class="group-carousel__nav group-carousel__prev" type="button" data-i18n-aria="groups.prevGroup" aria-label="Grupo anterior">‹</button>
+                <div class="group-carousel__label" id="group-carousel-label"></div>
+                <button class="group-carousel__nav group-carousel__next" type="button" data-i18n-aria="groups.nextGroup" aria-label="Grupo siguiente">›</button>
+              </div>
+              <div id="group-standings"></div>
+            </div>
             <div class="predictions-split__pane predictions-split__matches" id="group-matches"></div>
           </div>
         </div>

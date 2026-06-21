@@ -880,13 +880,14 @@ function renderCurrentGroup({ animateSwitch = false } = {}) {
   renderGroupMatches(letter, { animateSwitch });
 }
 
-/** Pinta la tabla de posiciones del grupo (mitad izquierda) con animación. */
+/** Pinta la tabla de posiciones del grupo. El carrusel actúa de encabezado,
+ *  así que la tabla se renderiza sin su fila de título. */
 function renderGroupStandings(letter, { flash = true } = {}) {
   const el = document.getElementById('group-standings');
   if (!el || !letter) return;
   const enriched = enrichWithLiveScores(predictionsViewMatches);
   const groups = buildPredictedGroups(enriched, WORLD_CUP_2026_GROUPS);
-  el.innerHTML = renderGroupTable(letter, groups[letter] || []);
+  el.innerHTML = renderGroupTable(letter, groups[letter] || [], { showTitle: false });
 
   // Reinicia la animación quitando y re-aplicando la clase tras un reflow.
   el.classList.remove('group-standings--flash');
