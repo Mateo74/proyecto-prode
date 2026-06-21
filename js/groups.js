@@ -253,6 +253,138 @@ function buildPredictedGroups(matches = [], groupsDef = {}, crestByName = {}) {
   return out;
 }
 
+/**
+ * Construye las posiciones REALES de cada grupo combinando los resultados de
+ * partidos finalizados y en vivo, junto con los puntos PREDICHOS del usuario.
+ *
+ * - Stats reales (pj, gf, gc, pts): solo de partidos 'finalizado' y 'en-vivo'
+ *   usando el marcador real del partido (los 'proximo' no suman).
+ * - predPts: puntos según la predicción del usuario (cualquier estado).
+ * - live: true si el equipo está jugando ahora mismo (algún partido 'en-vivo').
+ *
+ * @returns {Object} { "A": [ { id, name, pj, gf, gc, pts, predPts, live, crest }, ...4 ], ... }
+ */
+function buildGroupStandings(matches = [], groupsDef = {}, crestByName = {}) {
+  const teamToGroup = {};
+  const stats = {};
+  for (const [letter, teamIds] of Object.entries(groupsDef)) {
+    stats[letter] = {};
+    for (const teamId of teamIds) {
+      const teams = typeof WORLD_CUP_2026_TEAMS !== 'undefined' ? WORLD_CUP_2026_TEAMS : {};
+      const team = teams[teamId] || { nombre: teamId };
+      teamToGroup[teamId] = letter;
+      stats[letter][teamId] = { id: teamId, name: team.nombre, pj: 0, gf: 0, gc: 0, pts: 0, predPts: 0, live: false };
+    }
+  }
+
+  const crest = { ...crestByName };
+  const rememberCrest = (teamId, url) => {
+    if (teamId && url && !crest[teamId]) crest[teamId] = url;
+  };
+
+  for (const m of matches) {
+    const id1 = teamIdFromMatch(m, 1);
+    const id2 = teamIdFromMatch(m, 2);
+    rememberCrest(id1, m.equipo1EscudoUrl);
+    rememberCrest(id2, m.equipo2EscudoUrl);
+
+    const grupo = teamToGroup[id1];
+    if (!grupo || grupo !== teamToGroup[id2]) continue;
+    const row1 = stats[grupo][id1];
+    const row2 = stats[grupo][id2];
+    if (!row1 || !row2) continue;
+
+    // Puntos predichos a partir de la predicción del usuario.
+    const pred = m.userPred;
+    if (pred && pred.scoreEquipo1 != null && pred.scoreEquipo2 != null) {
+      const p1 = Number(pred.scoreEquipo1);
+      const p2 = Number(pred.scoreEquipo2);
+      if (p1 > p2) row1.predPts += 3;
+      else if (p2 > p1) row2.predPts += 3;
+      else { row1.predPts++; row2.predPts++; }
+    }
+
+    // Stats reales: solo partidos finalizados o en vivo, con marcador real.
+    const isLive = m.estado === 'en-vivo';
+    const isFinished = m.estado === 'finalizado';
+    if (isLive) { row1.live = true; row2.live = true; }
+    if (isLive || isFinished) {
+      const s1 = Number(m.scoreEquipo1 ?? m.scoreLocal);
+      const s2 = Number(m.scoreEquipo2 ?? m.scoreVisitante);
+      if (Number.isFinite(s1) && Number.isFinite(s2)) {
+        row1.pj++; row2.pj++;
+        row1.gf += s1; row1.gc += s2;
+        row2.gf += s2; row2.gc += s1;
+        if (s1 > s2) row1.pts += 3;
+        else if (s2 > s1) row2.pts += 3;
+        else { row1.pts++; row2.pts++; }
+      }
+    }
+  }
+
+  const out = {};
+  for (const [letter, teamIds] of Object.entries(groupsDef)) {
+    out[letter] = teamIds.map(teamId => {
+      const s = stats[letter][teamId];
+      return { id: s.id, name: s.name, pj: s.pj, gf: s.gf, gc: s.gc, pts: s.pts, predPts: s.predPts, live: s.live, crest: crest[teamId] || null };
+    });
+  }
+  return out;
+}
+
+/**
+ * Renderiza la tabla de posiciones reales de un grupo (vista "Grupos"):
+ * ordenada por puntos REALES (desc), desempate por diferencia de gol y goles a
+ * favor. Muestra una columna de puntos reales (Pts) y otra de puntos predichos
+ * (Pred), y un punto verde junto a los equipos que están jugando ahora.
+ * El carrusel actúa de encabezado, por eso no se renderiza fila de título.
+ */
+function renderGroupStandingsTable(letter, rows = []) {
+  const sorted = [...rows].sort((a, b) => {
+    if ((b.pts ?? 0) !== (a.pts ?? 0)) return (b.pts ?? 0) - (a.pts ?? 0);
+    const gdA = (a.gf ?? 0) - (a.gc ?? 0);
+    const gdB = (b.gf ?? 0) - (b.gc ?? 0);
+    if (gdB !== gdA) return gdB - gdA;
+    return (b.gf ?? 0) - (a.gf ?? 0);
+  });
+
+  const body = sorted.map(r => {
+    const completo = Number(r.pj ?? 0) >= 3;
+    const display = localizeTeamName(r.id, r.name);
+    const liveDot = r.live
+      ? `<span class="group-table__live" title="${t('groups.playingNow')}" aria-label="${t('groups.playingNow')}"></span>`
+      : '';
+    return `
+        <tr class="${completo ? 'is-complete' : ''}${r.live ? ' is-live' : ''}">
+          <td class="group-table__team">
+            <span class="group-table__crest">${Predictions.teamCrest(display, r.crest)}</span>
+            <span class="group-table__name">${escapeHtml(display)}</span>
+            ${liveDot}
+          </td>
+          <td>${Number(r.pj ?? 0)}</td>
+          <td>${Number(r.gf ?? 0)}</td>
+          <td>${Number(r.gc ?? 0)}</td>
+          <td class="group-table__pts">${Number(r.pts ?? 0)}</td>
+          <td class="group-table__pred">${Number(r.predPts ?? 0)}</td>
+        </tr>`;
+  }).join('');
+
+  return `
+      <table class="group-table group-table--live">
+        <thead>
+          <tr>
+            <th class="group-table__team">${t('groups.team')}</th>
+            <th title="${t('groups.playedTitle')}">${t('groups.played')}</th>
+            <th title="${t('groups.gfTitle')}">${t('groups.gf')}</th>
+            <th title="${t('groups.gcTitle')}">${t('groups.gc')}</th>
+            <th title="${t('groups.actualPointsTitle')}">${t('groups.points')}</th>
+            <th title="${t('groups.predictedTitle')}">${t('groups.predicted')}</th>
+          </tr>
+        </thead>
+        <tbody>${body}</tbody>
+      </table>`;
+}
+
 async function initGrupos() {
   const root = document.getElementById('grupos-root');
   if (!root) return;

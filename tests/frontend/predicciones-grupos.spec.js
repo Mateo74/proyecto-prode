@@ -42,22 +42,52 @@ function mk(id, e1, e2, extra = {}) {
   };
 }
 
-// Group B round-robin, all upcoming and unpredicted (filled in by the test).
-function groupBMatches() {
-  return [
-    mk("wc-B-1", "Canadá", "Suiza"),
-    mk("wc-B-2", "Qatar", "Bosnia-H."),
-    mk("wc-B-3", "Canadá", "Qatar"),
-    mk("wc-B-4", "Suiza", "Bosnia-H."),
-    mk("wc-B-5", "Canadá", "Bosnia-H."),
-    mk("wc-B-6", "Suiza", "Qatar"),
-  ];
-}
-
 // Group A round-robin, all upcoming and unpredicted.
 function groupAMatches() {
   return [
     mk("wc-A-1", "México", "Sudáfrica"),
+    mk("wc-A-2", "Corea del Sur", "Chequia"),
+    mk("wc-A-3", "México", "Corea del Sur"),
+    mk("wc-A-4", "Sudáfrica", "Chequia"),
+    mk("wc-A-5", "México", "Chequia"),
+    mk("wc-A-6", "Sudáfrica", "Corea del Sur"),
+  ];
+}
+
+// Group B, all FINISHED with real results. Real table: Suiza 9, Canadá 4,
+// Bosnia-H. 2, Qatar 1. Every match was predicted as a 1-1 draw, so each team
+// has exactly 3 predicted points regardless of the real result.
+function groupBFinished() {
+  const fin = (id, e1, e2, s1, s2) => mk(id, e1, e2, {
+    estado: "finalizado",
+    prediccionEditable: false,
+    scoreEquipo1: s1,
+    scoreEquipo2: s2,
+    resultadoConfirmado: true,
+    userPred: { id: `p-${id}`, scoreEquipo1: 1, scoreEquipo2: 1, estado: "pendiente", puntos: 0 },
+  });
+  return [
+    fin("wc-B-1", "Canadá", "Suiza", 0, 2),
+    fin("wc-B-2", "Qatar", "Bosnia-H.", 1, 1),
+    fin("wc-B-3", "Canadá", "Qatar", 1, 0),
+    fin("wc-B-4", "Suiza", "Bosnia-H.", 3, 0),
+    fin("wc-B-5", "Canadá", "Bosnia-H.", 2, 2),
+    fin("wc-B-6", "Suiza", "Qatar", 1, 0),
+  ];
+}
+
+// Group A with one match in progress: México 1-0 Sudáfrica live; the rest
+// upcoming. México & Sudáfrica are "playing now" and the live result already
+// counts toward the real standings.
+function groupALive() {
+  return [
+    mk("wc-A-1", "México", "Sudáfrica", {
+      estado: "en-vivo",
+      prediccionEditable: false,
+      scoreEquipo1: 1,
+      scoreEquipo2: 0,
+      minutoActual: 30,
+    }),
     mk("wc-A-2", "Corea del Sur", "Chequia"),
     mk("wc-A-3", "México", "Corea del Sur"),
     mk("wc-A-4", "Sudáfrica", "Chequia"),
@@ -122,37 +152,77 @@ async function setScore(page, matchId, s1, s2) {
   await box(page, matchId, "equipo2").fill(String(s2));
 }
 
-test("groups view: carousel to group B, predict every match, table updates", async ({ page }) => {
-  await setup(page, groupBMatches());
+test("groups view: standings sort by real results, with predicted points in a separate column", async ({ page }) => {
+  await setup(page, groupBFinished());
 
-  // Group A has no matches in this fixture; one carousel step lands on Group B.
+  // Group A has no matches here; one carousel step lands on the finished Group B.
   await page.locator(".group-carousel__next").click();
   await expect(carouselLabel(page)).toHaveText("Grupo B");
-  await expect(page.locator('#group-matches .match-card[data-match-id="wc-B-1"]')).toBeVisible();
 
-  // Predict the whole group. Suiza wins all three -> 9 pts and clear leader.
-  await setScore(page, "wc-B-1", 0, 2); // Canadá 0-2 Suiza
-  await setScore(page, "wc-B-2", 1, 1); // Qatar 1-1 Bosnia-H.
-  await setScore(page, "wc-B-3", 1, 0); // Canadá 1-0 Qatar
-  await setScore(page, "wc-B-4", 3, 0); // Suiza 3-0 Bosnia-H.
-  await setScore(page, "wc-B-5", 2, 2); // Canadá 2-2 Bosnia-H.
-  await setScore(page, "wc-B-6", 1, 0); // Suiza 1-0 Qatar
-
-  // The live standings reflect every prediction.
+  // Sorted by REAL points (finished results), not by predictions:
+  // Suiza 9, Canadá 4, Bosnia-H. 2, Qatar 1.
   await expect(standings(page).locator(".group-table__name")).toHaveText([
     "Suiza", "Canadá", "Bosnia-H.", "Qatar",
   ]);
   await expect(standings(page).locator("tbody tr").first().locator(".group-table__pts")).toHaveText("9");
+
+  // Every match was predicted 1-1, so predicted points are 3 for everyone,
+  // independent of the real table order.
+  await expect(standings(page).locator(".group-table__pred")).toHaveText(["3", "3", "3", "3"]);
+
+  // All three real games played -> complete.
   await expect(standings(page).locator("tbody tr.is-complete")).toHaveCount(4);
 });
 
-test("groups view: a group A prediction survives a full carousel loop back to A", async ({ page }) => {
+test("groups view: a team playing now shows a live dot and its live score counts", async ({ page }) => {
+  await setup(page, groupALive());
+
+  // México & Sudáfrica are live -> exactly two live dots.
+  await expect(standings(page).locator(".group-table__live")).toHaveCount(2);
+
+  // The live result (1-0) already counts: México tops the group with 3 real points.
+  const mexicoRow = standings(page).locator("tbody tr", { hasText: "México" });
+  await expect(mexicoRow.locator(".group-table__live")).toBeVisible();
+  await expect(mexicoRow.locator(".group-table__pts")).toHaveText("3");
+
+  // A team that is not playing has no live dot.
+  const chequiaRow = standings(page).locator("tbody tr", { hasText: "Chequia" });
+  await expect(chequiaRow.locator(".group-table__live")).toHaveCount(0);
+});
+
+test("groups view: editing a prediction updates the predicted column, not the real order or any flash", async ({ page }) => {
+  await setup(page, groupAMatches()); // all upcoming -> real stats are all 0
+
+  // Real standings are all zero, so the order is the official group order and
+  // does NOT depend on predictions.
+  await expect(standings(page).locator(".group-table__name")).toHaveText([
+    "México", "Sudáfrica", "Corea del Sur", "Chequia",
+  ]);
+  await expect(standings(page).locator(".group-table__pts")).toHaveText(["0", "0", "0", "0"]);
+
+  // Predict Sudáfrica 0-5 Chequia (match wc-A-4) -> Chequia +3 predicted points.
+  await setScore(page, "wc-A-4", 0, 5);
+
+  // The predicted column updates for Chequia, but the real order is unchanged
+  // (real points are still all 0).
+  const chequiaRow = standings(page).locator("tbody tr", { hasText: "Chequia" });
+  await expect(chequiaRow.locator(".group-table__pred")).toHaveText("3");
+  await expect(standings(page).locator(".group-table__name")).toHaveText([
+    "México", "Sudáfrica", "Corea del Sur", "Chequia",
+  ]);
+  await expect(standings(page).locator(".group-table__pts")).toHaveText(["0", "0", "0", "0"]);
+
+  // The old prediction-change flash animation is gone.
+  await expect(page.locator(".group-standings--flash")).toHaveCount(0);
+});
+
+test("groups view: a prediction survives a full carousel loop back to A", async ({ page }) => {
   await setup(page, groupAMatches());
 
-  // Predict a single Group A match: México 2-0 Sudáfrica -> México leads with 3.
+  // Predict a single Group A match (upcoming): México 2-0 Sudáfrica.
   await setScore(page, "wc-A-1", 2, 0);
-  await expect(standings(page).locator(".group-table__name").first()).toHaveText("México");
-  await expect(standings(page).locator("tbody tr").first().locator(".group-table__pts")).toHaveText("3");
+  const mexicoRow = standings(page).locator("tbody tr", { hasText: "México" });
+  await expect(mexicoRow.locator(".group-table__pred")).toHaveText("3");
 
   // Cycle through every group (A -> B -> ... -> L -> A): 12 next clicks wrap to A.
   for (let i = 0; i < 12; i++) {
@@ -160,14 +230,13 @@ test("groups view: a group A prediction survives a full carousel loop back to A"
   }
   await expect(carouselLabel(page)).toHaveText("Grupo A");
 
-  // The prediction and the predicted standings are still there.
+  // The prediction is still there (inputs + predicted column).
   await expect(box(page, "wc-A-1", "equipo1")).toHaveValue("2");
   await expect(box(page, "wc-A-1", "equipo2")).toHaveValue("0");
-  await expect(standings(page).locator(".group-table__name").first()).toHaveText("México");
-  await expect(standings(page).locator("tbody tr").first().locator(".group-table__pts")).toHaveText("3");
+  await expect(standings(page).locator("tbody tr", { hasText: "México" }).locator(".group-table__pred")).toHaveText("3");
 
   // Regression: untouched matches must render EMPTY inputs after re-render, never
-  // the literal string "null" (which leaked from enriched {scoreEquipo1: null}).
+  // the literal string "null".
   await expect(box(page, "wc-A-2", "equipo1")).toHaveValue("");
   await expect(box(page, "wc-A-2", "equipo2")).toHaveValue("");
 });
@@ -236,10 +305,12 @@ test("home workspace shows a Groups | Matches | Friends bar; carousel is the sol
   await expect(page.locator("#home-tab-partidos")).toBeVisible();
   await expect(page.locator("#matches-list .match-card").first()).toBeVisible();
 
-  // Back to Grupos: editing a prediction updates the standings live.
+  // Back to Grupos: editing a prediction updates the predicted column (the real
+  // points stay 0 because the match hasn't been played).
   await page.locator('.workspace-tabs [data-home-tab="grupos"]').click();
   await setScore(page, "wc-A-1", 2, 0);
-  await expect(standings(page).locator(".group-table__name").first()).toHaveText("México");
-  await expect(standings(page).locator("tbody tr").first().locator(".group-table__pts")).toHaveText("3");
+  const mexicoRow = standings(page).locator("tbody tr", { hasText: "México" });
+  await expect(mexicoRow.locator(".group-table__pred")).toHaveText("3");
+  await expect(mexicoRow.locator(".group-table__pts")).toHaveText("0");
 });
 

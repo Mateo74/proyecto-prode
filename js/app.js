@@ -116,11 +116,13 @@ let matchesPollingId = null;
 // con el estado vivo de Predictions, evitando leer datos del DOM o repetir fetch.
 let lastLoadedMatches = [];
 
-// Estado de la pestaña "Predicciones" de partidos.html: todos los partidos de la
-// competencia (todos los estados) y el índice del grupo visible en el carrusel.
+// Estado de la pestaña "Grupos": todos los partidos de la competencia (todos los
+// estados) y el índice del grupo visible en el carrusel.
 let predictionsViewMatches = [];
 let currentGroupIndex = 0;
+let currentStageIndex = 0;
 let predictionsViewWired = false;
+let groupsPollingId = null;
 
 function detectPage() {
   const p = window.location.pathname;
@@ -554,6 +556,7 @@ async function loadCompetencias() {
 
 function showCompetitionPicker() {
   stopMatchesPolling();
+  stopGroupsPolling();
   document.getElementById('competition-picker')?.classList.remove('hidden');
   document.getElementById('competencia-workspace')?.classList.add('hidden');
   history.replaceState(null, '', '/');
@@ -644,8 +647,13 @@ function switchHomeTab(tab) {
   if (next === 'partidos') startMatchesPolling();
   else stopMatchesPolling();
 
-  // Render the predicted-group carousel on entering Grupos.
-  if (next === 'grupos') loadPredictionsView();
+  // Render + live-poll the group standings only while the Grupos tab is visible.
+  if (next === 'grupos') {
+    loadPredictionsView();
+    startGroupsPolling();
+  } else {
+    stopGroupsPolling();
+  }
 }
 
 function renderTorneoCard(torneo, active) {
@@ -803,15 +811,54 @@ function setupPredictionsView() {
   prev?.addEventListener('click', () => stepGroup(-1));
   next?.addEventListener('click', () => stepGroup(1));
 
-  // Edición de cualquier marcador → si pertenece al grupo visible, refrescar la
-  // tabla de posiciones con animación.
+  // Carrusel de etapas (Fase de grupos → R32 → … → Final), encima del de grupos.
+  document.querySelector('.stage-carousel__prev')?.addEventListener('click', () => stepStage(-1));
+  document.querySelector('.stage-carousel__next')?.addEventListener('click', () => stepStage(1));
+
+  // Editar una predicción solo cambia la columna de puntos predichos (el orden
+  // y los stats reales no dependen de la predicción), así que refrescamos la
+  // tabla sin animación.
   document.addEventListener('prediction:change', event => {
-    if (!isGroupsTabActive()) return;
+    if (!isGroupsTabActive() || !isGroupStageActive()) return;
     const matchId = event.detail?.matchId;
     const match = predictionsViewMatches.find(m => m.id === matchId);
     if (!match || groupLetterForMatch(match) !== currentGroupLetter()) return;
     renderGroupStandings(currentGroupLetter());
   });
+}
+
+/** Etapa visible del carrusel superior (group | r32 | r16 | qf | sf | final). */
+function currentStage() {
+  return (typeof KO !== 'undefined' ? KO.STAGES : ['group'])[currentStageIndex] || 'group';
+}
+function isGroupStageActive() {
+  return currentStage() === 'group';
+}
+
+/** Avanza el carrusel de etapas con wrap. */
+function stepStage(delta) {
+  const stages = typeof KO !== 'undefined' ? KO.STAGES : ['group'];
+  currentStageIndex = (currentStageIndex + delta + stages.length) % stages.length;
+  renderCurrentStage();
+}
+
+/** Muestra la etapa actual: fase de grupos (carrusel + tabla) o una llave. */
+function renderCurrentStage() {
+  const stage = currentStage();
+  const label = document.getElementById('stage-carousel-label');
+  if (label && typeof KO !== 'undefined') label.textContent = KO.stageLabel(stage);
+
+  const isGroup = stage === 'group';
+  document.getElementById('stage-group')?.classList.toggle('hidden', !isGroup);
+  const koEl = document.getElementById('stage-knockout');
+  koEl?.classList.toggle('hidden', isGroup);
+
+  if (isGroup) {
+    renderCurrentGroup();
+  } else if (koEl && typeof KO !== 'undefined') {
+    koEl.innerHTML = '';
+    koEl.appendChild(KO.renderStage(stage, predictionsViewMatches));
+  }
 }
 
 /** Avanza el carrusel con wrap (tras la última letra vuelve a la primera). */
@@ -833,35 +880,67 @@ async function loadPredictionsView() {
     matchesEl.innerHTML = '';
     return;
   }
+  if (typeof KO !== 'undefined') KO.setCompetencia(competencia.id);
 
   showSkeleton(standings, 1);
   matchesEl.innerHTML = '';
 
   try {
-    // Necesitamos todos los partidos del grupo, sin importar el filtro de estado.
-    const [upcoming, live, finished] = await Promise.all([
-      API.getMatches({ competenciaId: competencia.id, estado: 'proximo' }).catch(() => []),
-      API.getMatches({ competenciaId: competencia.id, estado: 'en-vivo' }).catch(() => []),
-      API.getMatches({ competenciaId: competencia.id, estado: 'finalizado' }).catch(() => []),
-    ]);
-    const seen = new Set();
-    predictionsViewMatches = [...upcoming, ...live, ...finished].filter(m => {
-      if (seen.has(m.id)) return false;
-      seen.add(m.id);
-      return true;
-    });
-    renderCurrentGroup();
+    predictionsViewMatches = await fetchGroupsMatches(competencia.id);
+    renderCurrentStage();
   } catch (error) {
     standings.innerHTML = errorState(error.message);
   }
 }
 
 /**
- * Enriquece los partidos con el marcador vivo en memoria (Predictions). Esto
- * hace que las ediciones persistan al moverse por el carrusel: aunque las
- * tarjetas se recreen, el marcador escrito se relee del estado de Predictions.
+ * Trae todos los partidos de la competencia (todos los estados) y los deduplica.
+ * Los partidos en vivo van primero para que el marcador real más fresco gane.
  */
-function enrichWithLiveScores(matches) {
+async function fetchGroupsMatches(competenciaId) {
+  const [upcoming, live, finished] = await Promise.all([
+    API.getMatches({ competenciaId, estado: 'proximo' }).catch(() => []),
+    API.getMatches({ competenciaId, estado: 'en-vivo' }).catch(() => []),
+    API.getMatches({ competenciaId, estado: 'finalizado' }).catch(() => []),
+  ]);
+  const seen = new Set();
+  return [...live, ...finished, ...upcoming].filter(m => {
+    if (seen.has(m.id)) return false;
+    seen.add(m.id);
+    return true;
+  });
+}
+
+function startGroupsPolling() {
+  stopGroupsPolling();
+  groupsPollingId = setInterval(refreshGroupsLive, 30000);
+}
+
+function stopGroupsPolling() {
+  if (!groupsPollingId) return;
+  clearInterval(groupsPollingId);
+  groupsPollingId = null;
+}
+
+/** Refresca los resultados en vivo sin interrumpir una edición. */
+async function refreshGroupsLive() {
+  if (!isGroupsTabActive()) return;
+  if (document.querySelector('#home-tab-grupos input:focus')) return;
+  const competencia = API.getSelectedCompetencia();
+  if (!competencia) return;
+  try {
+    predictionsViewMatches = await fetchGroupsMatches(competencia.id);
+    renderCurrentStage();
+  } catch { /* conserva el snapshot anterior */ }
+}
+
+/**
+ * Enriquece los partidos con la predicción en memoria del usuario (Predictions).
+ * Así las ediciones persisten al moverse por el carrusel y al refrescar en vivo:
+ * aunque las tarjetas se recreen, la predicción escrita se relee del estado.
+ * No toca el marcador real del partido (scoreEquipo1/2), solo userPred.
+ */
+function enrichWithUserPredictions(matches) {
   return matches.map(match => {
     const live = Predictions.getCurrentScores(match.id);
     if (!live) return match;
@@ -876,30 +955,26 @@ function renderCurrentGroup({ animateSwitch = false } = {}) {
   const letter = currentGroupLetter();
   const label = document.getElementById('group-carousel-label');
   if (label && letter) label.textContent = t('groups.title', { letter });
-  renderGroupStandings(letter, { flash: false });
+  renderGroupStandings(letter);
   renderGroupMatches(letter, { animateSwitch });
 }
 
-/** Pinta la tabla de posiciones del grupo. El carrusel actúa de encabezado,
- *  así que la tabla se renderiza sin su fila de título. */
-function renderGroupStandings(letter, { flash = true } = {}) {
+/** Pinta la tabla de posiciones reales del grupo. El carrusel actúa de
+ *  encabezado, así que la tabla se renderiza sin su fila de título. Ordena por
+ *  resultados reales (finalizados + en vivo); los puntos predichos van aparte. */
+function renderGroupStandings(letter) {
   const el = document.getElementById('group-standings');
   if (!el || !letter) return;
-  const enriched = enrichWithLiveScores(predictionsViewMatches);
-  const groups = buildPredictedGroups(enriched, WORLD_CUP_2026_GROUPS);
-  el.innerHTML = renderGroupTable(letter, groups[letter] || [], { showTitle: false });
-
-  // Reinicia la animación quitando y re-aplicando la clase tras un reflow.
-  el.classList.remove('group-standings--flash');
-  void el.offsetWidth;
-  if (flash) el.classList.add('group-standings--flash');
+  const enriched = enrichWithUserPredictions(predictionsViewMatches);
+  const groups = buildGroupStandings(enriched, WORLD_CUP_2026_GROUPS);
+  el.innerHTML = renderGroupStandingsTable(letter, groups[letter] || []);
 }
 
-/** Pinta las tarjetas de partido del grupo (mitad derecha). */
+/** Pinta las tarjetas de partido del grupo (debajo de la tabla). */
 function renderGroupMatches(letter, { animateSwitch = false } = {}) {
   const el = document.getElementById('group-matches');
   if (!el || !letter) return;
-  const enriched = enrichWithLiveScores(predictionsViewMatches);
+  const enriched = enrichWithUserPredictions(predictionsViewMatches);
   const byGroup = splitMatchesByGroup(enriched, WORLD_CUP_2026_GROUPS);
   const matches = byGroup[letter] || [];
 
