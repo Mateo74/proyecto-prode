@@ -34,33 +34,14 @@
     </section>
 
     <section class="section">
-      <div class="view-tabs" id="partidos-view-tabs">
-        <button class="view-tab active" type="button" data-view="matches" data-i18n="tab.matches">Partidos</button>
-        <button class="view-tab" type="button" data-view="predictions" data-i18n="tab.predictions">Predicciones</button>
+      <div class="filters-bar">
+        <button class="filter-chip" data-group="estado" data-value="" data-i18n="filter.all">Todos</button>
+        <button class="filter-chip active" data-group="estado" data-value="proximo" data-i18n="filter.upcoming">Próximos</button>
+        <button class="filter-chip" data-group="estado" data-value="en-vivo" data-i18n="filter.live">En vivo</button>
+        <button class="filter-chip" data-group="estado" data-value="finalizado" data-i18n="filter.finished">Finalizados</button>
+        <a class="icon-btn filters-bar__info" href="puntos" data-i18n-aria="nav.howPoints" data-i18n-title="nav.howPoints" aria-label="Cómo se calculan los puntos" title="Cómo se calculan los puntos">ⓘ</a>
       </div>
-
-      <div id="view-matches" class="view-pane">
-        <div class="filters-bar">
-          <button class="filter-chip" data-group="estado" data-value="" data-i18n="filter.all">Todos</button>
-          <button class="filter-chip active" data-group="estado" data-value="proximo" data-i18n="filter.upcoming">Próximos</button>
-          <button class="filter-chip" data-group="estado" data-value="en-vivo" data-i18n="filter.live">En vivo</button>
-          <button class="filter-chip" data-group="estado" data-value="finalizado" data-i18n="filter.finished">Finalizados</button>
-          <a class="icon-btn filters-bar__info" href="puntos" data-i18n-aria="nav.howPoints" data-i18n-title="nav.howPoints" aria-label="Cómo se calculan los puntos" title="Cómo se calculan los puntos">ⓘ</a>
-        </div>
-        <div id="matches-list" class="matches-grid"></div>
-      </div>
-
-      <div id="view-predictions" class="view-pane hidden">
-        <div class="group-carousel">
-          <button class="group-carousel__nav group-carousel__prev" type="button" data-i18n-aria="groups.prevGroup" aria-label="Grupo anterior">‹</button>
-          <div class="group-carousel__label" id="group-carousel-label"></div>
-          <button class="group-carousel__nav group-carousel__next" type="button" data-i18n-aria="groups.nextGroup" aria-label="Grupo siguiente">›</button>
-        </div>
-        <div class="predictions-split">
-          <div class="predictions-split__pane predictions-split__standings" id="group-standings"></div>
-          <div class="predictions-split__pane predictions-split__matches" id="group-matches"></div>
-        </div>
-      </div>
+      <div id="matches-list" class="matches-grid"></div>
     </section>
   </main>
 

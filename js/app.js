@@ -541,7 +541,7 @@ async function loadCompetencias() {
     });
 
     if (active && !new URLSearchParams(window.location.search).has('reset') && window.location.hash) {
-      selectCompetencia(active, window.location.hash.replace('#', '') || 'predicciones');
+      selectCompetencia(active, window.location.hash.replace('#', ''));
     } else {
       API.setSelectedCompetencia(null);
       showCompetitionPicker();
@@ -559,15 +559,22 @@ function showCompetitionPicker() {
   history.replaceState(null, '', '/');
 }
 
-async function selectCompetencia(competencia, preferredTab = 'predicciones') {
+async function selectCompetencia(competencia, preferredTab = '') {
   if (!competencia) return;
   API.setSelectedCompetencia(competencia);
   document.getElementById('competition-picker')?.classList.add('hidden');
   document.getElementById('competencia-workspace')?.classList.remove('hidden');
   setText('competencia-title', competenciaNombre(competencia));
-  switchHomeTab(preferredTab === 'torneos' ? 'torneos' : 'predicciones');
+
+  // The "Grupos" view only applies to the World Cup; hide its tab otherwise.
+  const isMundial = competencia.slug === WORLD_CUP_2026_SLUG;
+  document.querySelector('[data-home-tab="grupos"]')?.classList.toggle('hidden', !isMundial);
+
+  let tab = HOME_TABS.includes(preferredTab) ? preferredTab : (isMundial ? 'grupos' : 'partidos');
+  if (tab === 'grupos' && !isMundial) tab = 'partidos';
+  switchHomeTab(tab);
+
   await loadPartidos();
-  startMatchesPolling();
   await loadTorneosForCompetencia(competencia);
 }
 
@@ -619,24 +626,26 @@ async function loadTorneosForCompetencia(competencia = API.getSelectedCompetenci
   }
 }
 
+const HOME_TABS = ['grupos', 'partidos', 'torneos'];
+
 function switchHomeTab(tab) {
-  const next = tab === 'torneos' ? 'torneos' : 'predicciones';
+  const next = HOME_TABS.includes(tab) ? tab : 'grupos';
   document.querySelectorAll('[data-home-tab]').forEach(btn => {
     btn.classList.toggle('active', btn.dataset.homeTab === next);
   });
-  document.getElementById('home-tab-predicciones')?.classList.toggle('hidden', next !== 'predicciones');
+  document.getElementById('home-tab-grupos')?.classList.toggle('hidden', next !== 'grupos');
+  document.getElementById('home-tab-partidos')?.classList.toggle('hidden', next !== 'partidos');
   document.getElementById('home-tab-torneos')?.classList.toggle('hidden', next !== 'torneos');
   if (!document.getElementById('competencia-workspace')?.classList.contains('hidden')) {
     history.replaceState(null, '', `/#${next}`);
   }
-  if (next === 'torneos') {
-    stopMatchesPolling();
-    document.getElementById('grupos-fab')?.remove();
-    document.getElementById('grupos-overlay')?.remove();
-  } else {
-    if (!isPredictionsViewActive()) startMatchesPolling();
-    setupGroupsOverlay();
-  }
+
+  // Matches polling only while the match list is visible.
+  if (next === 'partidos') startMatchesPolling();
+  else stopMatchesPolling();
+
+  // Render the predicted-group carousel on entering Grupos.
+  if (next === 'grupos') loadPredictionsView();
 }
 
 function renderTorneoCard(torneo, active) {
@@ -691,7 +700,6 @@ function initPartidos() {
   });
 
   setupGroupsOverlay();
-  setupPredictionsView();
 }
 
 function startMatchesPolling() {
@@ -709,11 +717,9 @@ async function loadPartidos({ quiet = false } = {}) {
   const el = document.getElementById('matches-list');
   if (!el) return;
 
-  // Don't re-render while the user is actively filling in a prediction, nor
-  // while the per-group Predictions tab is open (it shares match cards and
-  // in-memory scores with #matches-list).
+  // Don't re-render while the user is actively filling in a prediction.
   if (quiet && el.querySelector('.score-box:focus')) return;
-  if (quiet && isPredictionsViewActive()) return;
+  if (quiet && isGroupsTabActive()) return;
 
   const competencia = API.getSelectedCompetencia();
   if (!competencia) {
@@ -777,60 +783,35 @@ function currentGroupLetter() {
   return letters[currentGroupIndex] || letters[0] || null;
 }
 
-/** True cuando la vista "Predicciones" por grupo está visible (en index.html
- *  vive anidada dentro del tab de inicio "Predicciones", por eso comprobamos
- *  también que ningún ancestro esté oculto vía offsetParent). */
-function isPredictionsViewActive() {
-  const pane = document.getElementById('view-predictions');
+/** True cuando la pestaña "Grupos" del workspace está visible. */
+function isGroupsTabActive() {
+  const pane = document.getElementById('home-tab-grupos');
   return !!pane && !pane.classList.contains('hidden') && pane.offsetParent !== null;
 }
 
 /**
- * Cablea (una vez por carga) la pestaña de vistas (Partidos | Predicciones), el
- * carrusel de grupos y el listener que refresca la tabla en vivo al editar.
+ * Cablea (una vez por carga) el carrusel de grupos y el listener que refresca la
+ * tabla de posiciones en vivo cuando se edita una predicción del grupo visible.
  */
 function setupPredictionsView() {
-  const tabs = document.getElementById('partidos-view-tabs');
-  if (!tabs || predictionsViewWired) return;
+  if (predictionsViewWired) return;
+  const prev = document.querySelector('.group-carousel__prev');
+  const next = document.querySelector('.group-carousel__next');
+  if (!prev && !next && !document.getElementById('group-standings')) return;
   predictionsViewWired = true;
 
-  tabs.querySelectorAll('.view-tab').forEach(btn => {
-    btn.addEventListener('click', () => switchPartidosView(btn.dataset.view));
-  });
-
-  document.querySelector('.group-carousel__prev')?.addEventListener('click', () => stepGroup(-1));
-  document.querySelector('.group-carousel__next')?.addEventListener('click', () => stepGroup(1));
+  prev?.addEventListener('click', () => stepGroup(-1));
+  next?.addEventListener('click', () => stepGroup(1));
 
   // Edición de cualquier marcador → si pertenece al grupo visible, refrescar la
   // tabla de posiciones con animación.
   document.addEventListener('prediction:change', event => {
-    if (!isPredictionsViewActive()) return;
+    if (!isGroupsTabActive()) return;
     const matchId = event.detail?.matchId;
     const match = predictionsViewMatches.find(m => m.id === matchId);
     if (!match || groupLetterForMatch(match) !== currentGroupLetter()) return;
     renderGroupStandings(currentGroupLetter());
   });
-}
-
-function switchPartidosView(view) {
-  const next = view === 'predictions' ? 'predictions' : 'matches';
-  document.querySelectorAll('#partidos-view-tabs .view-tab').forEach(btn =>
-    btn.classList.toggle('active', btn.dataset.view === next)
-  );
-  document.getElementById('view-matches')?.classList.toggle('hidden', next !== 'matches');
-  document.getElementById('view-predictions')?.classList.toggle('hidden', next !== 'predictions');
-
-  // The floating groups button is redundant here (its standings are inline now),
-  // so hide it on the Predictions tab and bring it back on the Matches tab.
-  document.getElementById('grupos-fab')?.classList.toggle('hidden', next === 'predictions');
-  if (next === 'predictions') document.getElementById('grupos-overlay')?.classList.remove('grupos-overlay--visible');
-
-  if (next === 'predictions') {
-    stopMatchesPolling();
-    loadPredictionsView();
-  } else {
-    startMatchesPolling();
-  }
 }
 
 /** Avanza el carrusel con wrap (tras la última letra vuelve a la primera). */

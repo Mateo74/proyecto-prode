@@ -2838,32 +2838,8 @@ img.team__badge-img {
 }
 
 /* =============================================
-   PARTIDOS — pestañas de vista + predicciones por grupo
+   GRUPOS — carrusel + vista apilada de predicciones por grupo
    ============================================= */
-.view-tabs {
-  display: flex;
-  gap: 0.2rem;
-  background: var(--bg-3);
-  border-radius: var(--radius);
-  padding: 3px;
-  margin-bottom: 1.25rem;
-}
-
-.view-tab {
-  flex: 1;
-  padding: 0.5rem;
-  border-radius: var(--radius-sm);
-  border: none;
-  background: transparent;
-  color: var(--text-3);
-  font-size: 0.8125rem;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all var(--t);
-}
-.view-tab:hover  { color: var(--text-2); }
-.view-tab.active { background: var(--bg-2); color: var(--text); }
-
 /* Carrusel de grupos */
 .group-carousel {
   display: flex;

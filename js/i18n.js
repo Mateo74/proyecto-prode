@@ -64,6 +64,7 @@ const I18n = (() => {
       'tab.myPredictions':     'Mis predicciones',
       'tab.predictions':       'Predicciones',
       'tab.matches':           'Partidos',
+      'tab.groups':            'Grupos',
       'tab.friendTournaments': 'Torneos de Amigos',
 
       // ── Filters ───────────────────────────────────────────────────
@@ -347,6 +348,7 @@ const I18n = (() => {
       'tab.myPredictions':     'My predictions',
       'tab.predictions':       'Predictions',
       'tab.matches':           'Matches',
+      'tab.groups':            'Groups',
       'tab.friendTournaments': 'Friends Tournaments',
 
       // ── Filters ───────────────────────────────────────────────────
