@@ -66,6 +66,12 @@ async function register(req, res) {
   const password = req.body.password;
   const nombre = (req.body.nombre || username).trim();
   const apellido = req.body.apellido?.trim() || null;
+  
+  // Log registration; check if coming from invite flow via X-Invite-Token header
+  const inviteToken = req.get("x-invite-token");
+  if (inviteToken) {
+    require("../utils/logger").info("invite.registration_from_invite", { token: inviteToken, username });
+  }
 
   const existente = await prisma.usuario.findFirst({
     where: {
@@ -83,6 +89,10 @@ async function register(req, res) {
   });
 
   const token = await issueTokens(res, usuario);
+  
+  // Log successful registration
+  require("../utils/logger").info("auth.register_success", { userId: usuario.id, username, hasEmail: !!email });
+  
   res.status(201).json({ token, usuario: usuarioResponse(usuario) });
 }
 
@@ -102,6 +112,14 @@ async function login(req, res) {
   }
 
   const token = await issueTokens(res, usuario);
+  
+  // Log successful login; check if coming from invite flow
+  const inviteToken = req.get("x-invite-token");
+  require("../utils/logger").info("auth.login_success", { userId: usuario.id, username: usuario.username, fromInvite: !!inviteToken });
+  if (inviteToken) {
+    require("../utils/logger").info("invite.login_from_invite", { token: inviteToken, userId: usuario.id, username: usuario.username });
+  }
+  
   res.json({ token, usuario: usuarioResponse(usuario) });
 }
 

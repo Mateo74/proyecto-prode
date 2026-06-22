@@ -329,19 +329,21 @@ const API = (() => {
 
   // --- AUTH ---
 
-  async function register({ username, nombre, email, password }) {
+  async function register({ username, nombre, email, password, inviteToken }) {
     const session = await request('/auth/register', {
       method: 'POST',
       body: JSON.stringify({ username, nombre, email, password }),
+      headers: inviteToken ? { 'x-invite-token': inviteToken } : {},
     });
     setSession(session);
     return session;
   }
 
-  async function login({ identificador, username, email, password }) {
+  async function login({ identificador, username, email, password, inviteToken }) {
     const session = await request('/auth/login', {
       method: 'POST',
       body: JSON.stringify({ identificador: identificador ?? username ?? email, password }),
+      headers: inviteToken ? { 'x-invite-token': inviteToken } : {},
     });
     setSession(session);
     return session;

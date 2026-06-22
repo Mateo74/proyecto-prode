@@ -110,10 +110,16 @@ async function getByInviteToken(req, res) {
 }
 
 async function joinByInviteToken(req, res) {
+  const token = req.params.token;
   const { torneo, yaEraMiembro } = await torneosService.joinByInviteToken(
-    req.params.token,
+    token,
     req.usuario.id,
   );
+  
+  // Log invite acceptance
+  const logger = require("../utils/logger");
+  logger.info("invite.accepted", { token, userId: req.usuario.id, torneoId: torneo.id, wasAlreadyMember: yaEraMiembro });
+  
   res.status(yaEraMiembro ? 200 : 201).json({
     ...torneoToJson(torneo),
     yaEraMiembro,

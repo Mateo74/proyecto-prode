@@ -8,6 +8,7 @@ const { inviteTokenParam } = require("../schemas/invitaciones.schema");
 const { torneoPayload } = require("../schemas/torneos.schema");
 const controller = require("../controllers/torneos.controller");
 const env = require("../config/env");
+const logger = require("../utils/logger");
 
 const router = Router();
 
@@ -18,6 +19,8 @@ router.get(
     const token = req.params.token;
     const lang = (req.query.lang === 'en') ? 'en' : 'es';
     const partidoId = req.query.partidoId ? String(req.query.partidoId) : null;
+    
+    logger.info("invite.preview_viewed", { token, lang, hasPartidoId: !!partidoId });
     const inviteLandingUrl = new URL(`${env.FRONTEND_BASE_URL}/pages/invitacion.html`);
     inviteLandingUrl.searchParams.set('token', token);
     inviteLandingUrl.searchParams.set('lang', lang);

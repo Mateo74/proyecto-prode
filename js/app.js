@@ -356,10 +356,14 @@ function initAuth() {
     setAuthError('');
 
     const form = new FormData(loginForm);
+    const params = new URLSearchParams(window.location.search);
+    const next = params.get('next') || '';
+    const inviteToken = new URLSearchParams(next).get('token');
     try {
       await API.login({
         identificador: form.get('identificador'),
         password: form.get('password'),
+        inviteToken: inviteToken || undefined,
       });
       redirectAfterAuth();
     } catch (error) {
@@ -372,6 +376,9 @@ function initAuth() {
     setAuthError('');
 
     const form = new FormData(registerForm);
+    const params = new URLSearchParams(window.location.search);
+    const next = params.get('next') || '';
+    const inviteToken = new URLSearchParams(next).get('token');
     try {
       await API.register({
         username: form.get('username'),
@@ -379,6 +386,7 @@ function initAuth() {
         apellido: form.get('apellido'),
         email:    form.get('email'),
         password: form.get('password'),
+        inviteToken: inviteToken || undefined,
       });
       redirectAfterAuth();
     } catch (error) {
