@@ -357,3 +357,37 @@ test("a prediction made in Matches shows up in Groups, and editing it in Groups 
   await expect(matchesBox(page, "wc-A-1", "equipo2")).toHaveValue("0");
 });
 
+test("standings: numeric columns don't shift between groups (fixed table layout)", async ({ page }) => {
+  // Group A has a long name ("Corea del Sur"); Group B's names are short. With
+  // table-layout:fixed the numeric columns must not move when the carousel
+  // switches groups, regardless of team-name length.
+  await setup(page, [...groupAMatches(), ...groupBFinished()]);
+
+  const predHeader = () => standings(page).locator("thead th").last();
+  const xOnA = (await predHeader().boundingBox()).x;
+
+  await page.locator(".group-carousel__next").click();
+  await expect(carouselLabel(page)).toHaveText("Grupo B");
+  const xOnB = (await predHeader().boundingBox()).x;
+
+  expect(Math.abs(xOnA - xOnB)).toBeLessThanOrEqual(1);
+});
+
+test("standings: team names collapse to 3-letter abbreviations on phone widths", async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await setup(page, groupAMatches());
+
+  const firstRow = standings(page).locator("tbody tr").first();
+  // On phones the full name is hidden and the short code is shown (México -> MEX),
+  // keeping the predicted-points column on screen.
+  await expect(firstRow.locator(".group-table__name")).toBeHidden();
+  await expect(firstRow.locator(".group-table__abbr")).toBeVisible();
+  await expect(firstRow.locator(".group-table__abbr")).toHaveText("MEX");
+  await expect(standings(page).locator(".group-table__pred").first()).toBeInViewport();
+
+  // On a desktop width it's the opposite: full name shown, abbreviation hidden.
+  await page.setViewportSize({ width: 1280, height: 800 });
+  await expect(firstRow.locator(".group-table__name")).toBeVisible();
+  await expect(firstRow.locator(".group-table__abbr")).toBeHidden();
+});
+
