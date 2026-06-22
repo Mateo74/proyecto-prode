@@ -339,6 +339,19 @@ function buildGroupStandings(matches = [], groupsDef = {}, crestByName = {}) {
  * (Pred), y un punto verde junto a los equipos que están jugando ahora.
  * El carrusel actúa de encabezado, por eso no se renderiza fila de título.
  */
+/**
+ * Código corto de 3 letras para un equipo (p. ej. "México" → "MEX"). Se usa en
+ * la tabla de posiciones en pantallas chicas, donde el nombre completo empuja la
+ * columna de puntos predichos fuera de la pantalla. Determinista: quita acentos
+ * y deja solo letras antes de cortar.
+ */
+function teamAbbr(name) {
+  const clean = (name || '')
+    .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^A-Za-z]/g, '');
+  return (clean || String(name || '')).slice(0, 3).toUpperCase();
+}
+
 function renderGroupStandingsTable(letter, rows = []) {
   const sorted = [...rows].sort((a, b) => {
     if ((b.pts ?? 0) !== (a.pts ?? 0)) return (b.pts ?? 0) - (a.pts ?? 0);
@@ -359,6 +372,7 @@ function renderGroupStandingsTable(letter, rows = []) {
           <td class="group-table__team">
             <span class="group-table__crest">${Predictions.teamCrest(display, r.crest)}</span>
             <span class="group-table__name">${escapeHtml(display)}</span>
+            <span class="group-table__abbr" aria-hidden="true">${escapeHtml(teamAbbr(display))}</span>
             ${liveDot}
           </td>
           <td>${Number(r.pj ?? 0)}</td>

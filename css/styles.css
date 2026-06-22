@@ -2729,6 +2729,13 @@ img.team__badge-img {
   white-space: nowrap;
 }
 
+/* Código corto del equipo: oculto salvo en pantallas chicas (ver media query). */
+.group-table__abbr {
+  display: none;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+
 .group-table td { color: var(--text-2); }
 
 .group-table tbody tr { transition: background var(--t); }
@@ -2924,6 +2931,40 @@ img.team__badge-img {
 .predictions-split__standings .group-table__crest .team__badge {
   width: 24px;
   height: 24px;
+}
+
+/* Ancho de tabla fijo: las columnas numéricas tienen ancho fijo y la del equipo
+   absorbe el resto. Así, al cambiar de grupo en el carrusel, las columnas no se
+   mueven aunque cambien los nombres de los equipos. */
+.predictions-split__standings .group-table--live {
+  table-layout: fixed;
+}
+.predictions-split__standings .group-table--live th:not(.group-table__team),
+.predictions-split__standings .group-table--live td:not(.group-table__team) {
+  width: 3.25rem;
+  padding-left: 0.4rem;
+  padding-right: 0.4rem;
+}
+
+/* Teléfonos: el nombre completo del equipo empuja la columna de puntos predichos
+   fuera de la pantalla, así que mostramos el código corto y compactamos las
+   columnas numéricas para que las 6 columnas entren sin scroll horizontal. */
+@media (max-width: 480px) {
+  .predictions-split__standings .group-table--live {
+    font-size: 0.82rem;
+  }
+  .predictions-split__standings .group-table--live th,
+  .predictions-split__standings .group-table--live td {
+    padding: 0.55rem 0.3rem;
+  }
+  .predictions-split__standings .group-table--live th:not(.group-table__team),
+  .predictions-split__standings .group-table--live td:not(.group-table__team) {
+    width: 2.3rem;
+    padding-left: 0.15rem;
+    padding-right: 0.15rem;
+  }
+  .predictions-split__standings .group-table__name { display: none; }
+  .predictions-split__standings .group-table__abbr { display: inline; }
 }
 
 .predictions-split__matches {

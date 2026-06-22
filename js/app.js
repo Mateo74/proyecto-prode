@@ -643,9 +643,15 @@ function switchHomeTab(tab) {
     history.replaceState(null, '', `/#${next}`);
   }
 
-  // Matches polling only while the match list is visible.
-  if (next === 'partidos') startMatchesPolling();
-  else stopMatchesPolling();
+  // Matches polling only while the match list is visible. Returning to the
+  // Matches tab also re-syncs its cards from the shared in-memory prediction
+  // state, so an edit made in the Grupos tab is reflected here too.
+  if (next === 'partidos') {
+    syncMatchesListFromState();
+    startMatchesPolling();
+  } else {
+    stopMatchesPolling();
+  }
 
   // Render + live-poll the group standings only while the Grupos tab is visible.
   if (next === 'grupos') {
@@ -774,10 +780,27 @@ async function loadPartidos({ quiet = false } = {}) {
 }
 
 /**
- * Hace que un click en la tarjeta (fuera de los inputs de marcador) abra el
- * detalle del partido, donde se ven las predicciones del resto. Compartido por
- * la lista de partidos y la vista de predicciones por grupo.
+ * Vuelca las predicciones en memoria (Predictions) sobre los inputs ya
+ * renderizados de #matches-list. La lista de partidos no se vuelve a renderizar
+ * al cambiar de pestaña, así que una edición hecha en la pestaña "Grupos"
+ * (que comparte el mismo estado) no se vería al volver a "Partidos" sin esto.
+ * Solo toca el DOM; el estado de Predictions ya es la fuente de verdad.
  */
+function syncMatchesListFromState() {
+  const el = document.getElementById('matches-list');
+  if (!el) return;
+  el.querySelectorAll('.match-card').forEach(card => {
+    const live = Predictions.getCurrentScores(card.dataset.matchId);
+    if (!live) return;
+    card.querySelectorAll('.score-box').forEach(input => {
+      const value = live[input.dataset.side];
+      input.value = value == null ? '' : value;
+      input.classList.toggle('has-value', value != null);
+    });
+    card.classList.toggle('pred-saved', live.equipo1 != null && live.equipo2 != null);
+  });
+}
+
 function attachMatchCardNavigation(card, match) {
   card.addEventListener('click', e => {
     if (e.target.tagName === 'INPUT') return;
