@@ -128,12 +128,23 @@
   <script src="../js/config.js"></script>
   <script src="../js/api.js"></script>
   <script>
-    (function () {
+    (async function () {
       const lang = I18n.getLang();
       document.getElementById('lang-es').classList.toggle('active', lang === 'es');
       document.getElementById('lang-en').classList.toggle('active', lang === 'en');
 
       let pendingLang = lang;
+      let sessionUser = API.getCurrentUser();
+
+      // In this standalone page we don't load app.js, so ensure the in-memory
+      // access token is restored before trying to persist idioma to the backend.
+      if (!API.getToken()) {
+        try {
+          sessionUser = await API.restoreSession();
+        } catch {
+          // Keep local language switch behavior even if restore fails.
+        }
+      }
 
       document.querySelectorAll('.lang-option-btn').forEach(btn => {
         if (!btn.dataset.lang) return;
@@ -148,11 +159,11 @@
         const btn = document.getElementById('settings-save-btn');
         btn.disabled = true;
         feedback.classList.add('hidden');
-        // Persist to DB — required so restoreSession() doesn't overwrite localStorage
-        // Only call if the user has an active session (token in memory).
-        if (API.getToken()) {
+
+        const canPersistToServer = !!sessionUser?.id && !!API.getToken();
+        if (canPersistToServer) {
           try {
-            await API.updateIdioma(API.getCurrentUser().id, pendingLang);
+            sessionUser = await API.updateIdioma(sessionUser.id, pendingLang);
           } catch (err) {
             feedback.textContent = err.message || 'Error al guardar';
             feedback.className = 'form-feedback error';
@@ -160,6 +171,7 @@
             return;
           }
         }
+
         feedback.textContent = I18n.t('feedback.changesSaved');
         feedback.className = 'form-feedback success';
         btn.disabled = false;

@@ -2551,6 +2551,7 @@ img.team__badge-img {
   overflow: hidden;
   border: 2px solid var(--bg-3);
   box-shadow: 0 8px 16px rgba(0,0,0,0.24);
+  transform: scaleX(-1);
 }
 
 .match-pie::before {

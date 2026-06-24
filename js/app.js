@@ -1914,7 +1914,7 @@ async function initPartidoDetalle() {
 
   function switchMatchTab(tabName) {
     if (!rankingSection || !statsSection || !tabRanking || !tabStats) return;
-    const showStats = tabName === 'stats' && locked;
+    const showStats = tabName === 'stats';
     rankingSection.classList.toggle('hidden', showStats);
     statsSection.classList.toggle('hidden', !showStats);
     tabRanking.classList.toggle('active', !showStats);
@@ -1922,15 +1922,10 @@ async function initPartidoDetalle() {
   }
 
   if (tabsWrap && tabRanking && tabStats) {
-    if (!locked) {
-      tabStats.classList.add('hidden');
-      switchMatchTab('ranking');
-    } else {
-      tabStats.classList.remove('hidden');
-      tabRanking.addEventListener('click', () => switchMatchTab('ranking'));
-      tabStats.addEventListener('click', () => switchMatchTab('stats'));
-      switchMatchTab('ranking');
-    }
+    tabStats.classList.remove('hidden');
+    tabRanking.addEventListener('click', () => switchMatchTab('ranking'));
+    tabStats.addEventListener('click', () => switchMatchTab('stats'));
+    switchMatchTab('ranking');
   }
 
   function calcProvisionalPoints(pred) {
@@ -2055,9 +2050,11 @@ async function initPartidoDetalle() {
         const g1 = p.golesEquipo1;
         const g2 = p.golesEquipo2;
         const diff = direction === 'home' ? (g1 - g2) : (g2 - g1);
+        const teamGoals = direction === 'home' ? g1 : g2;
         if (diff <= 0) continue;
-        if (!best || diff > best.diff || (diff === best.diff && (direction === 'home' ? g1 > best.g1 : g2 > best.g2))) {
+        if (!best || diff > best.diff || (diff === best.diff && teamGoals > best.teamGoals)) {
           best = { g1, g2, diff, usuario: item.usuario };
+          best.teamGoals = teamGoals;
         }
       }
       return best;
