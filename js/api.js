@@ -385,6 +385,22 @@ const API = (() => {
     }
   }
 
+  async function forgotPassword({ email }) {
+    return request('/auth/forgot-password', {
+      method: 'POST',
+      body: JSON.stringify({ email }),
+    });
+  }
+
+  async function resetPassword({ token, password }) {
+    const session = await request('/auth/reset-password', {
+      method: 'POST',
+      body: JSON.stringify({ token, password }),
+    });
+    setSession(session);
+    return session;
+  }
+
   async function getLeaderboard({ torneoId, limit = 50 } = {}) {
     const selected = getSelectedTorneo();
     const id = torneoId || selected?.id;
@@ -472,6 +488,7 @@ const API = (() => {
     cerrarPartido,
     clearSession,
     createTorneoDeAmigos,
+    forgotPassword,
     generarInviteLink,
     getCompetencia,
     getCompetencias,
@@ -504,6 +521,7 @@ const API = (() => {
     me,
     rechazarInvitacion,
     register,
+    resetPassword,
     restoreSession,
     revocarInviteLink,
     savePrediction,

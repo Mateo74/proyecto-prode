@@ -34,9 +34,20 @@
     </section>
 
     <section class="section" style="padding-top:0">
-      <p id="match-ranking-notice" class="section-notice hidden" data-i18n="match.predsHidden"></p>
-      <div id="match-podium" class="podium"></div>
-      <div id="match-ranking-list" class="ranking-list"></div>
+      <div class="tabs match-detail-tabs" id="match-detail-tabs">
+        <button class="tab-btn active" id="match-tab-ranking" type="button" data-i18n="tab.matchPredictions">Predicciones</button>
+        <button class="tab-btn" id="match-tab-stats" type="button" data-i18n="tab.matchStats">Estadísticas</button>
+      </div>
+
+      <div id="match-section-ranking">
+        <p id="match-ranking-notice" class="section-notice hidden" data-i18n="match.predsHidden"></p>
+        <div id="match-podium" class="podium"></div>
+        <div id="match-ranking-list" class="ranking-list"></div>
+      </div>
+
+      <div id="match-section-stats" class="hidden">
+        <div id="match-stats-body" class="match-stats"></div>
+      </div>
     </section>
   </main>
 

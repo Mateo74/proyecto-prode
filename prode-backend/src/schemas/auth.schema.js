@@ -78,4 +78,19 @@ const mobileGoogleLoginBody = registry.register(
   }),
 );
 
-module.exports = { googleLoginBody, loginBody, mobileGoogleLoginBody, registerBody, sessionResponse, usuarioPayload };
+const forgotPasswordBody = registry.register(
+  "AuthForgotPasswordBody",
+  z.object({
+    email: z.string().trim().toLowerCase().email("Email invalido"),
+  }),
+);
+
+const resetPasswordBody = registry.register(
+  "AuthResetPasswordBody",
+  z.object({
+    token: z.string().trim().min(1, "Token requerido"),
+    password: passwordSchema,
+  }),
+);
+
+module.exports = { googleLoginBody, loginBody, mobileGoogleLoginBody, registerBody, sessionResponse, usuarioPayload, forgotPasswordBody, resetPasswordBody };

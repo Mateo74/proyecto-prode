@@ -1845,15 +1845,20 @@ async function initPartidoDetalle() {
 
   const { partido, entries, torneo: torneoData } = data;
 
+  const lang = (typeof I18n !== 'undefined') ? I18n.getLang() : 'es';
+  const resolveTeamName = (teamNumber) => {
+    if (!partido) return '';
+    const id = teamNumber === 1 ? partido.equipo1Id : partido.equipo2Id;
+    const base = teamNumber === 1 ? partido.equipo1 : partido.equipo2;
+    const en = teamNumber === 1 ? partido.equipo1NombreEn : partido.equipo2NombreEn;
+    if (typeof localizeTeamName === 'function') return localizeTeamName(id, base || '');
+    return (lang === 'en' && en) ? en : (base || '');
+  };
+  const team1 = resolveTeamName(1);
+  const team2 = resolveTeamName(2);
+
   // Update page title with match teams
   if (partido) {
-    const lang = (typeof I18n !== 'undefined') ? I18n.getLang() : 'es';
-    const team1 = (typeof localizeTeamName === 'function')
-      ? localizeTeamName(partido.equipo1Id, partido.equipo1 || '')
-      : (lang === 'en' && partido.equipo1NombreEn) ? partido.equipo1NombreEn : (partido.equipo1 || '');
-    const team2 = (typeof localizeTeamName === 'function')
-      ? localizeTeamName(partido.equipo2Id, partido.equipo2 || '')
-      : (lang === 'en' && partido.equipo2NombreEn) ? partido.equipo2NombreEn : (partido.equipo2 || '');
     if (team1 && team2) {
       const title = `${team1} ${t('match.vs')} ${team2}`;
       document.title = `${title} | Once Metros`;
@@ -1887,14 +1892,8 @@ async function initPartidoDetalle() {
     }
   };
 
-  const podiumEl   = document.getElementById('match-podium');
+  const podiumEl = document.getElementById('match-podium');
   if (!rankingList) return;
-
-  if (!entries.length) {
-    if (podiumEl) podiumEl.innerHTML = '';
-    rankingList.innerHTML = emptyState(t('empty.noScoresYet'));
-    return;
-  }
 
   // Predictions are private until the match starts (prediccionEditable === false means locked)
   const locked = partido.prediccionEditable === false ||
@@ -1905,6 +1904,34 @@ async function initPartidoDetalle() {
   const liveScore = partido.estado === 'en-vivo'
     ? { g1: partido.scoreEquipo1 ?? null, g2: partido.scoreEquipo2 ?? null }
     : null;
+
+  const tabsWrap = document.getElementById('match-detail-tabs');
+  const tabRanking = document.getElementById('match-tab-ranking');
+  const tabStats = document.getElementById('match-tab-stats');
+  const rankingSection = document.getElementById('match-section-ranking');
+  const statsSection = document.getElementById('match-section-stats');
+  const statsBody = document.getElementById('match-stats-body');
+
+  function switchMatchTab(tabName) {
+    if (!rankingSection || !statsSection || !tabRanking || !tabStats) return;
+    const showStats = tabName === 'stats' && locked;
+    rankingSection.classList.toggle('hidden', showStats);
+    statsSection.classList.toggle('hidden', !showStats);
+    tabRanking.classList.toggle('active', !showStats);
+    tabStats.classList.toggle('active', showStats);
+  }
+
+  if (tabsWrap && tabRanking && tabStats) {
+    if (!locked) {
+      tabStats.classList.add('hidden');
+      switchMatchTab('ranking');
+    } else {
+      tabStats.classList.remove('hidden');
+      tabRanking.addEventListener('click', () => switchMatchTab('ranking'));
+      tabStats.addEventListener('click', () => switchMatchTab('stats'));
+      switchMatchTab('ranking');
+    }
+  }
 
   function calcProvisionalPoints(pred) {
     if (!pred || liveScore?.g1 == null || liveScore?.g2 == null) return null;
@@ -1947,6 +1974,214 @@ async function initPartidoDetalle() {
       return b.puntos - a.puntos;
     });
 
+  function formatAvg(value) {
+    if (!Number.isFinite(value)) return '-';
+    return (Math.round(value * 10) / 10).toFixed(1);
+  }
+
+  function renderMatchStats() {
+    if (!statsBody) return;
+
+    if (!locked) {
+      statsBody.innerHTML = emptyState(t('match.stats.availableWhenLocked'));
+      return;
+    }
+
+    const predictionEntries = entries
+      .filter(e => e.prediccion && Number.isFinite(e.prediccion.golesEquipo1) && Number.isFinite(e.prediccion.golesEquipo2))
+      .map(e => ({ pred: e.prediccion, usuario: e.usuario || {} }));
+
+    if (!predictionEntries.length) {
+      statsBody.innerHTML = emptyState(t('match.stats.noPredictions'));
+      return;
+    }
+
+    let homeWins = 0;
+    let draws = 0;
+    let awayWins = 0;
+    let totalG1 = 0;
+    let totalG2 = 0;
+    const scoreCounts = new Map();
+
+    for (const item of predictionEntries) {
+      const p = item.pred;
+      const g1 = p.golesEquipo1;
+      const g2 = p.golesEquipo2;
+      totalG1 += g1;
+      totalG2 += g2;
+      if (g1 > g2) homeWins += 1;
+      else if (g1 < g2) awayWins += 1;
+      else draws += 1;
+
+      const scoreKey = `${g1}-${g2}`;
+      scoreCounts.set(scoreKey, (scoreCounts.get(scoreKey) || 0) + 1);
+    }
+
+    const total = predictionEntries.length;
+    const pct = (n) => Math.round((n / total) * 100);
+    const homePct = pct(homeWins);
+    const drawPct = pct(draws);
+    const awayPct = Math.max(0, 100 - homePct - drawPct);
+
+    const commonScores = [...scoreCounts.entries()]
+      .sort((a, b) => {
+        if (b[1] !== a[1]) return b[1] - a[1];
+        const [a1, a2] = a[0].split('-').map(Number);
+        const [b1, b2] = b[0].split('-').map(Number);
+        if (a1 !== b1) return a1 - b1;
+        return a2 - b2;
+      });
+
+    const barItems = commonScores.slice(0, 6).map(([score, count]) => ({
+      score,
+      count,
+      isOther: false,
+    }));
+    const otherCount = commonScores.slice(6).reduce((acc, item) => acc + item[1], 0);
+    if (otherCount > 0) {
+      barItems.push({ score: t('match.stats.other'), count: otherCount, isOther: true });
+    }
+    const maxBarCount = Math.max(...barItems.map(item => item.count), 1);
+    const usePercentBars = !!torneoData?.esGlobal;
+    const maxBarPct = Math.max(...barItems.map(item => (item.count / total) * 100), 0);
+    const percentBase = usePercentBars
+      ? (maxBarPct > 60 ? 100 : 60)
+      : 100;
+
+    function findExtreme(direction) {
+      let best = null;
+      for (const item of predictionEntries) {
+        const p = item.pred;
+        const g1 = p.golesEquipo1;
+        const g2 = p.golesEquipo2;
+        const diff = direction === 'home' ? (g1 - g2) : (g2 - g1);
+        if (diff <= 0) continue;
+        if (!best || diff > best.diff || (diff === best.diff && (direction === 'home' ? g1 > best.g1 : g2 > best.g2))) {
+          best = { g1, g2, diff, usuario: item.usuario };
+        }
+      }
+      return best;
+    }
+
+    const extremeHome = findExtreme('home');
+    const extremeAway = findExtreme('away');
+    const homeTeamLabel = team1 || t('match.stats.homeSide');
+    const awayTeamLabel = team2 || t('match.stats.awaySide');
+    const outcomeLegend = [
+      { key: 'home', count: homeWins, pct: homePct, label: t('match.stats.homeWin', { team: homeTeamLabel }), dotClass: 'match-pie-dot--home' },
+      { key: 'draw', count: draws, pct: drawPct, label: t('match.stats.draw'), dotClass: 'match-pie-dot--draw' },
+      { key: 'away', count: awayWins, pct: awayPct, label: t('match.stats.awayWin', { team: awayTeamLabel }), dotClass: 'match-pie-dot--away' },
+    ].sort((a, b) => {
+      if (b.count !== a.count) return b.count - a.count;
+      return b.pct - a.pct;
+    });
+
+    const teamBadge = (name, crestUrl) => {
+      if (crestUrl) {
+        return `<img class="team__badge team__badge-img" src="${escapeHtml(crestUrl)}" alt="" loading="lazy">`;
+      }
+      return `<div class="team__badge">${initial(name || '?')}</div>`;
+    };
+
+    const userDisplayName = (user) => {
+      const fullName = [user?.nombre, user?.apellido].filter(Boolean).join(' ').trim();
+      return fullName || user?.username || 'Usuario';
+    };
+
+    function renderExtremeCard(directionLabel, extremeValue) {
+      if (!extremeValue) {
+        return `
+          <div class="match-extreme-card">
+            <div class="match-extreme-head">
+              <span class="match-extreme-label">${escapeHtml(directionLabel)}</span>
+              <span class="match-extreme-score">${escapeHtml(t('match.stats.none'))}</span>
+            </div>
+          </div>
+        `;
+      }
+
+      const u = extremeValue.usuario || {};
+      const displayName = userDisplayName(u);
+      return `
+        <div class="match-extreme-card">
+          <div class="match-extreme-head">
+            <span class="match-extreme-label">${escapeHtml(directionLabel)}</span>
+          </div>
+          <div class="match-extreme-user">
+            <div class="match-extreme-user-main">
+              <div class="match-extreme-avatar">${fotoImg(u.fotoPerfil, displayName)}</div>
+              <div class="match-extreme-user-text">
+                <strong>${escapeHtml(displayName)}</strong>
+                <span>${escapeHtml(t('match.stats.by', { name: u.username ? `@${u.username}` : displayName }))}</span>
+              </div>
+            </div>
+            <span class="match-extreme-score">${escapeHtml(`${extremeValue.g1}-${extremeValue.g2}`)}</span>
+          </div>
+        </div>
+      `;
+    }
+
+    statsBody.innerHTML = `
+      <div class="match-stats-grid">
+        <article class="match-stats-card">
+          <h3 class="match-stats-title">${escapeHtml(t('match.stats.avgPredictedScore'))}</h3>
+          <div class="match-stats-scorecard">
+            <div class="team">
+              ${teamBadge(team1, partido.equipo1EscudoUrl)}
+              <div class="team__name">${escapeHtml(team1 || '-')}</div>
+            </div>
+            <div class="match-stats-score">
+              <span>${formatAvg(totalG1 / total)}</span>
+              <span class="match-stats-vs">:</span>
+              <span>${formatAvg(totalG2 / total)}</span>
+            </div>
+            <div class="team">
+              ${teamBadge(team2, partido.equipo2EscudoUrl)}
+              <div class="team__name">${escapeHtml(team2 || '-')}</div>
+            </div>
+          </div>
+        </article>
+
+        <article class="match-stats-card">
+          <h3 class="match-stats-title">${escapeHtml(t('match.stats.outcomeDistribution'))}</h3>
+          <div class="match-pie-wrap">
+            <div class="match-pie" style="--home:${homePct};--draw:${drawPct};--away:${awayPct}" aria-hidden="true"></div>
+            <div class="match-pie-legend">
+              ${outcomeLegend.map(item => `
+                <div class="match-pie-row">
+                  <span class="match-pie-dot ${item.dotClass}"></span>
+                  <span class="match-pie-label">${escapeHtml(item.label)}</span>
+                  <span class="match-pie-value">${item.pct}%</span>
+                </div>
+              `).join('')}
+            </div>
+          </div>
+        </article>
+
+        <article class="match-stats-card match-stats-card--full">
+          <h3 class="match-stats-title">${escapeHtml(t('match.stats.commonPredictions'))}</h3>
+          <div class="match-bars">
+            ${barItems.map(item => `
+              <div class="match-bar">
+                <span class="match-bar-label">${escapeHtml(item.score)}</span>
+                <div class="match-bar-track"><div class="match-bar-fill ${item.isOther ? 'match-bar-fill--other' : ''}" style="--w:${usePercentBars ? Math.min(100, Math.round(((item.count / total) * 100 / percentBase) * 100)) : Math.round((item.count / maxBarCount) * 100)}"></div></div>
+                <span class="match-bar-value">${usePercentBars ? `${Math.round((item.count / total) * 100)}%` : item.count}</span>
+              </div>
+            `).join('')}
+          </div>
+        </article>
+
+        <article class="match-stats-card match-stats-card--full">
+          <h3 class="match-stats-title">${escapeHtml(t('match.stats.extremePredictions'))}</h3>
+          <div class="match-extremes">
+            ${renderExtremeCard(t('match.stats.homeWin', { team: homeTeamLabel }), extremeHome)}
+            ${renderExtremeCard(t('match.stats.awayWin', { team: awayTeamLabel }), extremeAway)}
+          </div>
+        </article>
+      </div>
+    `;
+  }
+
   // Notice shown above the list before kick-off or during live
   const noticeEl = document.getElementById('match-ranking-notice');
   if (noticeEl) {
@@ -1980,7 +2215,7 @@ async function initPartidoDetalle() {
         }
         return row;
       }).join('')
-      : '';
+      : emptyState(t('empty.noScoresYet'));
 
     document.getElementById('match-ranking-load-more')?.remove();
     if (shown < ranked.length) {
@@ -2009,6 +2244,7 @@ async function initPartidoDetalle() {
   }
 
   renderMatchRankPage();
+  renderMatchStats();
 }
 
 async function initInviteLanding() {

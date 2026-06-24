@@ -5,7 +5,7 @@ const { asyncRoute } = require("../utils/asyncRoute");
 const { validate } = require("../middlewares/validate.middleware");
 const { requireAuth } = require("../middlewares/auth.middleware");
 const { z } = require("../openapi/registry");
-const { googleLoginBody, loginBody, mobileGoogleLoginBody, registerBody, sessionResponse, usuarioPayload } =
+const { googleLoginBody, loginBody, mobileGoogleLoginBody, registerBody, sessionResponse, usuarioPayload, forgotPasswordBody, resetPasswordBody } =
   require("../schemas/auth.schema");
 const { errorResponse } = require("../schemas/common.schema");
 const controller = require("../controllers/auth.controller");
@@ -34,6 +34,8 @@ router.post("/register", authLimiter, validate({ body: registerBody }), asyncRou
 router.post("/login", authLimiter, validate({ body: loginBody }), asyncRoute(controller.login));
 router.post("/google", authLimiter, validate({ body: googleLoginBody }), asyncRoute(controller.googleLogin));
 router.post("/google/mobile", authLimiter, validate({ body: mobileGoogleLoginBody }), asyncRoute(controller.mobileGoogleLogin));
+router.post("/forgot-password", authLimiter, validate({ body: forgotPasswordBody }), asyncRoute(controller.forgotPassword));
+router.post("/reset-password", authLimiter, validate({ body: resetPasswordBody }), asyncRoute(controller.resetPassword));
 router.post("/refresh", refreshLimiter, asyncRoute(controller.refresh));
 router.post("/logout", asyncRoute(controller.logout));
 router.get("/me", requireAuth, asyncRoute(controller.me));
@@ -90,6 +92,30 @@ registry.registerPath({
       content: { "application/json": { schema: z.object({ usuario: usuarioPayload }) } },
     },
     401: { description: "No autenticado", content: { "application/json": { schema: errorResponse } } },
+  },
+});
+
+registry.registerPath({
+  method: "post",
+  path: "/auth/forgot-password",
+  tags: ["Auth"],
+  request: { body: { content: { "application/json": { schema: forgotPasswordBody } } } },
+  responses: {
+    200: { 
+      description: "Solicitud procesada (siempre devuelve 200 para prevenir user enumeration)", 
+      content: { "application/json": { schema: z.object({ ok: z.boolean(), message: z.string() }) } } 
+    },
+  },
+});
+
+registry.registerPath({
+  method: "post",
+  path: "/auth/reset-password",
+  tags: ["Auth"],
+  request: { body: { content: { "application/json": { schema: resetPasswordBody } } } },
+  responses: {
+    200: { description: "Contraseña reiniciada, usuario autenticado", content: { "application/json": { schema: sessionResponse } } },
+    400: { description: "Token inválido, expirado o ya utilizado", content: { "application/json": { schema: errorResponse } } },
   },
 });
 

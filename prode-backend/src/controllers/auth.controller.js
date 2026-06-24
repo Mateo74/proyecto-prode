@@ -335,4 +335,115 @@ async function mobileGoogleLogin(req, res) {
   res.json({ token, usuario: usuarioResponse(usuario) });
 }
 
-module.exports = { googleLogin, login, logout, me, mobileGoogleLogin, refresh, register };
+async function forgotPassword(req, res) {
+  const { email } = req.body;
+  const normalizedEmail = normalizeEmail(email);
+
+  // Find user by email
+  const usuario = await prisma.usuario.findUnique({
+    where: { email: normalizedEmail },
+  });
+
+  // Security: Always respond with 200 OK, even if email not found (prevents user enumeration)
+  if (!usuario) {
+    return res.json({ 
+      ok: true, 
+      message: "Si la cuenta existe, recibirás un email con instrucciones para recuperar tu contraseña." 
+    });
+  }
+
+  // If user has no email, they can't reset password this way (likely Google-only account)
+  if (!usuario.email) {
+    return res.json({ 
+      ok: true, 
+      message: "Si la cuenta existe, recibirás un email con instrucciones para recuperar tu contraseña." 
+    });
+  }
+
+  // Generate password reset token (256-bit random token in hex format)
+  const resetToken = crypto.randomBytes(32).toString('hex');
+  
+  // Token expires in 1 hour
+  const expiresAt = new Date(Date.now() + 60 * 60 * 1000);
+
+  // Create password reset token in database
+  await prisma.passwordResetToken.create({
+    data: {
+      id: resetToken,
+      usuarioId: usuario.id,
+      email: usuario.email,
+      expiresAt,
+    },
+  });
+
+  // Log password reset request
+  require("../utils/logger").info("auth.forgot_password_requested", { 
+    userId: usuario.id, 
+    email: usuario.email 
+  });
+
+  // Return success (in real implementation, would send email here)
+  res.json({ 
+    ok: true,
+    resetToken, // For testing only - in production, this would be sent via email
+    message: "Si la cuenta existe, recibirás un email con instrucciones para recuperar tu contraseña." 
+  });
+}
+
+async function resetPassword(req, res) {
+  const { token, password } = req.body;
+
+  // Find password reset token
+  const resetTokenRecord = await prisma.passwordResetToken.findUnique({
+    where: { id: token },
+    include: { usuario: { include: { hinchaDe: true } } },
+  });
+
+  // Token not found, expired, or already used
+  if (!resetTokenRecord) {
+    throw httpError(400, "Token inválido o expirado");
+  }
+
+  if (resetTokenRecord.usedAt) {
+    throw httpError(400, "Este token ya fue utilizado");
+  }
+
+  if (new Date() > resetTokenRecord.expiresAt) {
+    throw httpError(400, "Token expirado. Por favor solicita uno nuevo.");
+  }
+
+  const usuario = resetTokenRecord.usuario;
+
+  // If user has no password hash (Google-only account), create one now
+  // Otherwise update the existing password
+  const hashClave = await hashPassword(password);
+
+  const updatedUsuario = await prisma.usuario.update({
+    where: { id: usuario.id },
+    data: { hashClave },
+    include: { hinchaDe: true },
+  });
+
+  // Mark token as used
+  await prisma.passwordResetToken.update({
+    where: { id: token },
+    data: { usedAt: new Date() },
+  });
+
+  // Revoke all active sessions (force re-login with new password)
+  await prisma.refreshToken.deleteMany({
+    where: { usuarioId: usuario.id },
+  });
+
+  // Log successful password reset
+  require("../utils/logger").info("auth.password_reset_success", { 
+    userId: usuario.id, 
+    email: usuario.email 
+  });
+
+  // Issue new tokens (user is now logged in)
+  const accessToken = await issueTokens(res, updatedUsuario);
+  res.json({ token: accessToken, usuario: usuarioResponse(updatedUsuario) });
+}
+
+module.exports = { forgotPassword, googleLogin, login, logout, me, mobileGoogleLogin, refresh, register, resetPassword };

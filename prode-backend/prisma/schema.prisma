@@ -57,6 +57,7 @@ model Usuario {
   invitacionesEnviadas Invitacion[]     @relation("InvitacionesEnviadas")
   refreshTokens        RefreshToken[]
   expoTokens           ExpoToken[]
+  passwordResetTokens  PasswordResetToken[] @relation("PasswordResetTokens")
 
   @@index([hinchaDeEquipoId])
   @@index([email])
@@ -209,4 +210,17 @@ model ExpoToken {
 
   @@unique([usuarioId, token])
   @@index([usuarioId])
+}
+
+model PasswordResetToken {
+  id        String    @id  // Reset token to be sent in link
+  usuarioId String
+  email     String    // Snapshot of email at time of request (for auditing)
+  expiresAt DateTime  // Token expires after ~1 hour
+  usedAt    DateTime? // When the token was successfully used
+  createdAt DateTime  @default(now())
+  usuario   Usuario   @relation("PasswordResetTokens", fields: [usuarioId], references: [id], onDelete: Cascade)
+
+  @@index([usuarioId])
+  @@index([expiresAt])
 }

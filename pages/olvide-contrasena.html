@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Recuperar Contraseña | Once Metros</title>
+  <link rel="stylesheet" href="../css/styles.css">
+  <style>
+    body {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+    }
+    .password-recovery-container {
+      background: white;
+      border-radius: 12px;
+      box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+      max-width: 400px;
+      width: 100%;
+      padding: 40px;
+      margin: 20px;
+    }
+    .password-recovery-container h1 {
+      font-size: 24px;
+      margin-bottom: 8px;
+      color: #333;
+    }
+    .password-recovery-container p {
+      color: #666;
+      font-size: 14px;
+      margin-bottom: 30px;
+      line-height: 1.5;
+    }
+    .form-group {
+      margin-bottom: 20px;
+    }
+    .form-group label {
+      display: block;
+      font-size: 13px;
+      font-weight: 600;
+      margin-bottom: 8px;
+      color: #333;
+    }
+    .form-group input {
+      width: 100%;
+      padding: 12px;
+      border: 1px solid #ddd;
+      border-radius: 6px;
+      font-size: 14px;
+      transition: border-color 0.2s;
+    }
+    .form-group input:focus {
+      outline: none;
+      border-color: #667eea;
+      box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+    }
+    .btn {
+      width: 100%;
+      padding: 12px;
+      border: none;
+      border-radius: 6px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .btn-primary {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+    }
+    .btn-primary:hover:not(:disabled) {
+      transform: translateY(-1px);
+      box-shadow: 0 5px 15px rgba(102, 126, 234, 0.3);
+    }
+    .btn:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+    }
+    .error-message, .success-message {
+      padding: 12px;
+      border-radius: 6px;
+      margin-bottom: 20px;
+      font-size: 13px;
+      display: none;
+    }
+    .error-message {
+      background: #fee;
+      border: 1px solid #fcc;
+      color: #c00;
+    }
+    .error-message.show, .success-message.show {
+      display: block;
+    }
+    .success-message {
+      background: #efe;
+      border: 1px solid #cfc;
+      color: #060;
+    }
+    .links {
+      text-align: center;
+      margin-top: 20px;
+      font-size: 13px;
+    }
+    .links a {
+      color: #667eea;
+      text-decoration: none;
+      font-weight: 500;
+    }
+    .links a:hover {
+      text-decoration: underline;
+    }
+  </style>
+</head>
+<body>
+  <div class="password-recovery-container">
+    <h1>Recuperar Contraseña</h1>
+    <p>Ingresa tu email para recibir instrucciones de recuperación.</p>
+    
+    <div id="error-message" class="error-message"></div>
+    <div id="success-message" class="success-message"></div>
+
+    <form id="forgot-password-form">
+      <div class="form-group">
+        <label for="email">Email</label>
+        <input type="email" id="email" name="email" required placeholder="tu@email.com">
+      </div>
+      <button type="submit" class="btn btn-primary" id="submit-btn">Enviar Instrucciones</button>
+    </form>
+
+    <div class="links">
+      <p>¿Recordaste tu contraseña? <a href="auth.html">Inicia sesión</a></p>
+      <p>¿No tienes cuenta? <a href="auth.html">Regístrate</a></p>
+    </div>
+  </div>
+
+  <script src="../js/api.js"></script>
+  <script>
+    document.getElementById('forgot-password-form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      
+      const email = document.getElementById('email').value.trim();
+      const errorEl = document.getElementById('error-message');
+      const successEl = document.getElementById('success-message');
+      const submitBtn = document.getElementById('submit-btn');
+
+      // Clear messages
+      errorEl.classList.remove('show');
+      successEl.classList.remove('show');
+
+      if (!email) {
+        errorEl.textContent = 'Por favor ingresa un email';
+        errorEl.classList.add('show');
+        return;
+      }
+
+      submitBtn.disabled = true;
+      submitBtn.textContent = 'Enviando...';
+
+      try {
+        const result = await API.forgotPassword({ email });
+        successEl.textContent = result.message || 'Se han enviado las instrucciones a tu email.';
+        successEl.classList.add('show');
+        document.getElementById('forgot-password-form').reset();
+        
+        // Redirect after 2 seconds
+        setTimeout(() => {
+          window.location.href = 'auth.html';
+        }, 2000);
+      } catch (error) {
+        errorEl.textContent = error.message || 'Error al procesar tu solicitud';
+        errorEl.classList.add('show');
+      } finally {
+        submitBtn.disabled = false;
+        submitBtn.textContent = 'Enviar Instrucciones';
+      }
+    });
+  </script>
+</body>
+</html>
