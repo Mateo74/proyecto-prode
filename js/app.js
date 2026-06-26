@@ -120,7 +120,6 @@ let lastLoadedMatches = [];
 // estados) y el índice del grupo visible en el carrusel.
 let predictionsViewMatches = [];
 let currentGroupIndex = 0;
-let currentStageIndex = 0;
 let predictionsViewWired = false;
 let groupsPollingId = null;
 
@@ -857,54 +856,16 @@ function setupPredictionsView() {
   prev?.addEventListener('click', () => stepGroup(-1));
   next?.addEventListener('click', () => stepGroup(1));
 
-  // Carrusel de etapas (Fase de grupos → R32 → … → Final), encima del de grupos.
-  document.querySelector('.stage-carousel__prev')?.addEventListener('click', () => stepStage(-1));
-  document.querySelector('.stage-carousel__next')?.addEventListener('click', () => stepStage(1));
-
   // Editar una predicción solo cambia la columna de puntos predichos (el orden
   // y los stats reales no dependen de la predicción), así que refrescamos la
   // tabla sin animación.
   document.addEventListener('prediction:change', event => {
-    if (!isGroupsTabActive() || !isGroupStageActive()) return;
+    if (!isGroupsTabActive()) return;
     const matchId = event.detail?.matchId;
     const match = predictionsViewMatches.find(m => m.id === matchId);
     if (!match || groupLetterForMatch(match) !== currentGroupLetter()) return;
     renderGroupStandings(currentGroupLetter());
   });
-}
-
-/** Etapa visible del carrusel superior (group | r32 | r16 | qf | sf | final). */
-function currentStage() {
-  return (typeof KO !== 'undefined' ? KO.STAGES : ['group'])[currentStageIndex] || 'group';
-}
-function isGroupStageActive() {
-  return currentStage() === 'group';
-}
-
-/** Avanza el carrusel de etapas con wrap. */
-function stepStage(delta) {
-  const stages = typeof KO !== 'undefined' ? KO.STAGES : ['group'];
-  currentStageIndex = (currentStageIndex + delta + stages.length) % stages.length;
-  renderCurrentStage();
-}
-
-/** Muestra la etapa actual: fase de grupos (carrusel + tabla) o una llave. */
-function renderCurrentStage() {
-  const stage = currentStage();
-  const label = document.getElementById('stage-carousel-label');
-  if (label && typeof KO !== 'undefined') label.textContent = KO.stageLabel(stage);
-
-  const isGroup = stage === 'group';
-  document.getElementById('stage-group')?.classList.toggle('hidden', !isGroup);
-  const koEl = document.getElementById('stage-knockout');
-  koEl?.classList.toggle('hidden', isGroup);
-
-  if (isGroup) {
-    renderCurrentGroup();
-  } else if (koEl && typeof KO !== 'undefined') {
-    koEl.innerHTML = '';
-    koEl.appendChild(KO.renderStage(stage, predictionsViewMatches));
-  }
 }
 
 /** Avanza el carrusel con wrap (tras la última letra vuelve a la primera). */
@@ -926,14 +887,12 @@ async function loadPredictionsView() {
     matchesEl.innerHTML = '';
     return;
   }
-  if (typeof KO !== 'undefined') KO.setCompetencia(competencia.id);
-
   showSkeleton(standings, 1);
   matchesEl.innerHTML = '';
 
   try {
     predictionsViewMatches = await fetchGroupsMatches(competencia.id);
-    renderCurrentStage();
+    renderCurrentGroup();
   } catch (error) {
     standings.innerHTML = errorState(error.message);
   }
@@ -976,7 +935,7 @@ async function refreshGroupsLive() {
   if (!competencia) return;
   try {
     predictionsViewMatches = await fetchGroupsMatches(competencia.id);
-    renderCurrentStage();
+    renderCurrentGroup();
   } catch { /* conserva el snapshot anterior */ }
 }
 

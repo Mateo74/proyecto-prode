@@ -215,14 +215,16 @@ const KO = (() => {
     return out;
   }
 
-  /** Lado ganador ('a'|'b'|null) según la predicción por marcador (+penales). */
+  /** Lado ganador ('a'|'b'|null) según la predicción por marcador.
+   * Un empate en eliminatorias no determina ganador (la ronda siguiente
+   * queda bloqueada hasta que se conozca el resultado real). */
   function winnerSide(pred) {
     if (!pred || pred.s1 == null || pred.s2 == null) return null;
     const s1 = Number(pred.s1);
     const s2 = Number(pred.s2);
     if (s1 > s2) return 'a';
     if (s2 > s1) return 'b';
-    return pred.pen || null;
+    return null; // empate → ganador indeterminado
   }
 
   function winnerTeam(matchId, ctx, preds, memo) {
@@ -302,11 +304,6 @@ const KO = (() => {
         ${teamSlotHtml(teamA, m.a)}
         ${scoreHtml}
         ${teamSlotHtml(teamB, m.b)}
-      </div>
-      <div class="ko-pens hidden">
-        <span class="ko-pens__label">${t('ko.penAdvance')}</span>
-        <button type="button" class="ko-pens__btn" data-pen="a">${teamA ? escapeHtml(localizeTeamName(teamA.id, teamA.name)) : ''}</button>
-        <button type="button" class="ko-pens__btn" data-pen="b">${teamB ? escapeHtml(localizeTeamName(teamB.id, teamB.name)) : ''}</button>
       </div>`;
 
     if (unlocked) wireKoCard(card, m, teamA, teamB);
@@ -322,17 +319,6 @@ const KO = (() => {
         commitKoCard(card, m);
       });
     });
-    card.querySelectorAll('.ko-pens__btn').forEach(btn => {
-      btn.addEventListener('click', () => {
-        const preds = loadPreds();
-        const pred = preds[m.id] || {};
-        pred.pen = btn.dataset.pen;
-        preds[m.id] = pred;
-        savePreds(preds);
-        updateKoCard(card, m, pred);
-        document.dispatchEvent(new CustomEvent('knockout:change', { detail: { matchId: m.id } }));
-      });
-    });
   }
 
   function commitKoCard(card, m) {
@@ -342,26 +328,16 @@ const KO = (() => {
     const pred = preds[m.id] || {};
     pred.s1 = a === '' ? null : parseInt(a, 10);
     pred.s2 = b === '' ? null : parseInt(b, 10);
-    if (pred.s1 == null || pred.s2 == null || pred.s1 !== pred.s2) delete pred.pen;
     preds[m.id] = pred;
     savePreds(preds);
     updateKoCard(card, m, pred);
     document.dispatchEvent(new CustomEvent('knockout:change', { detail: { matchId: m.id } }));
   }
 
-  /** Resalta al ganador y muestra el selector de penales si hay empate. */
+  /** Resalta al ganador según la predicción por marcador. */
   function updateKoCard(card, m, pred) {
     const teams = card.querySelectorAll('.ko-team');
     teams.forEach(el => el.classList.remove('is-winner'));
-    const pens = card.querySelector('.ko-pens');
-    const filled = pred && pred.s1 != null && pred.s2 != null;
-    const draw = filled && Number(pred.s1) === Number(pred.s2);
-    if (pens) pens.classList.toggle('hidden', !draw);
-    if (pens) {
-      pens.querySelectorAll('.ko-pens__btn').forEach(btn => {
-        btn.classList.toggle('is-active', draw && pred.pen === btn.dataset.pen);
-      });
-    }
     const side = winnerSide(pred);
     if (side === 'a' && teams[0]) teams[0].classList.add('is-winner');
     if (side === 'b' && teams[1]) teams[1].classList.add('is-winner');
