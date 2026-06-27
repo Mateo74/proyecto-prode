@@ -17,6 +17,10 @@ function assertEditable(partido) {
   const now = new Date();
   const inicio = partido.fechaInicioReal || partido.fecha;
 
+  if (!partido.equipo1Id || !partido.equipo2Id) {
+    throw httpError(409, "No se puede predecir un partido sin equipos definidos");
+  }
+
   if (partido.estado !== "FUTURO" && partido.estado !== "PROGRAMADO") {
     throw httpError(409, "No se puede modificar la predicción de un partido que ya empezó");
   }

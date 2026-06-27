@@ -18,11 +18,15 @@ function estadoPrediccion(prediccion) {
 
 function partidoResponse(partido, userPrediccion) {
   const pred = userPrediccion || partido.predicciones?.[0];
+  const equipo1 = partido.equipo1;
+  const equipo2 = partido.equipo2;
+  const equiposDefinidos = Boolean(partido.equipo1Id && partido.equipo2Id);
   // Lock purely at the scheduled start time — the API estado can lag
   // behind reality (still "PROGRAMADO" minutes after kick-off), so we
   // never rely on it for the cutoff; we only use partido.fecha.
+  // Knockout fixtures without both teams decided yet can't be predicted.
   const prediccionEditable = Boolean(
-    new Date() < new Date(partido.fecha),
+    equiposDefinidos && new Date() < new Date(partido.fecha),
   );
   const exacto = Boolean(
     pred &&
@@ -40,18 +44,19 @@ function partidoResponse(partido, userPrediccion) {
     competencia: partido.competencia
       ? { id: partido.competencia.id, nombre: partido.competencia.nombre, nombreEn: partido.competencia.nombreEn ?? null, slug: partido.competencia.slug }
       : null,
+    etapa: partido.etapa ?? null,
     equipo1Id: partido.equipo1Id,
-    equipo1: partido.equipo1.nombre,
-    equipo1NombreEn: partido.equipo1.nombreEn ?? null,
-    equipo1NombreCompleto: partido.equipo1.nombreCompleto,
-    equipo1Tipo: partido.equipo1.tipo,
-    equipo1EscudoUrl: partido.equipo1.escudoUrl,
+    equipo1: equipo1?.nombre ?? null,
+    equipo1NombreEn: equipo1?.nombreEn ?? null,
+    equipo1NombreCompleto: equipo1?.nombreCompleto ?? null,
+    equipo1Tipo: equipo1?.tipo ?? null,
+    equipo1EscudoUrl: equipo1?.escudoUrl ?? null,
     equipo2Id: partido.equipo2Id,
-    equipo2: partido.equipo2.nombre,
-    equipo2NombreEn: partido.equipo2.nombreEn ?? null,
-    equipo2NombreCompleto: partido.equipo2.nombreCompleto,
-    equipo2Tipo: partido.equipo2.tipo,
-    equipo2EscudoUrl: partido.equipo2.escudoUrl,
+    equipo2: equipo2?.nombre ?? null,
+    equipo2NombreEn: equipo2?.nombreEn ?? null,
+    equipo2NombreCompleto: equipo2?.nombreCompleto ?? null,
+    equipo2Tipo: equipo2?.tipo ?? null,
+    equipo2EscudoUrl: equipo2?.escudoUrl ?? null,
     equipo1EsLocal: partido.equipo1EsLocal,
     estado: estadoParaFrontend(partido.estado),
     estadoRaw: partido.estado,

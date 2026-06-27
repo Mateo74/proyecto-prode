@@ -188,8 +188,8 @@ const API = (() => {
 
   // --- PARTIDOS ---
 
-  async function getMatches({ liga, fecha, estado, competenciaId } = {}) {
-    return request(`/partidos${buildQuery({ liga, fecha, estado, competenciaId })}`);
+  async function getMatches({ liga, fecha, estado, competenciaId, incluirSinEquipos } = {}) {
+    return request(`/partidos${buildQuery({ liga, fecha, estado, competenciaId, incluirSinEquipos })}`);
   }
 
   async function getMatch(id) {

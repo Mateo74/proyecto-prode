@@ -100,7 +100,10 @@ function isTracked(match) {
 }
 
 function hasUsableMatchData(match) {
-  return Boolean(match.externalId && match.utcDate && match.competition && match.homeTeam && match.awayTeam);
+  // Knockout fixtures are published before their teams are decided (homeTeam /
+  // awayTeam come back null). We still persist them so the bracket can render
+  // "locked" matches sourced from the DB instead of being built client-side.
+  return Boolean(match.externalId && match.utcDate && match.competition);
 }
 
 async function upsertCompetition(tx, dto) {
@@ -221,8 +224,8 @@ async function upsertExternalMatch(dto, now = new Date()) {
 
   return prisma.$transaction(async (tx) => {
     const competencia = await upsertCompetition(tx, dto.competition);
-    const equipo1 = await upsertTeam(tx, dto.homeTeam);
-    const equipo2 = await upsertTeam(tx, dto.awayTeam);
+    const equipo1 = dto.homeTeam ? await upsertTeam(tx, dto.homeTeam) : null;
+    const equipo2 = dto.awayTeam ? await upsertTeam(tx, dto.awayTeam) : null;
     const existing = await tx.partido.findFirst({
       where: { proveedor: PROVIDER, externalId: dto.externalId },
     });
@@ -232,12 +235,13 @@ async function upsertExternalMatch(dto, now = new Date()) {
 
     const data = {
       competenciaId: competencia.id,
-      equipo1Id: equipo1.id,
-      equipo2Id: equipo2.id,
+      equipo1Id: equipo1?.id ?? null,
+      equipo2Id: equipo2?.id ?? null,
       equipo1EsLocal: true,
       fecha: dto.utcDate,
       externalId: dto.externalId,
       proveedor: PROVIDER,
+      etapa: dto.stage ?? null,
       estado: dto.status,
       golesEquipo1: dto.scoreHome,
       golesEquipo2: dto.scoreAway,

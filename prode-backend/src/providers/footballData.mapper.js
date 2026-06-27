@@ -114,6 +114,8 @@ function mapMatch(match, now = new Date()) {
     provider: PROVIDER,
     statusExternal: match.status,
     status: mapStatus(match.status),
+    stage: match.stage || null,
+    group: match.group || null,
     utcDate: match.utcDate ? new Date(match.utcDate) : null,
     lastUpdatedExternal: match.lastUpdated ? new Date(match.lastUpdated) : null,
     // minuteActual is recalculated in the sync service using fechaInicioReal

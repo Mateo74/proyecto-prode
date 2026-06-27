@@ -20,7 +20,7 @@ const LIGA_SLUG = {
   libertadores: "copa-libertadores",
 };
 
-function buildWhere({ estado, liga, competenciaId } = {}) {
+function buildWhere({ estado, liga, competenciaId, incluirSinEquipos } = {}) {
   const where = {};
 
   if (estado) {
@@ -38,6 +38,13 @@ function buildWhere({ estado, liga, competenciaId } = {}) {
         { nombre: { contains: liga, mode: "insensitive" } },
       ],
     };
+  }
+
+  // Knockout fixtures whose teams aren't decided yet are stored with null teams.
+  // They only belong in the bracket view, so the default match lists hide them.
+  if (!incluirSinEquipos) {
+    where.equipo1Id = { not: null };
+    where.equipo2Id = { not: null };
   }
 
   return where;
