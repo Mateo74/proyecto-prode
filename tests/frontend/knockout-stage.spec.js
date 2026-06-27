@@ -44,7 +44,16 @@ function knockoutMatches() {
   ];
 }
 
-async function setup(page, lang = "es") {
+// A couple of group-stage fixtures so the Matches tab also holds non-knockout
+// matches (which must never surface as crosses in the bracket view).
+function groupMatches() {
+  return [
+    mk("grp-1", "GROUP_STAGE", ID.MEX, "México", ID.RSA, "Sudáfrica"),
+    mk("grp-2", "GROUP_STAGE", ID.KOR, "Corea del Sur", ID.CZE, "Chequia"),
+  ];
+}
+
+async function setup(page, { lang = "es", matches = knockoutMatches() } = {}) {
   await page.addInitScript((l) => localStorage.setItem("once_metros_lang", l), lang);
 
   await page.route("http://localhost:3000/api/**", async (route) => {
@@ -58,7 +67,7 @@ async function setup(page, lang = "es") {
       await json(route, [{ id: "comp-wc", nombre: "Copa Mundial FIFA", slug: "copa-mundial-fifa" }]);
       return;
     }
-    if (url.pathname === "/api/partidos") { await json(route, knockoutMatches()); return; }
+    if (url.pathname === "/api/partidos") { await json(route, matches); return; }
     if (url.pathname === "/api/torneos") { await json(route, []); return; }
     if (url.pathname === "/api/predicciones") { await json(route, { id: "s", scoreEquipo1: 0, scoreEquipo2: 0 }); return; }
     await json(route, { message: "unhandled" }, 404);
@@ -118,6 +127,11 @@ test("knockout: locked crosses show bracket seeds, can't be predicted, and don't
   const locked = koLocked(page).first();
   await expect(locked.locator(".score-box")).toHaveCount(0);
   await expect(locked.locator(".ko-lock")).toBeVisible();
+  // Locked crosses still carry the league + upcoming badges and the match number,
+  // so they don't look bare next to real cards.
+  await expect(locked.locator(".badge-league")).toHaveText("Copa Mundial FIFA");
+  await expect(locked.locator(".badge-soon")).toBeVisible();
+  await expect(locked.locator(".match-card__time")).toContainText("Partido");
   // Fabricated cards expose the real bracket seeds (e.g. "2A", "1I", "3º C/D/F…").
   await expect(page.locator("#stage-knockout .team__name--tbd", { hasText: /^[123][A-L]$|3º/ }).first()).toBeVisible();
 
@@ -140,4 +154,39 @@ test("knockout: later rounds pad to their expected counts", async ({ page }) => 
   await expect(koCards(page)).toHaveCount(4);
   await expect(koLocked(page)).toHaveCount(4);
   await expect(koInputs(page)).toHaveCount(0);
+});
+
+const KNOCKOUT_ETAPAS = new Set(["LAST_32", "LAST_16", "QUARTER_FINALS", "SEMI_FINALS", "THIRD_PLACE", "FINAL"]);
+const KNOCKOUT_STAGE_LABELS = ["Dieciseisavos", "Octavos", "Cuartos", "Semifinales", "Tercer puesto", "Final"];
+
+const dataMatchIds = (locator) =>
+  locator.evaluateAll((els) => els.map((e) => e.dataset.matchId));
+
+test("knockout: predictable crosses are exactly the knockout fixtures in the Matches tab", async ({ page }) => {
+  // Backend exposes group + knockout fixtures (only complete matches exist).
+  const matches = [...groupMatches(), ...knockoutMatches()];
+  await setup(page, { matches });
+
+  // The Matches tab lists every fixture the backend returns.
+  await page.locator('.workspace-tabs [data-home-tab="partidos"]').click();
+  await expect(page.locator("#home-tab-partidos")).toBeVisible();
+  await expect(page.locator("#matches-list .match-card").first()).toBeVisible();
+  const matchesTabIds = await dataMatchIds(page.locator("#matches-list .match-card"));
+
+  // The bracket view: collect the predictable (non-locked) crosses across rounds.
+  await page.locator('.workspace-tabs [data-home-tab="grupos"]').click();
+  const predictable = new Set();
+  for (const label of KNOCKOUT_STAGE_LABELS) {
+    await stepToStage(page, label);
+    const ids = await dataMatchIds(page.locator("#stage-knockout .match-card:not(.is-ko-locked)"));
+    ids.forEach((id) => predictable.add(id));
+  }
+
+  const beKnockoutIds = matches.filter((m) => KNOCKOUT_ETAPAS.has(m.etapa)).map((m) => m.id).sort();
+
+  // Invariant: the predictable crosses are exactly the backend knockout fixtures,
+  // every one is also present in the Matches tab, and no group fixture leaks in.
+  expect([...predictable].sort()).toEqual(beKnockoutIds);
+  for (const id of predictable) expect(matchesTabIds).toContain(id);
+  for (const m of groupMatches()) expect(predictable.has(m.id)).toBe(false);
 });

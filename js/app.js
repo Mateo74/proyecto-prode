@@ -945,6 +945,7 @@ function renderKnockoutStage(stage, koEl) {
   if (!koEl || typeof KO === 'undefined') return;
   const enriched = enrichWithUserPredictions(predictionsViewMatches);
   const cards = KO.buildStageCards(stage, enriched);
+  const comp = API.getSelectedCompetencia?.();
 
   koEl.innerHTML = '';
   if (!cards.length) {
@@ -957,7 +958,15 @@ function renderKnockoutStage(stage, koEl) {
       attachMatchCardNavigation(card, descriptor.match);
       koEl.appendChild(card);
     } else {
-      koEl.appendChild(Predictions.createMatchCard(descriptor.locked));
+      // Decorate the fabricated cross with the competition so its card shows the
+      // same league badge as real ones (the engine stays competition-agnostic).
+      const locked = descriptor.locked;
+      if (comp) {
+        locked.liga = comp.nombre;
+        locked.ligaEn = comp.nombreEn ?? null;
+        locked.competencia = { slug: comp.slug };
+      }
+      koEl.appendChild(Predictions.createMatchCard(locked));
     }
   }
 }

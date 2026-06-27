@@ -200,12 +200,18 @@ const Predictions = (() => {
     card.classList.add('match-card', 'is-locked', 'is-ko-locked');
     card.dataset.matchId = match.id;
 
-    const meta = match.koMatchNumber
-      ? `<span class="badge badge-soon">${t('ko.matchLabel', { n: match.koMatchNumber })}</span>`
+    // Reuse the standard meta badges (league + upcoming) so a fabricated cross
+    // doesn't look bare; the bracket position rides in the "time" slot.
+    const upcoming = `<span class="badge badge-soon">${t('badge.upcoming')}</span>`;
+    const numberHtml = match.koMatchNumber
+      ? `<span class="match-card__time">${t('ko.matchLabel', { n: match.koMatchNumber })}</span>`
       : '';
 
     card.innerHTML = `
-      <div class="match-card__meta">${meta}</div>
+      <div class="match-card__meta">
+        ${metaBadges(match, upcoming)}
+        ${numberHtml}
+      </div>
 
       <div class="match-card__body">
         ${lockedSideHtml(match, 1)}
