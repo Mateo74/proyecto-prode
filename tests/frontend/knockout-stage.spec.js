@@ -12,51 +12,56 @@ async function json(route, body, status = 200) {
 }
 
 // Real Equipo ids from js/world-cup-2026.js.
-const MEXICO = "cmpkkdyir0000g8odvn98frju"; // Group A
-const SUDAFRICA = "cmpkkdyj10001g8odhex51qvd"; // Group A
-const SUIZA = "cmpkkdyol000dg8odjs7mbyh4"; // Group B
+const ID = {
+  MEX: "cmpkkdyir0000g8odvn98frju",
+  RSA: "cmpkkdyj10001g8odhex51qvd",
+  KOR: "cmpkkdykg0003g8od358yryx6",
+  CZE: "cmpkkdyko0004g8odkwz3rh8t",
+  CAN: "cmpkkdylb0006g8oddpqkb65m",
+  SUI: "cmpkkdyol000dg8odjs7mbyh4",
+  BRA: "cmpkkdypo000fg8odf04rr7yr",
+  MAR: "cmpkkdypx000gg8odw22u5qec",
+};
 
-// One group-stage match (so the Grupos view has content) plus two R32 fixtures:
-// one with both teams decided (predictable) and one still undecided (locked).
-function matches() {
+function mk(id, etapa, e1Id, e1, e2Id, e2) {
+  return {
+    id, competenciaId: "comp-wc", liga: "Copa Mundial FIFA", etapa,
+    equipo1Id: e1Id, equipo1: e1, equipo2Id: e2Id, equipo2: e2,
+    estado: "proximo", fecha: "2026-06-28T18:00:00.000Z",
+    prediccionEditable: true, userPred: null,
+  };
+}
+
+// Only COMPLETE matches are ever stored/returned by the backend: 4 Round-of-32
+// and 1 Round-of-16. The rest of the bracket is fabricated (locked) on the client.
+function knockoutMatches() {
   return [
-    {
-      id: "wc-A-1", competenciaId: "comp-wc", liga: "Copa Mundial FIFA", etapa: "GROUP_STAGE",
-      equipo1Id: MEXICO, equipo1: "México", equipo2Id: SUDAFRICA, equipo2: "Sudáfrica",
-      estado: "proximo", fecha: "2026-06-15T18:00:00.000Z", prediccionEditable: true, userPred: null,
-    },
-    {
-      id: "wc-R32-1", competenciaId: "comp-wc", liga: "Copa Mundial FIFA", etapa: "LAST_32",
-      equipo1Id: MEXICO, equipo1: "México", equipo2Id: SUIZA, equipo2: "Suiza",
-      estado: "proximo", fecha: "2026-06-28T18:00:00.000Z", prediccionEditable: true, userPred: null,
-    },
-    {
-      id: "wc-R32-2", competenciaId: "comp-wc", liga: "Copa Mundial FIFA", etapa: "LAST_32",
-      equipo1Id: null, equipo1: null, equipo2Id: null, equipo2: null,
-      estado: "proximo", fecha: "2026-06-28T21:00:00.000Z", prediccionEditable: false, userPred: null,
-    },
+    mk("ko-r32-1", "LAST_32", ID.MEX, "México", ID.SUI, "Suiza"),
+    mk("ko-r32-2", "LAST_32", ID.BRA, "Brasil", ID.MAR, "Marruecos"),
+    mk("ko-r32-3", "LAST_32", ID.KOR, "Corea del Sur", ID.CAN, "Canadá"),
+    mk("ko-r32-4", "LAST_32", ID.CZE, "Chequia", ID.RSA, "Sudáfrica"),
+    mk("ko-r16-1", "LAST_16", ID.MEX, "México", ID.BRA, "Brasil"),
   ];
 }
 
 async function setup(page, lang = "es") {
-  await page.addInitScript((l) => { localStorage.setItem("once_metros_lang", l); }, lang);
+  await page.addInitScript((l) => localStorage.setItem("once_metros_lang", l), lang);
 
   await page.route("http://localhost:3000/api/**", async (route) => {
-    const request = route.request();
-    const url = new URL(request.url());
-    if (request.method() === "OPTIONS") { await route.fulfill({ status: 204, headers: corsHeaders }); return; }
+    const url = new URL(route.request().url());
+    if (route.request().method() === "OPTIONS") { await route.fulfill({ status: 204, headers: corsHeaders }); return; }
     if (url.pathname === "/api/auth/refresh") {
-      await json(route, { token: "access-token", usuario: { id: "user-1", username: "demo", nombre: "Demo", idioma: lang } });
+      await json(route, { token: "t", usuario: { id: "u1", username: "demo", nombre: "Demo", idioma: lang } });
       return;
     }
     if (url.pathname === "/api/competencias") {
       await json(route, [{ id: "comp-wc", nombre: "Copa Mundial FIFA", slug: "copa-mundial-fifa" }]);
       return;
     }
-    if (url.pathname === "/api/partidos") { await json(route, matches()); return; }
+    if (url.pathname === "/api/partidos") { await json(route, knockoutMatches()); return; }
     if (url.pathname === "/api/torneos") { await json(route, []); return; }
-    if (url.pathname === "/api/predicciones") { await json(route, { id: "saved", scoreEquipo1: 0, scoreEquipo2: 0 }); return; }
-    await json(route, { message: "Unhandled API route" }, 404);
+    if (url.pathname === "/api/predicciones") { await json(route, { id: "s", scoreEquipo1: 0, scoreEquipo2: 0 }); return; }
+    await json(route, { message: "unhandled" }, 404);
   });
 
   await page.goto("/");
@@ -65,45 +70,74 @@ async function setup(page, lang = "es") {
 }
 
 const stageLabel = (page) => page.locator("#stage-carousel-label");
-const koCard = (page, id) => page.locator(`#stage-knockout .match-card[data-match-id="${id}"]`);
+const koCards = (page) => page.locator("#stage-knockout .match-card");
+const koLocked = (page) => page.locator("#stage-knockout .match-card.is-ko-locked");
+const koInputs = (page) => page.locator("#stage-knockout .score-box");
 
-test("knockout: the stage carousel appears only when knockout fixtures exist", async ({ page }) => {
+async function stepToStage(page, label) {
+  for (let i = 0; i < 7; i++) {
+    if ((await stageLabel(page).textContent())?.trim() === label) return;
+    await page.locator(".stage-carousel__next").click();
+    await page.waitForTimeout(120);
+  }
+  throw new Error(`stage "${label}" not reached`);
+}
+
+test("knockout: the World Cup shows the full bracket stage carousel", async ({ page }) => {
   await setup(page);
-  // R32 fixtures are present, so the stage switcher is shown above the group view.
   await expect(page.locator(".stage-carousel")).toBeVisible();
-  // The group stage is the default; the knockout pane stays hidden.
   await expect(page.locator("#stage-group")).toBeVisible();
-  await expect(page.locator("#stage-knockout")).toBeHidden();
-});
 
-test("knockout: switching to R32 renders DB matches with the existing cards", async ({ page }) => {
-  await setup(page);
-
-  await page.locator(".stage-carousel__next").click();
-  await expect(stageLabel(page)).toHaveText("Dieciseisavos");
+  await stepToStage(page, "Dieciseisavos");
   await expect(page.locator("#stage-knockout")).toBeVisible();
   await expect(page.locator("#stage-group")).toBeHidden();
-
-  // The decided fixture reuses the standard match card with editable score boxes.
-  const decided = koCard(page, "wc-R32-1");
-  await expect(decided).toBeVisible();
-  await expect(decided.locator(".score-box")).toHaveCount(2);
-  await expect(decided.locator(".team__name").first()).toHaveText("México");
+  // R32 always renders exactly 16 crosses (4 real + 12 fabricated).
+  await expect(koCards(page)).toHaveCount(16);
 });
 
-test("knockout: an undecided cross shows a locked card (TBD + lock, no inputs)", async ({ page }) => {
+test("knockout: only backend matches are predictable; the rest are locked", async ({ page }) => {
   await setup(page);
-  await page.locator(".stage-carousel__next").click();
+  await stepToStage(page, "Dieciseisavos");
 
-  const locked = koCard(page, "wc-R32-2");
-  await expect(locked).toBeVisible();
-  await expect(locked).toHaveClass(/is-ko-locked/);
-  // Locked crosses can't be predicted: no score inputs, a lock, and "Por definir".
+  // 4 real matches => 4 predictable cards => 8 score inputs; 12 locked.
+  await expect(koInputs(page)).toHaveCount(8);
+  await expect(koLocked(page)).toHaveCount(12);
+
+  // A real match renders with its teams and editable boxes.
+  const real = page.locator('#stage-knockout .match-card[data-match-id="ko-r32-1"]');
+  await expect(real).toBeVisible();
+  await expect(real).not.toHaveClass(/is-ko-locked/);
+  await expect(real.locator(".score-box")).toHaveCount(2);
+  await expect(real.locator(".team__name").first()).toHaveText("México");
+});
+
+test("knockout: locked crosses show bracket seeds, can't be predicted, and don't navigate", async ({ page }) => {
+  await setup(page);
+  await stepToStage(page, "Dieciseisavos");
+
+  const locked = koLocked(page).first();
   await expect(locked.locator(".score-box")).toHaveCount(0);
   await expect(locked.locator(".ko-lock")).toBeVisible();
-  await expect(locked.locator(".team__name--tbd").first()).toHaveText("Por definir");
+  // Fabricated cards expose the real bracket seeds (e.g. "2A", "1I", "3º C/D/F…").
+  await expect(page.locator("#stage-knockout .team__name--tbd", { hasText: /^[123][A-L]$|3º/ }).first()).toBeVisible();
 
-  // Clicking a locked card must not navigate anywhere.
+  // Clicking a locked cross must not open the match detail.
   await locked.click();
   await expect(page).not.toHaveURL(/partido-detalle/);
+});
+
+test("knockout: later rounds pad to their expected counts", async ({ page }) => {
+  await setup(page);
+
+  // R16: one real match (México–Brasil) + 7 locked = 8 crosses, 2 inputs.
+  await stepToStage(page, "Octavos");
+  await expect(koCards(page)).toHaveCount(8);
+  await expect(koInputs(page)).toHaveCount(2);
+  await expect(page.locator('#stage-knockout .match-card[data-match-id="ko-r16-1"]')).toBeVisible();
+
+  // QF: no real matches => 4 fully locked crosses, no inputs.
+  await stepToStage(page, "Cuartos");
+  await expect(koCards(page)).toHaveCount(4);
+  await expect(koLocked(page)).toHaveCount(4);
+  await expect(koInputs(page)).toHaveCount(0);
 });

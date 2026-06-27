@@ -17,7 +17,6 @@ test("mapMatch devuelve un DTO interno desacoplado de football-data", () => {
     utcDate: "2026-06-11T19:00:00Z",
     status: "IN_PLAY",
     stage: "GROUP_STAGE",
-    group: "GROUP_A",
     lastUpdated: "2026-06-11T19:10:00Z",
     competition: { id: 2000, name: "FIFA World Cup", code: "WC", type: "CUP" },
     homeTeam: { id: 758, name: "Uruguay", shortName: "Uruguay", tla: "URU", crest: "https://example.test/uru.svg" },
@@ -28,7 +27,6 @@ test("mapMatch devuelve un DTO interno desacoplado de football-data", () => {
   assert.equal(dto.provider, "football-data");
   assert.equal(dto.status, "EN_JUEGO");
   assert.equal(dto.stage, "GROUP_STAGE");
-  assert.equal(dto.group, "GROUP_A");
   assert.equal(dto.minuteActual, 35);
   assert.equal(dto.competition.code, "WC");
   assert.equal(dto.homeTeam.tipo, "SELECCION");
@@ -36,23 +34,21 @@ test("mapMatch devuelve un DTO interno desacoplado de football-data", () => {
   assert.equal(dto.scoreAway, 0);
 });
 
-test("mapMatch mapea fixtures de eliminatorias sin equipos definidos (cruce bloqueado)", () => {
+test("mapMatch expone la etapa de eliminatorias (stage) del proveedor", () => {
   const dto = mapMatch({
-    id: 537416,
-    utcDate: "2026-06-30T21:00:00Z",
+    id: 537421,
+    utcDate: "2026-07-02T00:00:00Z",
     status: "TIMED",
     stage: "LAST_32",
-    group: null,
     competition: { id: 2000, name: "FIFA World Cup", code: "WC", type: "CUP" },
-    homeTeam: { id: null, name: null, shortName: null, tla: null, crest: null },
-    awayTeam: { id: null, name: null, shortName: null, tla: null, crest: null },
+    homeTeam: { id: 771, name: "United States", shortName: "USA", tla: "USA", crest: "https://example.test/usa.svg" },
+    awayTeam: { id: 1060, name: "Bosnia-Herzegovina", shortName: "Bosnia-H.", tla: "BIH", crest: "https://example.test/bih.svg" },
     score: { winner: null, duration: "REGULAR", fullTime: { home: null, away: null } },
   });
 
   assert.equal(dto.stage, "LAST_32");
-  assert.equal(dto.group, null);
-  assert.equal(dto.homeTeam, null);
-  assert.equal(dto.awayTeam, null);
+  assert.equal(dto.homeTeam.nombre, "USA");
+  assert.equal(dto.awayTeam.nombre, "Bosnia-H.");
 });
 
 test("mapMatch usa regularTime+extraTime para PENALTY_SHOOTOUT (ignora penalties incorrecto)", () => {

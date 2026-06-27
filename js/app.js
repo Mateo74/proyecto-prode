@@ -124,18 +124,8 @@ let currentStageIndex = 0;
 let predictionsViewWired = false;
 let groupsPollingId = null;
 
-// Etapa del Partido (Partido.etapa, valor crudo del proveedor) → clave del
-// carrusel de etapas. La fase de grupos va siempre primero; las eliminatorias
-// aparecen solo cuando hay partidos de esa etapa en la competencia.
-const ETAPA_TO_STAGE = {
-  GROUP_STAGE: 'group',
-  LAST_32: 'r32',
-  LAST_16: 'r16',
-  QUARTER_FINALS: 'qf',
-  SEMI_FINALS: 'sf',
-  THIRD_PLACE: 'third',
-  FINAL: 'final',
-};
+// Orden de las rondas eliminatorias en el carrusel de etapas (tras la fase de
+// grupos). El mapeo etapa-del-proveedor → clave de ronda vive en js/knockout.js.
 const KNOCKOUT_STAGE_ORDER = ['r32', 'r16', 'qf', 'sf', 'third', 'final'];
 
 function detectPage() {
@@ -897,15 +887,13 @@ function stepGroup(delta) {
   renderCurrentGroup({ animateSwitch: true });
 }
 
-/** Etapas visibles del carrusel superior: la fase de grupos siempre, más las
- *  rondas eliminatorias presentes en los partidos de la competencia. */
+/** Etapas visibles del carrusel superior. Para el Mundial mostramos siempre la
+ *  llave completa (las rondas se rellenan con cruces bloqueados); el resto de
+ *  competencias solo tienen fase de grupos. */
 function availableStages() {
-  const present = new Set();
-  for (const m of predictionsViewMatches) {
-    const stage = ETAPA_TO_STAGE[m.etapa];
-    if (stage && stage !== 'group') present.add(stage);
-  }
-  return ['group', ...KNOCKOUT_STAGE_ORDER.filter(s => present.has(s))];
+  const comp = API.getSelectedCompetencia?.();
+  const isWorldCup = comp && comp.slug === WORLD_CUP_2026_SLUG;
+  return isWorldCup ? ['group', ...KNOCKOUT_STAGE_ORDER] : ['group'];
 }
 
 /** Etapa visible del carrusel superior (group | r32 | r16 | qf | sf | third | final). */
@@ -950,24 +938,27 @@ function renderCurrentStage(opts = {}) {
   }
 }
 
-/** Pinta las tarjetas de una ronda eliminatoria reutilizando las match cards.
- *  Los partidos cuyos equipos aún no están definidos se muestran bloqueados. */
+/** Pinta una ronda eliminatoria. Los cruces reales (con ambos equipos) vienen
+ *  del backend y son predecibles; el resto de la llave se completa con cruces
+ *  BLOQUEADOS fabricados en el cliente (solo visuales, nunca apostables). */
 function renderKnockoutStage(stage, koEl) {
-  if (!koEl) return;
+  if (!koEl || typeof KO === 'undefined') return;
   const enriched = enrichWithUserPredictions(predictionsViewMatches);
-  const matches = enriched
-    .filter(m => ETAPA_TO_STAGE[m.etapa] === stage)
-    .sort((a, b) => new Date(a.fecha) - new Date(b.fecha));
+  const cards = KO.buildStageCards(stage, enriched);
 
   koEl.innerHTML = '';
-  if (!matches.length) {
+  if (!cards.length) {
     koEl.innerHTML = emptyState(t('empty.noMatches'));
     return;
   }
-  for (const m of matches) {
-    const card = Predictions.createMatchCard(m);
-    attachMatchCardNavigation(card, m);
-    koEl.appendChild(card);
+  for (const descriptor of cards) {
+    if (descriptor.type === 'be') {
+      const card = Predictions.createMatchCard(descriptor.match);
+      attachMatchCardNavigation(card, descriptor.match);
+      koEl.appendChild(card);
+    } else {
+      koEl.appendChild(Predictions.createMatchCard(descriptor.locked));
+    }
   }
 }
 
@@ -998,11 +989,10 @@ async function loadPredictionsView() {
  * Los partidos en vivo van primero para que el marcador real más fresco gane.
  */
 async function fetchGroupsMatches(competenciaId) {
-  // Include team-less knockout fixtures so the bracket can show locked matches.
   const [upcoming, live, finished] = await Promise.all([
-    API.getMatches({ competenciaId, estado: 'proximo', incluirSinEquipos: 'true' }).catch(() => []),
-    API.getMatches({ competenciaId, estado: 'en-vivo', incluirSinEquipos: 'true' }).catch(() => []),
-    API.getMatches({ competenciaId, estado: 'finalizado', incluirSinEquipos: 'true' }).catch(() => []),
+    API.getMatches({ competenciaId, estado: 'proximo' }).catch(() => []),
+    API.getMatches({ competenciaId, estado: 'en-vivo' }).catch(() => []),
+    API.getMatches({ competenciaId, estado: 'finalizado' }).catch(() => []),
   ]);
   const seen = new Set();
   return [...live, ...finished, ...upcoming].filter(m => {

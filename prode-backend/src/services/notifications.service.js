@@ -41,9 +41,6 @@ async function findUsersToNotify(now = new Date(), sentSet = new Set()) {
       ],
       estado: { in: ["FUTURO", "PROGRAMADO"] },
       competencia: { visible: true },
-      // Skip knockout fixtures whose teams aren't decided yet (can't be predicted).
-      equipo1Id: { not: null },
-      equipo2Id: { not: null },
     },
     select: {
       id: true,

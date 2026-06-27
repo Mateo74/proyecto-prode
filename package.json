@@ -7,7 +7,7 @@
     "test": "npm run lint:js && npm run test:frontend",
     "test:all": "npm run lint:js && npm run test:frontend && npm --prefix prode-backend test",
     "test:frontend": "playwright test",
-    "lint:js": "node --check js/app.js js/api.js js/i18n.js js/predictions.js js/config.example.js",
+    "lint:js": "node --check js/app.js js/api.js js/i18n.js js/predictions.js js/knockout.js js/config.example.js",
     "sync": "cap sync",
     "android": "cap run android",
     "ios": "cap run ios",

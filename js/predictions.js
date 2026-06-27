@@ -162,20 +162,15 @@ const Predictions = (() => {
   }
 
   function createMatchCard(match) {
-    if (isLockedFixture(match))        return createLockedCard(match);
+    if (match.locked === true)         return createLockedCard(match);
     if (match.estado === 'en-vivo')    return createLiveCard(match);
     if (match.estado === 'finalizado') return createFinishedCard(match);
     if (match.estado === 'suspendido' || match.estado === 'cancelado') return createStatusCard(match);
     return createUpcomingCard(match);
   }
 
-  /** Un cruce eliminatorio cuyos dos equipos aún no están definidos no se puede
-   *  predecir: se muestra bloqueado. Basta con que falte un lado. */
-  function isLockedFixture(match) {
-    return !match.equipo1Id || !match.equipo2Id;
-  }
-
-  /** Lado del cruce: equipo real si ya está definido, o "Por definir" si no. */
+  /** Lado de un cruce bloqueado: el equipo real si el cliente pudo resolverlo, o
+   *  la etiqueta de slot ("2A", "G73", "3º C/D/F") / "Por definir" si no. */
   function lockedSideHtml(match, side) {
     const id = side === 1 ? match.equipo1Id : match.equipo2Id;
     if (id) {
@@ -187,29 +182,30 @@ const Predictions = (() => {
           <div class="team__name">${name}</div>
         </div>`;
     }
+    const label = side === 1 ? match.equipo1SlotLabel : match.equipo2SlotLabel;
     return `
         <div class="team team--tbd">
           <div class="team__badge team__badge--tbd" aria-hidden="true">?</div>
-          <div class="team__name team__name--tbd">${t('ko.tbd')}</div>
+          <div class="team__name team__name--tbd">${escapeHtml(label || t('ko.tbd'))}</div>
         </div>`;
   }
 
-  // ─── CRUCE BLOQUEADO (equipos sin definir) ────────────────────────
+  /**
+   * Cruce BLOQUEADO fabricado en el cliente (solo visual). Nunca predecible: no
+   * tiene inputs ni navega al detalle. Puede mostrar un equipo ya resuelto por
+   * resultados reales, pero igual queda bloqueado por no venir del backend.
+   */
   function createLockedCard(match) {
     const card = document.createElement('div');
     card.classList.add('match-card', 'is-locked', 'is-ko-locked');
     card.dataset.matchId = match.id;
 
-    const fecha = new Date(match.fecha).toLocaleString(t('locale'), {
-      weekday: 'short', day: 'numeric', month: 'short',
-      hour: '2-digit', minute: '2-digit',
-    });
+    const meta = match.koMatchNumber
+      ? `<span class="badge badge-soon">${t('ko.matchLabel', { n: match.koMatchNumber })}</span>`
+      : '';
 
     card.innerHTML = `
-      <div class="match-card__meta">
-        ${metaBadges(match, `<span class="badge badge-soon">${t('badge.upcoming')}</span>`)}
-        <span class="match-card__time">${fecha}</span>
-      </div>
+      <div class="match-card__meta">${meta}</div>
 
       <div class="match-card__body">
         ${lockedSideHtml(match, 1)}

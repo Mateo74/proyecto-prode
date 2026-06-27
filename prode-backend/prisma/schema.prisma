@@ -143,8 +143,8 @@ model Equipo {
 model Partido {
   id                   String         @id @default(cuid())
   competenciaId        String
-  equipo1Id            String?
-  equipo2Id            String?
+  equipo1Id            String
+  equipo2Id            String
   equipo1EsLocal       Boolean        @default(false)
   fecha                DateTime
   externalId           String?
@@ -163,8 +163,8 @@ model Partido {
   fechaCreacion        DateTime       @default(now())
   fechaActualizacion   DateTime       @updatedAt
   competencia          Competencia    @relation(fields: [competenciaId], references: [id], onDelete: Cascade)
-  equipo1              Equipo?        @relation("PartidoEquipo1", fields: [equipo1Id], references: [id])
-  equipo2              Equipo?        @relation("PartidoEquipo2", fields: [equipo2Id], references: [id])
+  equipo1              Equipo         @relation("PartidoEquipo1", fields: [equipo1Id], references: [id])
+  equipo2              Equipo         @relation("PartidoEquipo2", fields: [equipo2Id], references: [id])
   predicciones         Prediccion[]
 
   @@index([competenciaId])

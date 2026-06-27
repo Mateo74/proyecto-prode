@@ -139,6 +139,7 @@ const I18n = (() => {
       'ko.tbd':         'Por definir',
       'ko.thirdShort':  '3º',
       'ko.winnerShort': 'G',
+      'ko.loserShort':  'P',
       'ko.matchLabel':  'Partido {{n}}',
       'ko.penAdvance':  'Avanza (penales):',
 
@@ -464,6 +465,7 @@ const I18n = (() => {
       'ko.tbd':         'TBD',
       'ko.thirdShort':  '3rd',
       'ko.winnerShort': 'W',
+      'ko.loserShort':  'L',
       'ko.matchLabel':  'Match {{n}}',
       'ko.penAdvance':  'Advances (pens):',
 

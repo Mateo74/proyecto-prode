@@ -2,8 +2,6 @@ const { estadoPrediccion } = require("./partido.serializer");
 
 function prediccionResponse(prediccion) {
   const partido = prediccion.partido;
-  const equipo1 = partido.equipo1;
-  const equipo2 = partido.equipo2;
   const exacto = Boolean(
     partido.golesEquipo1 != null &&
     partido.golesEquipo2 != null &&
@@ -15,15 +13,15 @@ function prediccionResponse(prediccion) {
     id: prediccion.id,
     matchId: prediccion.partidoId,
     equipo1Id: partido.equipo1Id,
-    equipo1: equipo1?.nombre ?? null,
-    equipo1NombreEn: equipo1?.nombreEn ?? null,
-    equipo1NombreCompleto: equipo1?.nombreCompleto ?? null,
-    equipo1Tipo: equipo1?.tipo ?? null,
+    equipo1: partido.equipo1.nombre,
+    equipo1NombreEn: partido.equipo1.nombreEn ?? null,
+    equipo1NombreCompleto: partido.equipo1.nombreCompleto,
+    equipo1Tipo: partido.equipo1.tipo,
     equipo2Id: partido.equipo2Id,
-    equipo2: equipo2?.nombre ?? null,
-    equipo2NombreEn: equipo2?.nombreEn ?? null,
-    equipo2NombreCompleto: equipo2?.nombreCompleto ?? null,
-    equipo2Tipo: equipo2?.tipo ?? null,
+    equipo2: partido.equipo2.nombre,
+    equipo2NombreEn: partido.equipo2.nombreEn ?? null,
+    equipo2NombreCompleto: partido.equipo2.nombreCompleto,
+    equipo2Tipo: partido.equipo2.tipo,
     liga: partido.competencia?.nombre,
     ligaEn: partido.competencia?.nombreEn ?? null,
     competenciaId: partido.competenciaId,
