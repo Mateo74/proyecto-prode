@@ -580,7 +580,7 @@ async function selectCompetencia(competencia, preferredTab = '') {
   const isMundial = competencia.slug === WORLD_CUP_2026_SLUG;
   document.querySelector('[data-home-tab="grupos"]')?.classList.toggle('hidden', !isMundial);
 
-  let tab = HOME_TABS.includes(preferredTab) ? preferredTab : (isMundial ? 'grupos' : 'partidos');
+  let tab = HOME_TABS.includes(preferredTab) ? preferredTab : 'partidos';
   if (tab === 'grupos' && !isMundial) tab = 'partidos';
   switchHomeTab(tab);
 
@@ -639,7 +639,7 @@ async function loadTorneosForCompetencia(competencia = API.getSelectedCompetenci
 const HOME_TABS = ['grupos', 'partidos', 'torneos'];
 
 function switchHomeTab(tab) {
-  const next = HOME_TABS.includes(tab) ? tab : 'grupos';
+  const next = HOME_TABS.includes(tab) ? tab : 'partidos';
   document.querySelectorAll('[data-home-tab]').forEach(btn => {
     btn.classList.toggle('active', btn.dataset.homeTab === next);
   });
