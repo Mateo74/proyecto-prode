@@ -97,8 +97,7 @@ function groupALive() {
 }
 
 // Drives the real in-app flow: home workspace (index.html) -> select the World
-// Cup competition -> the "Grupos" tab (default for the World Cup) shows the
-// per-group carousel + standings + that group's match cards.
+// Cup competition -> open the "Grupos" tab -> assert the group carousel is ready.
 async function setup(page, matches, lang = "es") {
   await page.addInitScript((l) => {
     localStorage.setItem("once_metros_lang", l);
@@ -136,7 +135,9 @@ async function setup(page, matches, lang = "es") {
 
   await page.goto("/");
   await page.getByRole("button", { name: "Copa Mundial FIFA" }).click();
-  // Selecting the World Cup lands on the Grupos tab; wait for the carousel header.
+
+  // The product default can be "Partidos"; group tests must explicitly navigate to "Grupos".
+  await homeTab(page, "grupos").click();
   await expect(carouselLabel(page)).toHaveText("Grupo A");
 }
 
