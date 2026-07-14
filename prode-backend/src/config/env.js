@@ -22,7 +22,6 @@ const env = {
   NODE_ENV: process.env.NODE_ENV || "development",
   DATABASE_URL: required("DATABASE_URL"),
   GOOGLE_CLIENT_ID: process.env.GOOGLE_CLIENT_ID || "",
-  GOOGLE_CLIENT_SECRET: process.env.GOOGLE_CLIENT_SECRET || "",
   JWT_SECRET: getJwtSecret(),
   JWT_ACCESS_TTL: process.env.JWT_ACCESS_TTL || "15m",
   JWT_TTL: process.env.JWT_TTL || "7d",
@@ -34,8 +33,8 @@ const env = {
   FOOTBAL_DATA_TOKEN: process.env.FOOTBAL_DATA_TOKEN || process.env.FOOTBALL_DATA_TOKEN || "",
   FOOTBALL_DATA_BASE_URL: process.env.FOOTBALL_DATA_BASE_URL || "https://api.football-data.org/v4",
   FOOTBALL_DATA_SYNC_ENABLED: process.env.FOOTBALL_DATA_SYNC_ENABLED !== "false",
-  FRONTEND_BASE_URL: process.env.FRONTEND_BASE_URL || "https://www.oncemetros.com",
   NOTIFICATIONS_ENABLED: process.env.NOTIFICATIONS_ENABLED !== "false",
+  FRONTEND_BASE_URL: process.env.FRONTEND_BASE_URL || "https://www.oncemetros.com",
 };
 
 module.exports = env;

@@ -144,7 +144,26 @@
     return banner;
   }
 
+  // Attempts to jump to the native app automatically (Android only), once per
+  // session. If the app isn't installed or the WebView blocks the handoff, the
+  // browser stays on the page and the banner remains as a manual fallback.
+  function tryAutoOpen() {
+    if (!isAndroid) return;
+    var KEY = "oe_auto_attempted";
+    try {
+      // If we already tried this session, don't loop (the fallback URL reloads
+      // this same page when the app can't handle the intent).
+      if (sessionStorage.getItem(KEY)) return;
+      sessionStorage.setItem(KEY, "1");
+    } catch (e) {
+      // No sessionStorage (private mode) — skip auto-attempt to avoid a loop.
+      return;
+    }
+    window.location.href = androidIntentUrl(currentUrl());
+  }
+
   function mount() {
+    tryAutoOpen();
     injectStyles();
     var banner = buildBanner();
     document.body.appendChild(banner);
