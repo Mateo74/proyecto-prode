@@ -162,10 +162,67 @@ const Predictions = (() => {
   }
 
   function createMatchCard(match) {
+    if (match.locked === true)         return createLockedCard(match);
     if (match.estado === 'en-vivo')    return createLiveCard(match);
     if (match.estado === 'finalizado') return createFinishedCard(match);
     if (match.estado === 'suspendido' || match.estado === 'cancelado') return createStatusCard(match);
     return createUpcomingCard(match);
+  }
+
+  /** Lado de un cruce bloqueado: el equipo real si el cliente pudo resolverlo, o
+   *  la etiqueta de slot ("2A", "G73", "3º C/D/F") / "Por definir" si no. */
+  function lockedSideHtml(match, side) {
+    const id = side === 1 ? match.equipo1Id : match.equipo2Id;
+    if (id) {
+      const name = side === 1 ? equipo1De(match) : equipo2De(match);
+      const crest = side === 1 ? match.equipo1EscudoUrl : match.equipo2EscudoUrl;
+      return `
+        <div class="team">
+          ${teamCrest(name, crest)}
+          <div class="team__name">${name}</div>
+        </div>`;
+    }
+    const label = side === 1 ? match.equipo1SlotLabel : match.equipo2SlotLabel;
+    return `
+        <div class="team team--tbd">
+          <div class="team__badge team__badge--tbd" aria-hidden="true">?</div>
+          <div class="team__name team__name--tbd">${escapeHtml(label || t('ko.tbd'))}</div>
+        </div>`;
+  }
+
+  /**
+   * Cruce BLOQUEADO fabricado en el cliente (solo visual). Nunca predecible: no
+   * tiene inputs ni navega al detalle. Puede mostrar un equipo ya resuelto por
+   * resultados reales, pero igual queda bloqueado por no venir del backend.
+   */
+  function createLockedCard(match) {
+    const card = document.createElement('div');
+    card.classList.add('match-card', 'is-locked', 'is-ko-locked');
+    card.dataset.matchId = match.id;
+
+    // Reuse the standard meta badges (league + upcoming) so a fabricated cross
+    // doesn't look bare; the bracket position rides in the "time" slot.
+    const upcoming = `<span class="badge badge-soon">${t('badge.upcoming')}</span>`;
+    const numberHtml = match.koMatchNumber
+      ? `<span class="match-card__time">${t('ko.matchLabel', { n: match.koMatchNumber })}</span>`
+      : '';
+
+    card.innerHTML = `
+      <div class="match-card__meta">
+        ${metaBadges(match, upcoming)}
+        ${numberHtml}
+      </div>
+
+      <div class="match-card__body">
+        ${lockedSideHtml(match, 1)}
+        <div class="match-score">
+          <span class="match-score__minute ko-lock" title="${t('ko.locked')}">🔒</span>
+        </div>
+        ${lockedSideHtml(match, 2)}
+      </div>
+    `;
+
+    return card;
   }
 
   // ─── PARTIDO PRÓXIMO ──────────────────────────────────────────────

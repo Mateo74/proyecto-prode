@@ -131,6 +131,7 @@ const I18n = (() => {
       'ko.stage.r16':   'Octavos',
       'ko.stage.qf':    'Cuartos',
       'ko.stage.sf':    'Semifinales',
+      'ko.stage.third': 'Tercer puesto',
       'ko.stage.final': 'Final',
       'ko.prevStage':   'Etapa anterior',
       'ko.nextStage':   'Etapa siguiente',
@@ -138,6 +139,7 @@ const I18n = (() => {
       'ko.tbd':         'Por definir',
       'ko.thirdShort':  '3º',
       'ko.winnerShort': 'G',
+      'ko.loserShort':  'P',
       'ko.matchLabel':  'Partido {{n}}',
       'ko.penAdvance':  'Avanza (penales):',
 
@@ -455,6 +457,7 @@ const I18n = (() => {
       'ko.stage.r16':   'Round of 16',
       'ko.stage.qf':    'Quarter-finals',
       'ko.stage.sf':    'Semi-finals',
+      'ko.stage.third': 'Third place',
       'ko.stage.final': 'Final',
       'ko.prevStage':   'Previous stage',
       'ko.nextStage':   'Next stage',
@@ -462,6 +465,7 @@ const I18n = (() => {
       'ko.tbd':         'TBD',
       'ko.thirdShort':  '3rd',
       'ko.winnerShort': 'W',
+      'ko.loserShort':  'L',
       'ko.matchLabel':  'Match {{n}}',
       'ko.penAdvance':  'Advances (pens):',
 

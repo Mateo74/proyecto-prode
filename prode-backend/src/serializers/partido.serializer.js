@@ -40,6 +40,7 @@ function partidoResponse(partido, userPrediccion) {
     competencia: partido.competencia
       ? { id: partido.competencia.id, nombre: partido.competencia.nombre, nombreEn: partido.competencia.nombreEn ?? null, slug: partido.competencia.slug }
       : null,
+    etapa: partido.etapa ?? null,
     equipo1Id: partido.equipo1Id,
     equipo1: partido.equipo1.nombre,
     equipo1NombreEn: partido.equipo1.nombreEn ?? null,

@@ -51,6 +51,12 @@
         </div>
 
         <div id="home-tab-grupos" class="tab-content">
+          <div class="stage-carousel hidden">
+            <button class="group-carousel__nav stage-carousel__prev" type="button" data-i18n-aria="ko.prevStage" aria-label="Etapa anterior">‹</button>
+            <div class="group-carousel__label stage-carousel__label" id="stage-carousel-label"></div>
+            <button class="group-carousel__nav stage-carousel__next" type="button" data-i18n-aria="ko.nextStage" aria-label="Etapa siguiente">›</button>
+          </div>
+
           <div id="stage-group">
             <div class="predictions-split">
               <div class="predictions-split__pane predictions-split__standings">
@@ -64,6 +70,8 @@
               <div class="predictions-split__pane predictions-split__matches" id="group-matches"></div>
             </div>
           </div>
+
+          <div id="stage-knockout" class="hidden predictions-split__matches"></div>
         </div>
 
         <div id="home-tab-partidos" class="tab-content hidden">
@@ -97,6 +105,7 @@
   <script src="js/predictions.js"></script>
   <script src="js/world-cup-2026.js"></script>
   <script src="js/groups.js"></script>
+  <script src="js/knockout.js"></script>
   <script src="js/app.js"></script>
 </body>
 </html>

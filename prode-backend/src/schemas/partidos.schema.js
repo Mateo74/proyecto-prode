@@ -45,6 +45,7 @@ const partidoPayload = registry.register(
     equipo2Tipo: z.enum(["CLUB", "SELECCION"]),
     equipo2EscudoUrl: z.string().nullable().optional(),
     equipo1EsLocal: z.boolean(),
+    etapa: z.string().nullable(),
     estado: z.enum(ESTADO_FRONT),
     estadoRaw: z.string(),
     scoreEquipo1: z.number().nullable(),

@@ -1,30 +1,36 @@
 /**
  * knockout.js
- * Llaves eliminatorias de la Copa Mundial 2026 (Dieciseisavos → Final).
+ * Llave eliminatoria de la Copa Mundial 2026 (Dieciseisavos → Final + 3er puesto).
  *
- * Modelo (acordado con el usuario):
- *  - Los cruces de Dieciseisavos (R32) se arman con RESULTADOS REALES de los
- *    grupos: 1º/2º de cada grupo + los 8 mejores terceros. Un cruce solo se
- *    puede predecir cuando ambos equipos quedaron determinados de verdad (los
- *    partidos del grupo terminaron y el equipo clasificó).
- *  - Rondas siguientes: los participantes salen del GANADOR PREDICHO de la ronda
- *    anterior; un cruce se desbloquea cuando ambos alimentadores tienen ganador.
- *  - La predicción es por marcador (como en grupos). Si el usuario predice empate
- *    debe elegir quién avanza por penales.
- *  - Como el backend no tiene partidos de eliminatorias, las predicciones se
- *    guardan en localStorage.
+ * Modelo (acordado con el equipo):
+ *  - Los cruces REALES (con ambos equipos definidos) los provee el backend como
+ *    Partidos con `etapa`. Esos son los únicos PREDECIBLES.
+ *  - El resto de la llave se completa en el cliente con cruces BLOQUEADOS: son
+ *    solo visuales y NUNCA permiten apostar, aunque podamos resolver uno o ambos
+ *    equipos a partir de resultados reales (posiciones de grupo en R32, o el
+ *    ganador real de la ronda anterior). Nunca fabricamos un partido predecible.
  *
- * Estructura oficial (FIFA, partidos 73–104) y conjuntos de grupos permitidos
- * por slot de tercero según el Anexo C del reglamento.
+ * Estructura oficial FIFA (partidos 73–104) y conjuntos de grupos permitidos por
+ * slot de tercero según el Anexo C del reglamento.
  */
 const KO = (() => {
-  const STAGES = ['group', 'r32', 'r16', 'qf', 'sf', 'final'];
+  // Etapa cruda del proveedor (Partido.etapa) → clave de ronda interna.
+  const ETAPA_TO_STAGE = {
+    GROUP_STAGE: 'group',
+    LAST_32: 'r32',
+    LAST_16: 'r16',
+    QUARTER_FINALS: 'qf',
+    SEMI_FINALS: 'sf',
+    THIRD_PLACE: 'third',
+    FINAL: 'final',
+  };
 
   // Slot helpers:
-  //   { pos: '1', group: 'E' }            → ganador de grupo E
-  //   { pos: '2', group: 'A' }            → segundo de grupo A
-  //   { pos: '3', groups: [...] }         → mejor tercero (slot = id del partido)
-  //   { win: 'm73' }                      → ganador (predicho) del partido m73
+  //   { pos: '1', group: 'E' }    → ganador de grupo E
+  //   { pos: '2', group: 'A' }    → segundo de grupo A
+  //   { pos: '3', groups: [...] } → mejor tercero (el slot define los grupos válidos)
+  //   { win: 'm73' }              → ganador REAL del partido m73
+  //   { lose: 'm101' }            → perdedor REAL del partido m101 (3er puesto)
   const BRACKET = {
     r32: [
       { id: 'm73', n: 73, a: { pos: '2', group: 'A' }, b: { pos: '2', group: 'B' } },
@@ -64,38 +70,24 @@ const KO = (() => {
       { id: 'm101', n: 101, a: { win: 'm97' }, b: { win: 'm98' } },
       { id: 'm102', n: 102, a: { win: 'm99' }, b: { win: 'm100' } },
     ],
+    third: [
+      { id: 'm103', n: 103, a: { lose: 'm101' }, b: { lose: 'm102' } },
+    ],
     final: [
       { id: 'm104', n: 104, a: { win: 'm101' }, b: { win: 'm102' } },
     ],
   };
 
-  // Slots de tercero (Anexo C): grupos permitidos por cada cruce.
-  const THIRD_SLOTS = [
-    ['m74', ['A', 'B', 'C', 'D', 'F']],
-    ['m77', ['C', 'D', 'F', 'G', 'H']],
-    ['m79', ['C', 'E', 'F', 'H', 'I']],
-    ['m80', ['E', 'H', 'I', 'J', 'K']],
-    ['m81', ['B', 'E', 'F', 'I', 'J']],
-    ['m82', ['A', 'E', 'H', 'I', 'J']],
-    ['m85', ['E', 'F', 'G', 'I', 'J']],
-    ['m87', ['D', 'E', 'I', 'J', 'L']],
-  ];
+  const STAGES = ['group', 'r32', 'r16', 'qf', 'sf', 'third', 'final'];
+  const KNOCKOUT_STAGES = ['r32', 'r16', 'qf', 'sf', 'third', 'final'];
 
   const matchById = {};
-  for (const stage of ['r32', 'r16', 'qf', 'sf', 'final']) {
+  for (const stage of KNOCKOUT_STAGES) {
     for (const m of BRACKET[stage]) matchById[m.id] = m;
   }
 
   let _competenciaId = null;
   function setCompetencia(id) { _competenciaId = id; }
-  function storageKey() { return `once_metros_ko_${_competenciaId || 'wc'}`; }
-  function loadPreds() {
-    try { return JSON.parse(localStorage.getItem(storageKey())) || {}; }
-    catch { return {}; }
-  }
-  function savePreds(preds) {
-    try { localStorage.setItem(storageKey(), JSON.stringify(preds)); } catch { /* ignore */ }
-  }
 
   // ─── Tabla real de grupos (solo partidos finalizados) ─────────────
   function cmpRows(a, b) {
@@ -117,7 +109,7 @@ const KO = (() => {
       finishedCount[letter] = 0;
       for (const id of ids) {
         teamToGroup[id] = letter;
-        stats[letter][id] = { id, name: teams[id]?.nombre || id, pj: 0, gf: 0, gc: 0, pts: 0 };
+        stats[letter][id] = { id, name: teams[id]?.nombre || id, gf: 0, gc: 0, pts: 0 };
       }
     }
 
@@ -136,7 +128,6 @@ const KO = (() => {
       const r2 = stats[letter][id2];
       if (!r1 || !r2) continue;
       finishedCount[letter]++;
-      r1.pj++; r2.pj++;
       r1.gf += s1; r1.gc += s2;
       r2.gf += s2; r2.gc += s1;
       if (s1 > s2) r1.pts += 3;
@@ -152,8 +143,6 @@ const KO = (() => {
       standings[letter] = { rows, first: rows[0], second: rows[1], third: rows[2], decided };
     }
 
-    // Asignación de terceros: requiere TODOS los grupos definidos para rankear
-    // los 12 terceros y quedarte con los 8 mejores.
     const allDecided = Object.values(standings).every(g => g.decided);
     let allocation = null;
     if (allDecided) {
@@ -167,11 +156,19 @@ const KO = (() => {
     return { standings, allocation, allDecided };
   }
 
-  /**
-   * Asigna cada slot de tercero a un grupo clasificado respetando los conjuntos
-   * permitidos del Anexo C (emparejamiento perfecto por backtracking, orden
-   * determinista). Devuelve { matchId: 'C', ... } o null si no hay asignación.
-   */
+  // Slots de tercero (Anexo C): grupos permitidos por cada cruce.
+  const THIRD_SLOTS = [
+    ['m74', ['A', 'B', 'C', 'D', 'F']],
+    ['m77', ['C', 'D', 'F', 'G', 'H']],
+    ['m79', ['C', 'E', 'F', 'H', 'I']],
+    ['m80', ['E', 'H', 'I', 'J', 'K']],
+    ['m81', ['B', 'E', 'F', 'I', 'J']],
+    ['m82', ['A', 'E', 'H', 'I', 'J']],
+    ['m85', ['E', 'F', 'G', 'I', 'J']],
+    ['m87', ['D', 'E', 'I', 'J', 'L']],
+  ];
+
+  /** Empareja cada slot de tercero con un grupo clasificado (Anexo C). */
   function allocateThirds(qualifiedGroups) {
     const qset = new Set(qualifiedGroups);
     const used = new Set();
@@ -191,167 +188,164 @@ const KO = (() => {
     return solve(0) ? result : null;
   }
 
-  // ─── Resolución de slots a equipos concretos ──────────────────────
-  function resolveSlot(slot, matchId, ctx, preds, memo) {
-    if (slot.win) return winnerTeam(slot.win, ctx, preds, memo);
-    const g = ctx.standings[slot.group];
-    if (slot.pos === '1') return g && g.decided ? g.first : null;
-    if (slot.pos === '2') return g && g.decided ? g.second : null;
-    if (slot.pos === '3') {
+  // ─── Resolución de equipos por resultados REALES ──────────────────
+  /** Equipo (fila) de un seed de grupo, o null si el grupo no está decidido. */
+  function resolveSeed(side, ctx, slotId) {
+    const g = ctx.standings[side.group];
+    if (side.pos === '1') return g && g.decided ? g.first : null;
+    if (side.pos === '2') return g && g.decided ? g.second : null;
+    if (side.pos === '3') {
       if (!ctx.allocation) return null;
-      const group = ctx.allocation[matchId];
+      const group = ctx.allocation[slotId];
       return group ? ctx.standings[group].third : null;
     }
     return null;
   }
 
-  function resolveMatch(matchId, ctx, preds, memo) {
-    if (memo[matchId]) return memo[matchId];
-    const m = matchById[matchId];
-    const out = { a: null, b: null };
-    memo[matchId] = out; // evita reentradas (la llave es un DAG)
-    out.a = resolveSlot(m.a, matchId, ctx, preds, memo);
-    out.b = resolveSlot(m.b, matchId, ctx, preds, memo);
-    return out;
+  function canonicalIds(match) {
+    return [teamIdFromMatch(match, 1), teamIdFromMatch(match, 2)];
   }
 
-  /** Lado ganador ('a'|'b'|null) según la predicción por marcador.
-   * Un empate en eliminatorias no determina ganador (la ronda siguiente
-   * queda bloqueada hasta que se conozca el resultado real). */
-  function winnerSide(pred) {
-    if (!pred || pred.s1 == null || pred.s2 == null) return null;
-    const s1 = Number(pred.s1);
-    const s2 = Number(pred.s2);
-    if (s1 > s2) return 'a';
-    if (s2 > s1) return 'b';
-    return null; // empate → ganador indeterminado
+  /** Construye una fila {id,name,crest} desde un lado de un Partido del backend. */
+  function rowFromMatch(match, side) {
+    const id = teamIdFromMatch(match, side);
+    if (!id) return null;
+    const name = side === 1 ? (match.equipo1 ?? match.equipoLocal) : (match.equipo2 ?? match.equipoVisitante);
+    const crest = side === 1 ? match.equipo1EscudoUrl : match.equipo2EscudoUrl;
+    return { id, name: name || id, crest: crest || null };
   }
 
-  function winnerTeam(matchId, ctx, preds, memo) {
-    const { a, b } = resolveMatch(matchId, ctx, preds, memo);
-    if (!a || !b) return null;
-    const side = winnerSide(preds[matchId]);
-    if (!side) return null;
-    return side === 'a' ? a : b;
+  /** Lado ganador real (1|2|null) de un Partido finalizado (sin penales). */
+  function winningSide(match) {
+    if (!match || match.estado !== 'finalizado') return null;
+    const s1 = Number(match.scoreEquipo1 ?? match.scoreLocal);
+    const s2 = Number(match.scoreEquipo2 ?? match.scoreVisitante);
+    if (!Number.isFinite(s1) || !Number.isFinite(s2) || s1 === s2) return null;
+    return s1 > s2 ? 1 : 2;
+  }
+
+  function samePair(match, idA, idB) {
+    const [m1, m2] = canonicalIds(match);
+    return (m1 === idA && m2 === idB) || (m1 === idB && m2 === idA);
+  }
+
+  /**
+   * Resuelve TODA la llave a partir de los Partidos reales del backend.
+   * Devuelve { [slotId]: { slot, a, b, be, winner, loser } } donde a/b son filas
+   * resueltas (o null), `be` el Partido real del cruce (predecible) si existe, y
+   * winner/loser las filas del resultado real (para alimentar rondas siguientes).
+   */
+  function resolveAll(allMatches = []) {
+    const ctx = computeContext(allMatches);
+    const beByStage = {};
+    for (const m of allMatches) {
+      const stage = ETAPA_TO_STAGE[m.etapa];
+      if (stage && stage !== 'group') (beByStage[stage] ||= []).push(m);
+    }
+
+    const map = {};
+    const used = new Set();
+
+    const resolveSide = (side, slotId) => {
+      if (side.win) return map[side.win]?.winner || null;
+      if (side.lose) return map[side.lose]?.loser || null;
+      return resolveSeed(side, ctx, slotId);
+    };
+
+    for (const stage of KNOCKOUT_STAGES) {
+      const slots = BRACKET[stage];
+      const beList = beByStage[stage] || [];
+
+      for (const slot of slots) {
+        const a = resolveSide(slot.a, slot.id);
+        const b = resolveSide(slot.b, slot.id);
+        let be = null;
+        if (a && b) {
+          be = beList.find(m => !used.has(m.id) && samePair(m, a.id, b.id)) || null;
+          if (be) used.add(be.id);
+        }
+        map[slot.id] = { slot, a, b, be };
+      }
+
+      // Partidos reales de esta ronda que no calzaron por equipos (p. ej. grupos
+      // aún no resueltos en nuestra tabla): ubícalos en los slots libres.
+      const freeSlots = slots.filter(s => !map[s.id].be);
+      const leftover = beList.filter(m => !used.has(m.id));
+      for (const m of leftover) {
+        const slot = freeSlots.shift();
+        if (!slot) break;
+        used.add(m.id);
+        map[slot.id].be = m;
+      }
+
+      // Ganador/perdedor real para alimentar las rondas siguientes.
+      for (const slot of slots) {
+        const entry = map[slot.id];
+        const ws = winningSide(entry.be);
+        entry.winner = ws ? rowFromMatch(entry.be, ws) : null;
+        entry.loser = ws ? rowFromMatch(entry.be, ws === 1 ? 2 : 1) : null;
+      }
+    }
+
+    return map;
   }
 
   // ─── Etiquetas de slot cuando el equipo aún no está definido ──────
-  function slotLabel(slot) {
-    if (slot.win) {
-      const src = matchById[slot.win];
-      return `${t('ko.winnerShort')}${src ? src.n : ''}`;
-    }
-    if (slot.pos === '3') return `${t('ko.thirdShort')} ${slot.groups.join('/')}`;
-    return `${slot.pos}${slot.group}`;
+  function slotLabel(side) {
+    if (side.win) return `${t('ko.winnerShort')}${matchById[side.win]?.n ?? ''}`;
+    if (side.lose) return `${t('ko.loserShort')}${matchById[side.lose]?.n ?? ''}`;
+    if (side.pos === '3') return `${t('ko.thirdShort')} ${side.groups.join('/')}`;
+    return `${side.pos}${side.group}`;
+  }
+
+  /** Tarjeta sintética BLOQUEADA (no predecible) para un cruce sin partido real. */
+  function lockedDescriptor(entry) {
+    return {
+      id: `ko-${entry.slot.id}`,
+      locked: true,
+      koMatchNumber: entry.slot.n,
+      equipo1Id: entry.a?.id ?? null,
+      equipo1: entry.a?.name ?? null,
+      equipo1EscudoUrl: entry.a?.crest ?? null,
+      equipo1SlotLabel: entry.a ? null : slotLabel(entry.slot.a),
+      equipo2Id: entry.b?.id ?? null,
+      equipo2: entry.b?.name ?? null,
+      equipo2EscudoUrl: entry.b?.crest ?? null,
+      equipo2SlotLabel: entry.b ? null : slotLabel(entry.slot.b),
+    };
+  }
+
+  /**
+   * Descriptores de tarjeta de una ronda, en orden de llave. Cada uno es:
+   *   { type: 'be', match }       → cruce real del backend (predecible)
+   *   { type: 'locked', locked }  → cruce fabricado y bloqueado (solo visual)
+   */
+  function buildStageCards(stage, allMatches = []) {
+    if (!BRACKET[stage]) return [];
+    const map = resolveAll(allMatches);
+    return BRACKET[stage].map(slot => {
+      const entry = map[slot.id];
+      return entry.be
+        ? { type: 'be', match: entry.be }
+        : { type: 'locked', locked: lockedDescriptor(entry) };
+    });
   }
 
   function stageLabel(stage) { return t(`ko.stage.${stage}`); }
   function isGroupStage(stage) { return stage === 'group'; }
 
-  // ─── Render ───────────────────────────────────────────────────────
-  function teamSlotHtml(team, slot) {
-    if (team) {
-      const display = localizeTeamName(team.id, team.name);
-      return `
-        <div class="ko-team" data-team-id="${team.id}">
-          <span class="ko-team__crest">${Predictions.teamCrest(display, team.crest)}</span>
-          <span class="ko-team__name">${escapeHtml(display)}</span>
-        </div>`;
-    }
-    return `
-        <div class="ko-team ko-team--tbd">
-          <span class="ko-team__name">${escapeHtml(slotLabel(slot))}</span>
-        </div>`;
-  }
-
-  function renderStage(stage, allMatches) {
-    const wrap = document.createElement('div');
-    wrap.className = 'ko-bracket';
-    if (!BRACKET[stage]) return wrap;
-
-    const ctx = computeContext(allMatches);
-    const preds = loadPreds();
-    const memo = {};
-
-    for (const m of BRACKET[stage]) {
-      const { a, b } = resolveMatch(m.id, ctx, preds, memo);
-      const unlocked = Boolean(a && b);
-      wrap.appendChild(buildKoCard(m, a, b, unlocked, preds));
-    }
-    return wrap;
-  }
-
-  function buildKoCard(m, teamA, teamB, unlocked, preds) {
-    const card = document.createElement('div');
-    card.className = 'ko-match' + (unlocked ? '' : ' is-locked');
-    card.dataset.koId = m.id;
-
-    const pred = preds[m.id] || {};
-    const v1 = unlocked && pred.s1 != null ? pred.s1 : '';
-    const v2 = unlocked && pred.s2 != null ? pred.s2 : '';
-
-    const scoreHtml = unlocked
-      ? `<div class="ko-score">
-           <input class="ko-score__box" type="text" inputmode="numeric" maxlength="2" data-side="a" value="${v1}" placeholder="-" autocomplete="off">
-           <span class="ko-score__sep">:</span>
-           <input class="ko-score__box" type="text" inputmode="numeric" maxlength="2" data-side="b" value="${v2}" placeholder="-" autocomplete="off">
-         </div>`
-      : `<div class="ko-score ko-score--locked" title="${t('ko.locked')}">🔒</div>`;
-
-    card.innerHTML = `
-      <div class="ko-match__meta">${t('ko.matchLabel', { n: m.n })}</div>
-      <div class="ko-match__body">
-        ${teamSlotHtml(teamA, m.a)}
-        ${scoreHtml}
-        ${teamSlotHtml(teamB, m.b)}
-      </div>`;
-
-    if (unlocked) wireKoCard(card, m, teamA, teamB);
-    updateKoCard(card, m, pred);
-    return card;
-  }
-
-  function wireKoCard(card, m, teamA, teamB) {
-    const boxes = card.querySelectorAll('.ko-score__box');
-    boxes.forEach(input => {
-      input.addEventListener('input', () => {
-        input.value = input.value.replace(/\D/g, '').slice(0, 2);
-        commitKoCard(card, m);
-      });
-    });
-  }
-
-  function commitKoCard(card, m) {
-    const a = card.querySelector('.ko-score__box[data-side="a"]').value;
-    const b = card.querySelector('.ko-score__box[data-side="b"]').value;
-    const preds = loadPreds();
-    const pred = preds[m.id] || {};
-    pred.s1 = a === '' ? null : parseInt(a, 10);
-    pred.s2 = b === '' ? null : parseInt(b, 10);
-    preds[m.id] = pred;
-    savePreds(preds);
-    updateKoCard(card, m, pred);
-    document.dispatchEvent(new CustomEvent('knockout:change', { detail: { matchId: m.id } }));
-  }
-
-  /** Resalta al ganador según la predicción por marcador. */
-  function updateKoCard(card, m, pred) {
-    const teams = card.querySelectorAll('.ko-team');
-    teams.forEach(el => el.classList.remove('is-winner'));
-    const side = winnerSide(pred);
-    if (side === 'a' && teams[0]) teams[0].classList.add('is-winner');
-    if (side === 'b' && teams[1]) teams[1].classList.add('is-winner');
-  }
-
   return {
     STAGES,
+    KNOCKOUT_STAGES,
     BRACKET,
     THIRD_SLOTS,
-    stageLabel,
-    isGroupStage,
+    ETAPA_TO_STAGE,
     setCompetencia,
-    renderStage,
     computeContext,
     allocateThirds,
+    resolveAll,
+    buildStageCards,
+    stageLabel,
+    isGroupStage,
   };
 })();

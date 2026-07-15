@@ -120,8 +120,13 @@ let lastLoadedMatches = [];
 // estados) y el índice del grupo visible en el carrusel.
 let predictionsViewMatches = [];
 let currentGroupIndex = 0;
+let currentStageIndex = 0;
 let predictionsViewWired = false;
 let groupsPollingId = null;
+
+// Orden de las rondas eliminatorias en el carrusel de etapas (tras la fase de
+// grupos). El mapeo etapa-del-proveedor → clave de ronda vive en js/knockout.js.
+const KNOCKOUT_STAGE_ORDER = ['r32', 'r16', 'qf', 'sf', 'third', 'final'];
 
 function detectPage() {
   const p = window.location.pathname;
@@ -809,6 +814,8 @@ function syncMatchesListFromState() {
 }
 
 function attachMatchCardNavigation(card, match) {
+  // Locked knockout fixtures (teams undefined) have no detail to show.
+  if (!match.equipo1Id || !match.equipo2Id) return;
   card.addEventListener('click', e => {
     if (e.target.tagName === 'INPUT') return;
     const torneo = API.getSelectedTorneo();
@@ -856,11 +863,15 @@ function setupPredictionsView() {
   prev?.addEventListener('click', () => stepGroup(-1));
   next?.addEventListener('click', () => stepGroup(1));
 
+  // Carrusel de etapas (Fase de grupos → R32 → … → Final), encima del de grupos.
+  document.querySelector('.stage-carousel__prev')?.addEventListener('click', () => stepStage(-1));
+  document.querySelector('.stage-carousel__next')?.addEventListener('click', () => stepStage(1));
+
   // Editar una predicción solo cambia la columna de puntos predichos (el orden
   // y los stats reales no dependen de la predicción), así que refrescamos la
   // tabla sin animación.
   document.addEventListener('prediction:change', event => {
-    if (!isGroupsTabActive()) return;
+    if (!isGroupsTabActive() || !isGroupStageActive()) return;
     const matchId = event.detail?.matchId;
     const match = predictionsViewMatches.find(m => m.id === matchId);
     if (!match || groupLetterForMatch(match) !== currentGroupLetter()) return;
@@ -874,6 +885,90 @@ function stepGroup(delta) {
   if (!letters.length) return;
   currentGroupIndex = (currentGroupIndex + delta + letters.length) % letters.length;
   renderCurrentGroup({ animateSwitch: true });
+}
+
+/** Etapas visibles del carrusel superior. Para el Mundial mostramos siempre la
+ *  llave completa (las rondas se rellenan con cruces bloqueados); el resto de
+ *  competencias solo tienen fase de grupos. */
+function availableStages() {
+  const comp = API.getSelectedCompetencia?.();
+  const isWorldCup = comp && comp.slug === WORLD_CUP_2026_SLUG;
+  return isWorldCup ? ['group', ...KNOCKOUT_STAGE_ORDER] : ['group'];
+}
+
+/** Etapa visible del carrusel superior (group | r32 | r16 | qf | sf | third | final). */
+function currentStage() {
+  const stages = availableStages();
+  return stages[currentStageIndex] || 'group';
+}
+function isGroupStageActive() {
+  return currentStage() === 'group';
+}
+
+/** Avanza el carrusel de etapas con wrap. */
+function stepStage(delta) {
+  const stages = availableStages();
+  if (stages.length <= 1) return;
+  currentStageIndex = (currentStageIndex + delta + stages.length) % stages.length;
+  renderCurrentStage();
+}
+
+/** Muestra la etapa actual: fase de grupos (carrusel + tabla) o una llave. */
+function renderCurrentStage(opts = {}) {
+  const stages = availableStages();
+  if (currentStageIndex >= stages.length) currentStageIndex = 0;
+  const stage = currentStage();
+
+  // El conmutador de etapas solo tiene sentido cuando ya hay eliminatorias.
+  const carousel = document.querySelector('.stage-carousel');
+  carousel?.classList.toggle('hidden', stages.length <= 1);
+
+  const label = document.getElementById('stage-carousel-label');
+  if (label) label.textContent = t(`ko.stage.${stage}`);
+
+  const isGroup = stage === 'group';
+  document.getElementById('stage-group')?.classList.toggle('hidden', !isGroup);
+  const koEl = document.getElementById('stage-knockout');
+  koEl?.classList.toggle('hidden', isGroup);
+
+  if (isGroup) {
+    renderCurrentGroup(opts);
+  } else {
+    renderKnockoutStage(stage, koEl);
+  }
+}
+
+/** Pinta una ronda eliminatoria. Los cruces reales (con ambos equipos) vienen
+ *  del backend y son predecibles; el resto de la llave se completa con cruces
+ *  BLOQUEADOS fabricados en el cliente (solo visuales, nunca apostables). */
+function renderKnockoutStage(stage, koEl) {
+  if (!koEl || typeof KO === 'undefined') return;
+  const enriched = enrichWithUserPredictions(predictionsViewMatches);
+  const cards = KO.buildStageCards(stage, enriched);
+  const comp = API.getSelectedCompetencia?.();
+
+  koEl.innerHTML = '';
+  if (!cards.length) {
+    koEl.innerHTML = emptyState(t('empty.noMatches'));
+    return;
+  }
+  for (const descriptor of cards) {
+    if (descriptor.type === 'be') {
+      const card = Predictions.createMatchCard(descriptor.match);
+      attachMatchCardNavigation(card, descriptor.match);
+      koEl.appendChild(card);
+    } else {
+      // Decorate the fabricated cross with the competition so its card shows the
+      // same league badge as real ones (the engine stays competition-agnostic).
+      const locked = descriptor.locked;
+      if (comp) {
+        locked.liga = comp.nombre;
+        locked.ligaEn = comp.nombreEn ?? null;
+        locked.competencia = { slug: comp.slug };
+      }
+      koEl.appendChild(Predictions.createMatchCard(locked));
+    }
+  }
 }
 
 async function loadPredictionsView() {
@@ -892,7 +987,7 @@ async function loadPredictionsView() {
 
   try {
     predictionsViewMatches = await fetchGroupsMatches(competencia.id);
-    renderCurrentGroup();
+    renderCurrentStage();
   } catch (error) {
     standings.innerHTML = errorState(error.message);
   }
@@ -935,7 +1030,7 @@ async function refreshGroupsLive() {
   if (!competencia) return;
   try {
     predictionsViewMatches = await fetchGroupsMatches(competencia.id);
-    renderCurrentGroup();
+    renderCurrentStage();
   } catch { /* conserva el snapshot anterior */ }
 }
 

@@ -238,6 +238,7 @@ async function upsertExternalMatch(dto, now = new Date()) {
       fecha: dto.utcDate,
       externalId: dto.externalId,
       proveedor: PROVIDER,
+      etapa: dto.stage ?? null,
       estado: dto.status,
       golesEquipo1: dto.scoreHome,
       golesEquipo2: dto.scoreAway,
